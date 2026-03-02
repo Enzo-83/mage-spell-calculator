@@ -87,6 +87,38 @@
             grid-column: 1 / -1;
         }
         
+        .spell-name-group {
+            margin-bottom: 16px;
+        }
+        
+        .spell-name-group input {
+            background: var(--bg-dark);
+            border: 1px solid var(--accent);
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 1em;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .spell-name-group input:focus {
+            outline: none;
+            border-color: var(--accent-light);
+            box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.3);
+        }
+        
+        .spell-name-group input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+        
+        .optional-label {
+            font-weight: normal;
+            text-transform: none;
+            opacity: 0.7;
+        }
+        
         label {
             font-size: 0.85em;
             color: var(--text-muted);
@@ -1911,6 +1943,12 @@
         <!-- Spell Info -->
         <div class="card">
             <h2>Spell</h2>
+            
+            <!-- Spell Name (optional) -->
+            <div class="form-group spell-name-group">
+                <label>Spell Name <span class="optional-label">(optional)</span></label>
+                <input type="text" id="spellName" placeholder="e.g., Supernal Vision, Counterspell Prime...">
+            </div>
             
             <!-- Combined Spell Toggle -->
             <div class="combined-spell-toggle" id="combinedToggle">
@@ -4073,6 +4111,9 @@
                 const spell = findSpellById(spellId);
                 if (!spell) return;
                 
+                // Set spell name
+                document.getElementById('spellName').value = spell.name || '';
+                
                 // Set casting method based on spell type
                 let castingMethod = 'improvised';
                 if (spell.type === 'rote') {
@@ -4789,9 +4830,21 @@
                     rollQualityText += ' (Exceptional at 3)';
                 }
                 
+                // Build embed title
+                let embedTitle = 'Spell Calculation';
+                if (currentCharacter) {
+                    const casterName = currentCharacter.shadowName || currentCharacter.name;
+                    const spellName = document.getElementById('spellName').value.trim();
+                    if (spellName) {
+                        embedTitle = `${casterName}'s ${spellName}`;
+                    } else {
+                        embedTitle = `${casterName}'s Spell`;
+                    }
+                }
+                
                 // Build embed
                 const embed = {
-                    title: currentCharacter ? `${currentCharacter.shadowName || currentCharacter.name}'s Spell` : 'Spell Calculation',
+                    title: embedTitle,
                     color: 0x7B2CBF, // Purple accent
                     fields: fields,
                     footer: {
