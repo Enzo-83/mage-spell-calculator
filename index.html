@@ -581,6 +581,51 @@
             text-transform: uppercase;
         }
         
+        .additional-rote-skills-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .additional-rote-skills-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .rote-skill-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+        
+        .rote-skill-option:hover {
+            background: rgba(125, 44, 191, 0.2);
+        }
+        
+        .rote-skill-option.order-skill {
+            background: rgba(42, 157, 143, 0.2);
+            cursor: default;
+        }
+        
+        .rote-skill-option.order-skill label {
+            color: var(--success);
+        }
+        
+        .rote-skill-option input[type="checkbox"] {
+            accent-color: var(--accent);
+        }
+        
+        .rote-skill-option.order-skill input[type="checkbox"] {
+            accent-color: var(--success);
+        }
+        
         .modal-footer {
             padding: 16px 20px;
             border-top: 1px solid rgba(255,255,255,0.1);
@@ -3244,6 +3289,9 @@
                 
                 // Path change updates ruling/inferior arcana display
                 document.getElementById('charPath').addEventListener('change', updateArcanaDisplay);
+                
+                // Order change updates additional rote skills display
+                document.getElementById('charOrder').addEventListener('change', populateAdditionalRoteSkills);
             }
             
             // Create new character
@@ -3328,6 +3376,9 @@
                 // Update arcana display (ruling/inferior)
                 updateArcanaDisplay();
                 
+                // Update additional rote skills checkboxes
+                populateAdditionalRoteSkills();
+                
                 // Active spells list
                 updateActiveSpellsList();
             }
@@ -3353,6 +3404,50 @@
                     const inferiorContainer = document.getElementById(`arcana_${pathData.inferiorArcanum}`)?.closest('.arcana-input');
                     if (inferiorContainer) inferiorContainer.classList.add('inferior');
                 }
+            }
+            
+            // Populate additional rote skills checkboxes
+            function populateAdditionalRoteSkills() {
+                const container = document.getElementById('additionalRoteSkillsContainer');
+                const order = document.getElementById('charOrder').value;
+                const orderData = ORDERS[order];
+                const orderSkills = orderData ? orderData.roteSkills : [];
+                const additionalSkills = currentCharacter.additionalRoteSkills || [];
+                
+                const allSkills = getAllSkills();
+                
+                container.innerHTML = Object.entries(allSkills).map(([key, label]) => {
+                    const isOrderSkill = orderSkills.includes(key);
+                    const isAdditional = additionalSkills.includes(key);
+                    const isChecked = isOrderSkill || isAdditional;
+                    
+                    return `
+                        <label class="rote-skill-option ${isOrderSkill ? 'order-skill' : ''}">
+                            <input type="checkbox" 
+                                   data-skill="${key}" 
+                                   ${isChecked ? 'checked' : ''} 
+                                   ${isOrderSkill ? 'disabled' : ''}>
+                            <span>${label}${isOrderSkill ? ' (Order)' : ''}</span>
+                        </label>
+                    `;
+                }).join('');
+            }
+            
+            // Get additional rote skills from checkboxes
+            function getAdditionalRoteSkillsFromForm() {
+                const order = document.getElementById('charOrder').value;
+                const orderData = ORDERS[order];
+                const orderSkills = orderData ? orderData.roteSkills : [];
+                
+                const checked = [];
+                document.querySelectorAll('#additionalRoteSkillsContainer input[type="checkbox"]:checked').forEach(cb => {
+                    const skill = cb.dataset.skill;
+                    // Only include if it's not an order skill (those are already covered)
+                    if (!orderSkills.includes(skill)) {
+                        checked.push(skill);
+                    }
+                });
+                return checked;
             }
             
             // Update active spells list in modal
@@ -3415,6 +3510,9 @@
                 }
                 currentCharacter.discord.spellPreviewWebhook = document.getElementById('charDiscordPreviewWebhook').value.trim();
                 currentCharacter.discord.dicePoolWebhook = document.getElementById('charDiscordDiceWebhook').value.trim();
+                
+                // Additional Rote Skills (from Legacy, etc.)
+                currentCharacter.additionalRoteSkills = getAdditionalRoteSkillsFromForm();
                 
                 // Update derived stats
                 updateDerivedStats(currentCharacter);
@@ -5344,6 +5442,17 @@
                             <div class="skill-input"><label>Streetwise</label><input type="number" id="skill_streetwise" min="0" max="5" value="0"></div>
                             <div class="skill-input"><label>Subterfuge</label><input type="number" id="skill_subterfuge" min="0" max="5" value="0"></div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Additional Rote Skills -->
+                <div class="modal-section">
+                    <h3>Additional Rote Skills <span style="font-size: 0.8em; color: var(--text-muted);">(from Legacy, etc.)</span></h3>
+                    <div class="info-text" style="margin-bottom: 12px;">
+                        Select any extra Rote Skills granted by your Legacy or other sources. Order Rote Skills are shown as already selected.
+                    </div>
+                    <div id="additionalRoteSkillsContainer" class="additional-rote-skills-grid">
+                        <!-- Populated by JavaScript -->
                     </div>
                 </div>
                 
