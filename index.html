@@ -3416,7 +3416,7 @@
                 
                 const allSkills = getAllSkills();
                 
-                container.innerHTML = Object.entries(allSkills).map(([key, label]) => {
+                container.innerHTML = Object.entries(allSkills).map(([key, skillData]) => {
                     const isOrderSkill = orderSkills.includes(key);
                     const isAdditional = additionalSkills.includes(key);
                     const isChecked = isOrderSkill || isAdditional;
@@ -3427,7 +3427,7 @@
                                    data-skill="${key}" 
                                    ${isChecked ? 'checked' : ''} 
                                    ${isOrderSkill ? 'disabled' : ''}>
-                            <span>${label}${isOrderSkill ? ' (Order)' : ''}</span>
+                            <span>${skillData.label}${isOrderSkill ? ' (Order)' : ''}</span>
                         </label>
                     `;
                 }).join('');
