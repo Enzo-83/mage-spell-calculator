@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Spell Wizard — Mage: The Awakening 2e</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    html,body{height:100%;}
+    body{background:#0d0d1a;font-family:'Noto Sans',system-ui,sans-serif;color:#e0e0e0;}
+    select,input,button{font-family:inherit;}
+    select option{background:#1a1a2e;}
+    ::-webkit-scrollbar{width:4px;}
+    ::-webkit-scrollbar-track{background:#0d0d1a;}
+    ::-webkit-scrollbar-thumb{background:rgba(123,44,191,0.33);border-radius:2px;}
+    #root{height:100%;}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useCallback, useRef } = React;
+
+    // ── Color tokens ──────────────────────────────────────────────────────────
+    const C = {
+      bgDark:       "#1a1a2e",
+      bgCard:       "#16213e",
+      bgDeep:       "#0f0f23",
+      accent:       "#7b2cbf",
+      accentLight:  "#9d4edd",
+      accentFaint:  "rgba(123,44,191,0.15)",
+      accentBorder: "rgba(123,44,191,0.4)",
+      text:         "#e0e0e0",
+      textMuted:    "#a0a0a0",
+      danger:       "#c73e1d",
+      dangerFaint:  "rgba(199,62,29,0.2)",
+      success:      "#2a9d8f",
+      successFaint: "rgba(42,157,143,0.15)",
+      warning:      "#e9c46a",
+      warningFaint: "rgba(233,196,106,0.15)",
+      border:       "rgba(255,255,255,0.1)",
+      borderLight:  "rgba(255,255,255,0.06)",
+      discord:      "#5865F2",
+    };
+
+    // ── Game data ─────────────────────────────────────────────────────────────
+    const ARCANA = ["Death","Fate","Forces","Life","Matter","Mind","Prime","Space","Spirit","Time"];
+    const PRACTICES = [
+      ["Compelling","Knowing","Unveiling"],
+      ["Ruling","Shielding","Veiling"],
+      ["Fraying","Perfecting","Weaving"],
+      ["Patterning","Unraveling"],
+      ["Making","Unmaking"],
+    ];
+    const ROTE_SKILLS = [
+      "Academics","Computer","Crafts","Investigation","Medicine","Occult","Politics","Science",
+      "Athletics","Brawl","Drive","Firearms","Larceny","Stealth","Survival","Weaponry",
+      "Animal Ken","Empathy","Expression","Intimidation","Persuasion","Socialize","Streetwise","Subterfuge",
+    ];
+    const SKILL_KEY_TO_LABEL = {
+      academics:"Academics", computer:"Computer", crafts:"Crafts", investigation:"Investigation",
+      medicine:"Medicine", occult:"Occult", politics:"Politics", science:"Science",
+      athletics:"Athletics", brawl:"Brawl", drive:"Drive", firearms:"Firearms",
+      larceny:"Larceny", stealth:"Stealth", survival:"Survival", weaponry:"Weaponry",
+      animalKen:"Animal Ken", empathy:"Empathy", expression:"Expression", intimidation:"Intimidation",
+      persuasion:"Persuasion", socialize:"Socialize", streetwise:"Streetwise", subterfuge:"Subterfuge",
+    };
+
+    const CAST_METHODS = [
+      { id:"improvised",    label:"Improvised",         sub:"+1 Mana if not Ruling Arcanum" },
+      { id:"praxis",        label:"Praxis",              sub:"Exceptional at 3 successes" },
+      { id:"rote_order",    label:"Rote – Order",        sub:"Rote Quality + Mudra (Order)" },
+      { id:"rote_self",     label:"Rote – Your Design",  sub:"Rote Quality + Mudra" },
+      { id:"rote_grimoire", label:"Rote – Grimoire",     sub:"Rote Quality · 2× Ritual time" },
+    ];
+
+    const DURATION_STANDARD = [
+      { label:"1 Turn",   level:1 },
+      { label:"2 Turns",  level:2 },
+      { label:"3 Turns",  level:3 },
+      { label:"5 Turns",  level:4 },
+      { label:"10 Turns", level:5 },
+    ];
+    const DURATION_ADVANCED = [
+      { label:"1 Scene/Hour", level:1 },
+      { label:"1 Day",        level:2 },
+      { label:"1 Week",       level:3 },
+      { label:"1 Month",      level:4 },
+      { label:"1 Year",       level:5 },
+      { label:"Indefinite",   level:6, mana:1 },
+    ];
+    const SCALE_STD_SUBJECTS = [
+      { label:"1 Subject",   level:1 },
+      { label:"2 Subjects",  level:2 },
+      { label:"4 Subjects",  level:3 },
+      { label:"8 Subjects",  level:4 },
+      { label:"16 Subjects", level:5 },
+    ];
+    const SCALE_STD_AREA = [
+      { label:"Arm's Reach", level:1 },
+      { label:"Small Room",  level:2 },
+      { label:"Large Room",  level:3 },
+      { label:"House Floor", level:4 },
+      { label:"Small House", level:5 },
+    ];
+    const SCALE_ADV_SUBJECTS = [
+      { label:"5 Subjects",  level:1 },
+      { label:"10 Subjects", level:2 },
+      { label:"20 Subjects", level:3 },
+      { label:"40 Subjects", level:4 },
+      { label:"80 Subjects", level:5 },
+    ];
+    const SCALE_ADV_AREA = [
+      { label:"Large House", level:1 },
+      { label:"Full Block",  level:2 },
+      { label:"Small Town",  level:3 },
+      { label:"Town",        level:4 },
+      { label:"City Block",  level:5 },
+    ];
+    const RANGES = [
+      { id:"self",        label:"Self" },
+      { id:"touch",       label:"Touch" },
+      { id:"aimed",       label:"Aimed",         note:"(attack roll)" },
+      { id:"sensory",     label:"Sensory",        note:"+1 Reach" },
+      { id:"remote",      label:"Remote Viewed",  note:"+2 Reach" },
+      { id:"sympathetic", label:"Sympathetic",    note:"Space 2 + 1 Mana" },
+      { id:"temporal",    label:"Temporal",       note:"Time 2 + 1 Mana" },
+    ];
+    const WITNESSES_OPTS = [
+      { id:"none",  label:"None",        sub:"No Sleepers present" },
+      { id:"few",   label:"Few",         sub:"+1 die · 9-again" },
+      { id:"large", label:"Large Group", sub:"+1 die · 8-again" },
+      { id:"crowd", label:"Crowd",       sub:"+1 die · Rote quality" },
+    ];
+    const PERSONA_OPTS = [
+      { value:"0", label:"None" },
+      { value:"1", label:"+1 (Shadow Name)" },
+      { value:"2", label:"+2" },
+      { value:"3", label:"+3" },
+      { value:"4", label:"+4 (Full Persona)" },
+    ];
+    // Paradox dice per excess Reach, keyed by Gnosis (from GNOSIS_CHART in spellFactors.js)
+    const PARADOX_PER_REACH = { 1:1,2:1,3:1,4:2,5:2,6:3,7:3,8:4,9:4,10:5 };
+
+    const BASE_STEPS = [
+      { id:"caster",    label:"Caster",    icon:"⚡" },
+      { id:"spell",     label:"Spell",     icon:"✦" },
+      { id:"factors",   label:"Factors",   icon:"⊕" },
+      { id:"yantras",   label:"Yantras",   icon:"◈" },
+      { id:"modifiers", label:"Modifiers", icon:"⚖" },
+      { id:"cast",      label:"Cast",      icon:"⟡" },
+    ];
+
+    // ── Calculation engine ────────────────────────────────────────────────────
+    function penalty(desiredLevel, freeLevels) {
+      const excess = desiredLevel - freeLevels;
+      return excess > 0 ? excess * -2 : 0;
+    }
+
+    function deriveValues(d) {
+      const arcanumDots = d.casterArcanumDots;
+      const isPotencyPrimary  = d.primaryFactor === "potency";
+      const isDurationPrimary = d.primaryFactor === "duration";
+
+      const potencyFree  = isPotencyPrimary  ? arcanumDots : 1;
+      const durationFree = isDurationPrimary ? arcanumDots : 1;
+      const scaleFree    = 1; // Scale is NEVER a primary factor
+
+      const durTable = d.advancedDuration ? DURATION_ADVANCED : DURATION_STANDARD;
+      const durIdx   = Math.min(d.durationIndex, durTable.length - 1);
+      const durEntry = durTable[durIdx];
+
+      const scaleTable = d.advancedScale
+        ? (d.scaleMode === "area" ? SCALE_ADV_AREA    : SCALE_ADV_SUBJECTS)
+        : (d.scaleMode === "area" ? SCALE_STD_AREA    : SCALE_STD_SUBJECTS);
+      const scaleIdx  = Math.min(d.scaleIndex, scaleTable.length - 1);
+      const scaleEntry = scaleTable[scaleIdx];
+
+      const potencyPen     = penalty(d.potency,      potencyFree);
+      const durationPen    = penalty(durEntry.level,  durationFree);
+      const scalePen       = penalty(scaleEntry.level,scaleFree);
+      const totalFactorPen = potencyPen + durationPen + scalePen;
+
+      // Reach accounting
+      let usedReach = d.extraReach;
+      if (d.primaryFactor !== d.defaultPrimaryFactor) usedReach += 1;
+      if (d.castTime === "instant") usedReach += 1;
+      if (d.range === "sensory")    usedReach += 1;
+      if (d.range === "remote")     usedReach += 2;
+      if (d.advancedDuration)       usedReach += 1;
+      if (d.advancedScale)          usedReach += 1;
+      if (d.separateScales)         usedReach += 1;
+
+      // Spell Control Reach — 1 + spellsCurrentlyOver (progressive)
+      const spellsOver = Math.max(0, d.activeSpells - d.gnosis);
+      if (d.activeSpells >= d.gnosis) usedReach += 1 + spellsOver;
+
+      // Free Reach: Rotes always 5; non-Rote: max(1, arcanum − req + 1)
+      const isRote   = d.method.startsWith("rote");
+      const freeReach = isRote ? 5 : Math.max(1, arcanumDots - d.spellArcanumReq + 1);
+      const excessReach = Math.max(0, usedReach - freeReach);
+
+      // Rote skill dots (Order bonus already applied here)
+      const roteSkillDots = d.orderSkill
+        ? (parseInt(d.roteSkillDots, 10) || 0) + 1
+        : (parseInt(d.roteSkillDots, 10) || 0);
+
+      // Yantra bonus
+      let yantraBonus = 0;
+      if (d.yantras.has("Path Tool"))              yantraBonus += 1;
+      if (d.yantras.has("Order Tool"))             yantraBonus += 1;
+      if (d.yantras.has("Demesne"))                yantraBonus += 2;
+      if (d.yantras.has("Environment"))            yantraBonus += 1;
+      if (d.yantras.has("Supernal Verge"))         yantraBonus += 2;
+      if (d.yantras.has("Concentration"))          yantraBonus += 2;
+      if (d.yantras.has("High Speech"))            yantraBonus += 2;
+      if (d.yantras.has("Mudra") && isRote)        yantraBonus += roteSkillDots;
+      if (d.yantras.has("Rune"))                   yantraBonus += 2;
+      if (d.yantras.has("Material"))               yantraBonus += 2;
+      if (d.yantras.has("Representational"))       yantraBonus += 1;
+      if (d.yantras.has("Normal Sacrament"))       yantraBonus += 1;
+      if (d.yantras.has("Rare Sacrament"))         yantraBonus += 2;
+      if (d.yantras.has("Other Realm Sacrament"))  yantraBonus += 3;
+      yantraBonus += parseInt(d.persona, 10) || 0;
+      yantraBonus += d.ritualIntervals;
+
+      // Base pool: Rotes = Skill + Arcanum; Improvised/Praxis = Gnosis + Arcanum
+      const basePool = isRote ? roteSkillDots + arcanumDots : d.gnosis + arcanumDots;
+      const wpBonus  = d.spendWP ? 3 : 0;
+      const dicePool = Math.max(0, basePool + totalFactorPen + yantraBonus + wpBonus + d.teamworkDice + d.otherMod);
+
+      // Paradox
+      const dedicatedActive    = d.yantras.has("Dedicated Tool") || d.pathToolDedicated || d.orderToolDedicated;
+      const dedicatedReduction = dedicatedActive ? 2 : 0;
+      const rawParadox = excessReach > 0
+        ? Math.max(0,
+            excessReach * (PARADOX_PER_REACH[d.gnosis] || 1)
+            + (d.witnesses !== "none" ? 1 : 0)
+            + d.prevParadox
+            + (d.inured ? 2 : 0)
+            - dedicatedReduction
+            - d.mitigateMana
+          )
+        : 0;
+      const hasParadoxRisk = excessReach > 0;
+      const paradoxDice    = rawParadox;
+      const chanceOnly     = hasParadoxRisk && paradoxDice === 0;
+
+      // Mana
+      const nonRulingMana  = d.method === "improvised" ? 1 : 0;
+      const indefiniteMana = durEntry.mana || 0;
+      const sympathyMana   = (d.range === "sympathetic" || d.range === "temporal") ? 1 : 0;
+      const totalMana      = nonRulingMana + indefiniteMana + sympathyMana + d.mitigateMana + d.extraManaCost;
+
+      return {
+        potencyFree, durationFree, scaleFree,
+        potencyPen, durationPen, scalePen, totalFactorPen,
+        durEntry, scaleEntry, durTable, scaleTable, durIdx, scaleIdx,
+        usedReach, freeReach, excessReach,
+        hasParadoxRisk, paradoxDice, chanceOnly, dedicatedActive,
+        yantraBonus, basePool, dicePool, totalMana,
+        isRote, roteSkillDots, spellsOver,
+      };
+    }
+
+    // ── UI atoms ──────────────────────────────────────────────────────────────
+    function Label({ children }) {
+      return <p style={{ margin:"0 0 5px",fontSize:11,letterSpacing:1.5,textTransform:"uppercase",color:C.textMuted,fontWeight:600 }}>{children}</p>;
+    }
+    function Hint({ children, color }) {
+      return <p style={{ margin:"4px 0 0",fontSize:11,color:color||C.textMuted,lineHeight:1.4 }}>{children}</p>;
+    }
+    function Divider() {
+      return <div style={{ height:1,background:C.borderLight,margin:"14px 0" }}/>;
+    }
+    function SectionHead({ children }) {
+      return (
+        <p style={{ margin:"14px 0 8px",fontSize:10,letterSpacing:2.5,textTransform:"uppercase",
+          color:C.accentLight,fontWeight:700,display:"flex",alignItems:"center",gap:6 }}>
+          <span style={{ flex:1,height:1,background:`linear-gradient(90deg,${C.accentBorder},transparent)` }}/>
+          {children}
+          <span style={{ flex:1,height:1,background:`linear-gradient(270deg,${C.accentBorder},transparent)` }}/>
+        </p>
+      );
+    }
+    function Field({ label, hint, hintColor, children }) {
+      return (
+        <div style={{ marginBottom:12 }}>
+          {label && <Label>{label}</Label>}
+          {children}
+          {hint && <Hint color={hintColor}>{hint}</Hint>}
+        </div>
+      );
+    }
+    function StepperInput({ value, min=0, max=10, onChange }) {
+      return (
+        <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+          <button onClick={()=>onChange(Math.max(min,value-1))} style={{
+            width:32,height:32,borderRadius:6,border:`1px solid ${C.accentBorder}`,
+            background:C.accentFaint,color:C.accentLight,fontSize:18,cursor:"pointer",
+            display:"flex",alignItems:"center",justifyContent:"center",
+          }}>−</button>
+          <span style={{ minWidth:28,textAlign:"center",fontSize:18,fontWeight:700,color:C.text }}>{value}</span>
+          <button onClick={()=>onChange(Math.min(max,value+1))} style={{
+            width:32,height:32,borderRadius:6,border:`1px solid ${C.accentBorder}`,
+            background:C.accentFaint,color:C.accentLight,fontSize:18,cursor:"pointer",
+            display:"flex",alignItems:"center",justifyContent:"center",
+          }}>+</button>
+        </div>
+      );
+    }
+    function SelectInput({ value, onChange, options }) {
+      return (
+        <select value={value} onChange={e=>onChange(e.target.value)} style={{
+          width:"100%",padding:"9px 12px",borderRadius:6,
+          background:C.bgDeep,border:`1px solid ${C.accentBorder}`,
+          color:C.text,fontSize:13,outline:"none",
+          backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239d4edd' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`,
+          backgroundRepeat:"no-repeat",backgroundPosition:"right 10px center",appearance:"none",
+        }}>
+          {options.map(o=>typeof o==="string"
+            ? <option key={o} value={o}>{o}</option>
+            : <option key={o.value||o.id} value={o.value||o.id}>{o.label}</option>
+          )}
+        </select>
+      );
+    }
+    function TextInput({ value, onChange, placeholder }) {
+      return (
+        <input type="text" value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||""}
+          style={{ width:"100%",padding:"9px 12px",borderRadius:6,boxSizing:"border-box",
+            background:C.bgDeep,border:`1px solid ${C.accentBorder}`,
+            color:C.text,fontSize:13,outline:"none" }}/>
+      );
+    }
+    function RadioCard({ label, sub, selected, onClick }) {
+      return (
+        <button onClick={onClick} style={{
+          width:"100%",padding:"10px 14px",borderRadius:8,marginBottom:6,
+          border:`1px solid ${selected?C.accentLight:C.border}`,
+          background:selected?C.accentFaint:"rgba(255,255,255,0.02)",
+          cursor:"pointer",textAlign:"left",transition:"all .15s",
+        }}>
+          <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+            <div style={{ width:13,height:13,borderRadius:"50%",flexShrink:0,
+              border:`2px solid ${selected?C.accentLight:C.textMuted}`,
+              background:selected?C.accentLight:"transparent" }}/>
+            <span style={{ color:C.text,fontSize:13,fontWeight:600 }}>{label}</span>
+          </div>
+          {sub && <p style={{ margin:"3px 0 0 23px",color:C.textMuted,fontSize:11 }}>{sub}</p>}
+        </button>
+      );
+    }
+    function CheckboxRow({ label, sub, checked, onChange, disabled, accentColor }) {
+      const ac = accentColor || C.accentLight;
+      return (
+        <div onClick={()=>!disabled&&onChange(!checked)} style={{
+          display:"flex",alignItems:"flex-start",gap:10,cursor:disabled?"not-allowed":"pointer",
+          padding:"7px 0",opacity:disabled?0.4:1,
+        }}>
+          <div style={{ width:17,height:17,borderRadius:4,flexShrink:0,marginTop:1,
+            border:`2px solid ${checked?ac:C.textMuted}`,
+            background:checked?ac:"transparent",
+            display:"flex",alignItems:"center",justifyContent:"center" }}>
+            {checked&&<span style={{ color:C.bgDark,fontSize:11,fontWeight:900,lineHeight:1 }}>✓</span>}
+          </div>
+          <div>
+            <div style={{ color:C.text,fontSize:13 }}>{label}</div>
+            {sub&&<div style={{ color:C.textMuted,fontSize:11,marginTop:1 }}>{sub}</div>}
+          </div>
+        </div>
+      );
+    }
+    function Tag({ children, color }) {
+      const bg = color==="warning"?C.warningFaint:color==="danger"?C.dangerFaint:color==="success"?C.successFaint:C.accentFaint;
+      const fg = color==="warning"?C.warning:color==="danger"?C.danger:color==="success"?C.success:C.accentLight;
+      const bd = color==="warning"?C.warning:color==="danger"?C.danger:color==="success"?C.success:C.accentBorder;
+      return (
+        <span style={{ display:"inline-block",padding:"2px 8px",borderRadius:10,
+          fontSize:10,fontWeight:700,letterSpacing:.5,textTransform:"uppercase",
+          background:bg,color:fg,border:`1px solid ${bd}` }}>{children}</span>
+      );
+    }
+
+    // ── Step 1: Caster ────────────────────────────────────────────────────────
+    function StepCaster({ d, set }) {
+      const atLimit   = d.activeSpells >= d.gnosis;
+      const spellsOver = Math.max(0, d.activeSpells - d.gnosis);
+      return (
+        <div>
+          <Field label="Gnosis">
+            <StepperInput value={d.gnosis} min={1} max={10} onChange={v=>set("gnosis",v)}/>
+            <Hint>Ritual: {d.gnosis<=3?"3h":d.gnosis<=6?"2h":"1h"} · Max Yantras: {Math.ceil(d.gnosis/2)+1}</Hint>
+          </Field>
+          <Divider/>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+            <Field label="Caster's Arcanum">
+              <SelectInput value={d.casterArcanum} onChange={v=>set("casterArcanum",v)} options={ARCANA}/>
+            </Field>
+            <Field label="Dots">
+              <StepperInput value={d.casterArcanumDots} min={1} max={5} onChange={v=>set("casterArcanumDots",v)}/>
+            </Field>
+          </div>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+            <Field label="Spell Arcanum Req." hint="Min dots for spell">
+              <StepperInput value={d.spellArcanumReq} min={1} max={5} onChange={v=>set("spellArcanumReq",v)}/>
+            </Field>
+            <Field label="Active Spells">
+              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                <StepperInput value={d.activeSpells} min={0} max={20} onChange={v=>set("activeSpells",v)}/>
+                <span style={{ color:C.textMuted,fontSize:11 }}>/{d.gnosis}</span>
+              </div>
+            </Field>
+          </div>
+          {atLimit && (
+            <div style={{ padding:"8px 12px",borderRadius:6,background:C.warningFaint,border:`1px solid ${C.warning}`,marginBottom:10 }}>
+              <span style={{ color:C.warning,fontSize:12 }}>
+                ⚠ At/over limit — costs +{1+spellsOver} Reach for spell control
+              </span>
+            </div>
+          )}
+          <Divider/>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"end" }}>
+            <Field label="Rote Skill">
+              <SelectInput value={d.roteSkill} onChange={v=>set("roteSkill",v)} options={ROTE_SKILLS}/>
+            </Field>
+            <Field label="Dots">
+              <StepperInput value={d.roteSkillDots} min={0} max={5} onChange={v=>set("roteSkillDots",v)}/>
+            </Field>
+          </div>
+          <CheckboxRow label="Order Skill" sub="+1 Mudra die when casting Order Rotes"
+            checked={d.orderSkill} onChange={v=>set("orderSkill",v)}/>
+        </div>
+      );
+    }
+
+    // ── Step 2: Spell ─────────────────────────────────────────────────────────
+    function spellToMethod(spell) {
+      if (spell.type === "praxis")          return "praxis";
+      if (spell.type === "improvised_fav")  return "improvised";
+      if (spell.roteCreator === "grimoire") return "rote_grimoire";
+      if (spell.roteCreator === "self")     return "rote_self";
+      return "rote_order";
+    }
+    function arcKey(key) {
+      return key ? key.charAt(0).toUpperCase() + key.slice(1) : "";
+    }
+
+    function StepSpell({ d, set, character }) {
+      const pfChanged  = d.primaryFactor !== d.defaultPrimaryFactor;
+      const rotes      = character?.rotes              || [];
+      const praxes     = character?.praxes             || [];
+      const favorites  = character?.improvisedFavorites || [];
+      const hasAnySpells = rotes.length + praxes.length + favorites.length > 0;
+
+      function loadSpell(spell) {
+        const def = spell.defaults || {};
+        set("spellName",            spell.name);
+        set("method",               spellToMethod(spell));
+        set("practice",             spell.practice         || "");
+        set("defaultPrimaryFactor", spell.primaryFactor    || "potency");
+        set("primaryFactor",        spell.primaryFactor    || "potency");
+        set("casterArcanum",        arcKey(spell.primaryArcanum));
+        set("spellArcanumReq",      spell.primaryArcanumLevel ?? 1);
+        set("roteSkill",            SKILL_KEY_TO_LABEL[spell.roteSkill] || d.roteSkill);
+        set("potency",              def.potency       ?? 1);
+        set("durationIndex",        def.durationIndex ?? 0);
+        set("advancedDuration",     def.advancedDuration ?? false);
+        set("scaleIndex",           def.scaleIndex    ?? 0);
+        set("scaleMode",            def.scaleMode     ?? "subjects");
+        set("advancedScale",        def.advancedScale ?? false);
+        set("range",                def.range         ?? "touch");
+        set("castTime",             def.castTime      ?? "ritual");
+      }
+
+      function SpellRow({ spell, last }) {
+        const selected = d.spellName === spell.name;
+        const isRoteEntry  = spell.type === "rote";
+        const isPraxisEntry = spell.type === "praxis";
+        const tagColor = isRoteEntry ? undefined : isPraxisEntry ? "warning" : "danger";
+        const tagLabel = isRoteEntry ? `Rote (${spell.roteCreator})` : isPraxisEntry ? "Praxis" : "Favorite";
+        return (
+          <div onClick={()=>loadSpell(spell)} style={{
+            padding:"10px 14px",cursor:"pointer",transition:"background .15s",
+            background:selected?C.accentFaint:"transparent",
+            borderBottom:last?"none":`1px solid ${C.borderLight}`,
+          }}>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
+              <div style={{ flex:1,minWidth:0 }}>
+                <div style={{ color:C.text,fontSize:13,fontWeight:selected?700:400 }}>{spell.name}</div>
+                <div style={{ color:C.textMuted,fontSize:11,marginTop:1 }}>
+                  {arcKey(spell.primaryArcanum)} {"●".repeat(spell.primaryArcanumLevel||1)}
+                  {spell.secondaryArcanum&&` · ${arcKey(spell.secondaryArcanum)} ${"●".repeat(spell.secondaryArcanumLevel||1)}`}
+                  {" · "}{spell.practice}
+                </div>
+              </div>
+              <Tag color={tagColor}>{tagLabel}</Tag>
+            </div>
+            {spell.description&&(
+              <div style={{ color:C.textMuted,fontSize:10,marginTop:3,fontStyle:"italic",
+                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{spell.description}</div>
+            )}
+          </div>
+        );
+      }
+
+      function LibrarySection({ title, spells }) {
+        if (!spells.length) return null;
+        return (
+          <>
+            <p style={{ margin:"10px 0 4px",fontSize:9,letterSpacing:2,textTransform:"uppercase",
+              color:C.accentLight,paddingLeft:2 }}>{title}</p>
+            <div style={{ borderRadius:8,border:`1px solid ${C.border}`,overflow:"hidden",marginBottom:6 }}>
+              {spells.map((s,i)=><SpellRow key={s.id} spell={s} last={i===spells.length-1}/>)}
+            </div>
+          </>
+        );
+      }
+
+      return (
+        <div>
+          <Field label="Spell Name (optional)">
+            <TextInput value={d.spellName} onChange={v=>set("spellName",v)} placeholder="e.g. Temporal Stutter"/>
+          </Field>
+          <Divider/>
+          <SectionHead>Load from Library</SectionHead>
+          {!character ? (
+            <div style={{ padding:14,borderRadius:8,background:C.warningFaint,border:`1px solid ${C.warning}`,marginBottom:12,textAlign:"center" }}>
+              <p style={{ color:C.warning,fontSize:12 }}>No character loaded.</p>
+              <p style={{ color:C.textMuted,fontSize:11,marginTop:4 }}>
+                Use the <strong style={{color:C.text}}>Load</strong> button above to import a character JSON.
+              </p>
+            </div>
+          ) : !hasAnySpells ? (
+            <div style={{ padding:14,borderRadius:8,background:C.bgDeep,border:`1px solid ${C.border}`,marginBottom:12,textAlign:"center" }}>
+              <p style={{ color:C.textMuted,fontSize:12 }}>No spells in library.</p>
+            </div>
+          ) : (
+            <div style={{ marginBottom:12 }}>
+              <LibrarySection title="Rotes"     spells={rotes}/>
+              <LibrarySection title="Praxes"    spells={praxes}/>
+              <LibrarySection title="Favorites" spells={favorites}/>
+            </div>
+          )}
+          <Divider/>
+          <SectionHead>Casting Method</SectionHead>
+          {CAST_METHODS.map(m=>(
+            <RadioCard key={m.id} label={m.label} sub={m.sub}
+              selected={d.method===m.id} onClick={()=>set("method",m.id)}/>
+          ))}
+          <Divider/>
+          <SectionHead>Practice</SectionHead>
+          {PRACTICES.map((row,ri)=>(
+            <div key={ri} style={{ display:"flex",flexWrap:"wrap",gap:6,marginBottom:6 }}>
+              {row.map(p=>(
+                <button key={p} onClick={()=>set("practice",p)} style={{
+                  padding:"7px 13px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer",
+                  border:`1px solid ${d.practice===p?C.accentLight:C.border}`,
+                  background:d.practice===p?C.accentFaint:"rgba(255,255,255,0.02)",
+                  color:d.practice===p?C.accentLight:C.textMuted,transition:"all .15s",
+                }}>{p}</button>
+              ))}
+            </div>
+          ))}
+          <Divider/>
+          <SectionHead>Primary Factor</SectionHead>
+          <div style={{ background:C.bgDeep,borderRadius:8,padding:"10px 14px",marginBottom:8 }}>
+            <div style={{ display:"flex",justifyContent:"space-between",marginBottom:8 }}>
+              <span style={{ color:C.textMuted,fontSize:12 }}>Spell's default</span>
+              <div style={{ display:"flex",gap:6 }}>
+                {["potency","duration"].map(f=>(
+                  <button key={f} onClick={()=>set("defaultPrimaryFactor",f)} style={{
+                    padding:"4px 12px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",
+                    border:`1px solid ${d.defaultPrimaryFactor===f?C.warning:C.border}`,
+                    background:d.defaultPrimaryFactor===f?C.warningFaint:"transparent",
+                    color:d.defaultPrimaryFactor===f?C.warning:C.textMuted,
+                  }}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+              <span style={{ color:C.textMuted,fontSize:12 }}>Caster's choice</span>
+              <div style={{ display:"flex",gap:6 }}>
+                {["potency","duration"].map(f=>(
+                  <button key={f} onClick={()=>set("primaryFactor",f)} style={{
+                    padding:"4px 12px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",
+                    border:`1px solid ${d.primaryFactor===f?C.accentLight:C.border}`,
+                    background:d.primaryFactor===f?C.accentFaint:"transparent",
+                    color:d.primaryFactor===f?C.accentLight:C.textMuted,
+                  }}>{f.charAt(0).toUpperCase()+f.slice(1)}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+          {pfChanged&&<Hint color={C.warning}>⚠ Changed from default — costs +1 Reach</Hint>}
+          <Hint>Primary factor: {d.casterArcanumDots} free levels (Arcanum). Other factor: 1 free level.</Hint>
+          <Divider/>
+          <CheckboxRow label="Combined Spell"
+            sub={d.gnosis<3?"Requires Gnosis 3+":"Merge 2 spells — adds a step"}
+            checked={d.combined} onChange={v=>d.gnosis>=3&&set("combined",v)}
+            disabled={d.gnosis<3}/>
+        </div>
+      );
+    }
+
+    // ── Step 2.5: Combined Spell ──────────────────────────────────────────────
+    function StepCombined({ d, set }) {
+      return (
+        <div>
+          <div style={{ padding:"10px 14px",borderRadius:8,background:C.accentFaint,border:`1px solid ${C.accentBorder}`,marginBottom:14 }}>
+            <p style={{ margin:0,color:C.accentLight,fontSize:12 }}>
+              Uses the lowest Arcanum requirement. Dice penalty: −(number of combined spells).
+            </p>
+          </div>
+          <Field label="Second Spell Name">
+            <TextInput value={d.combinedName} onChange={v=>set("combinedName",v)} placeholder="Second spell name"/>
+          </Field>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+            <Field label="Arcanum"><SelectInput value={d.combinedArcanum} onChange={v=>set("combinedArcanum",v)} options={ARCANA}/></Field>
+            <Field label="Level"><StepperInput value={d.combinedLevel} min={1} max={5} onChange={v=>set("combinedLevel",v)}/></Field>
+          </div>
+          <CheckboxRow label="Separate Scales (+1 Reach)"
+            sub="Allow different spells to affect different targets/areas"
+            checked={d.separateScales} onChange={v=>set("separateScales",v)}/>
+        </div>
+      );
+    }
+
+    // ── Step 3: Factors ───────────────────────────────────────────────────────
+    function StepFactors({ d, set, derived }) {
+      const { potencyFree, durationFree, scaleFree, potencyPen, durationPen, scalePen,
+              durTable, scaleTable, durIdx, scaleIdx } = derived;
+
+      function PenBadge({ pen, free }) {
+        if (pen === 0) return <Tag color="success">Free (≤{free} levels)</Tag>;
+        return <Tag color="danger">{pen} dice</Tag>;
+      }
+
+      return (
+        <div>
+          <Field label="Potency">
+            <div style={{ display:"flex",alignItems:"center",gap:12 }}>
+              <StepperInput value={d.potency} min={1} max={10} onChange={v=>set("potency",v)}/>
+              <PenBadge pen={potencyPen} free={potencyFree}/>
+            </div>
+            <Hint>{d.primaryFactor==="potency"
+              ? `Primary — ${potencyFree} free levels (Arcanum ${d.casterArcanumDots})`
+              : "Non-primary — 1 free level"}</Hint>
+          </Field>
+          <Divider/>
+
+          {/* Duration */}
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
+            <Label>Duration</Label>
+            <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+              <span style={{ fontSize:11,color:C.textMuted }}>Standard</span>
+              <div onClick={()=>set("advancedDuration",!d.advancedDuration)} style={{
+                width:40,height:22,borderRadius:11,cursor:"pointer",
+                background:d.advancedDuration?C.accentLight:"#444",position:"relative",transition:"background .2s",
+              }}>
+                <div style={{ width:16,height:16,borderRadius:"50%",background:"#fff",
+                  position:"absolute",top:3,left:d.advancedDuration?21:3,transition:"left .2s" }}/>
+              </div>
+              <span style={{ fontSize:11,color:d.advancedDuration?C.accentLight:C.textMuted }}>
+                Advanced {d.advancedDuration&&<span style={{ color:C.warning }}>+1 Reach</span>}
+              </span>
+            </div>
+          </div>
+          <div style={{ display:"flex",flexWrap:"wrap",gap:6,marginBottom:6 }}>
+            {durTable.map((entry,i)=>{
+              const sel = i===durIdx;
+              const pen = penalty(entry.level, durationFree);
+              return (
+                <button key={i} onClick={()=>set("durationIndex",i)} style={{
+                  padding:"8px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
+                  border:`1px solid ${sel?C.accentLight:C.border}`,
+                  background:sel?C.accentFaint:"rgba(255,255,255,0.02)",
+                  color:sel?C.accentLight:pen<0?C.textMuted:"#fff",transition:"all .15s",
+                }}>
+                  <div>{entry.label}</div>
+                  {pen<0&&<div style={{ fontSize:10,color:pen<-4?C.danger:C.warning,marginTop:2 }}>{pen}</div>}
+                  {entry.mana&&<div style={{ fontSize:10,color:C.warning,marginTop:1 }}>+1 Mana</div>}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display:"flex",alignItems:"center",gap:8,marginBottom:4 }}>
+            <PenBadge pen={durationPen} free={durationFree}/>
+            <Hint>{d.primaryFactor==="duration"?`Primary — ${durationFree} free levels`:"Non-primary — 1 free level"}</Hint>
+          </div>
+          <Divider/>
+
+          {/* Scale */}
+          <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
+            <Label>Scale</Label>
+            <div style={{ display:"flex",gap:6 }}>
+              {["subjects","area"].map(m=>(
+                <button key={m} onClick={()=>{set("scaleMode",m);set("scaleIndex",0);}} style={{
+                  padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,cursor:"pointer",
+                  border:`1px solid ${d.scaleMode===m?C.warning:C.border}`,
+                  background:d.scaleMode===m?C.warningFaint:"transparent",
+                  color:d.scaleMode===m?C.warning:C.textMuted,
+                }}>{m.charAt(0).toUpperCase()+m.slice(1)}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6 }}>
+            <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+              <span style={{ fontSize:11,color:C.textMuted }}>Standard</span>
+              <div onClick={()=>{set("advancedScale",!d.advancedScale);set("scaleIndex",0);}} style={{
+                width:40,height:22,borderRadius:11,cursor:"pointer",
+                background:d.advancedScale?C.accentLight:"#444",position:"relative",transition:"background .2s",
+              }}>
+                <div style={{ width:16,height:16,borderRadius:"50%",background:"#fff",
+                  position:"absolute",top:3,left:d.advancedScale?21:3,transition:"left .2s" }}/>
+              </div>
+              <span style={{ fontSize:11,color:d.advancedScale?C.accentLight:C.textMuted }}>
+                Advanced {d.advancedScale&&<span style={{ color:C.warning }}>+1 Reach</span>}
+              </span>
+            </div>
+            <Tag color="danger">Always 1 free level</Tag>
+          </div>
+          <div style={{ display:"flex",flexWrap:"wrap",gap:6,marginBottom:6 }}>
+            {scaleTable.map((entry,i)=>{
+              const sel = i===scaleIdx;
+              const pen = penalty(entry.level, scaleFree);
+              return (
+                <button key={i} onClick={()=>set("scaleIndex",i)} style={{
+                  padding:"8px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
+                  border:`1px solid ${sel?C.accentLight:C.border}`,
+                  background:sel?C.accentFaint:"rgba(255,255,255,0.02)",
+                  color:sel?C.accentLight:pen<0?C.textMuted:"#fff",transition:"all .15s",
+                }}>
+                  <div>{entry.label}</div>
+                  {pen<0&&<div style={{ fontSize:10,color:pen<-4?C.danger:C.warning,marginTop:2 }}>{pen}</div>}
+                </button>
+              );
+            })}
+          </div>
+          <PenBadge pen={scalePen} free={scaleFree}/>
+          <Divider/>
+
+          {/* Range */}
+          <Field label="Range">
+            <div style={{ display:"flex",flexWrap:"wrap",gap:6 }}>
+              {RANGES.map(r=>(
+                <button key={r.id} onClick={()=>set("range",r.id)} style={{
+                  padding:"8px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
+                  border:`1px solid ${d.range===r.id?C.accentLight:C.border}`,
+                  background:d.range===r.id?C.accentFaint:"rgba(255,255,255,0.02)",
+                  color:d.range===r.id?C.accentLight:C.textMuted,transition:"all .15s",
+                }}>
+                  <div>{r.label}</div>
+                  {r.note&&<div style={{ fontSize:10,color:C.warning,marginTop:2 }}>{r.note}</div>}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Divider/>
+
+          {/* Casting Time */}
+          <SectionHead>Casting Time</SectionHead>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+            <RadioCard label="Ritual" sub="Standard · +1 die/interval" selected={d.castTime==="ritual"} onClick={()=>set("castTime","ritual")}/>
+            <RadioCard label="Instant" sub="+1 Reach" selected={d.castTime==="instant"} onClick={()=>set("castTime","instant")}/>
+          </div>
+          {d.castTime==="ritual"&&(
+            <Field label="Ritual Intervals (0–5)" hint="+1 die per interval · max +5">
+              <StepperInput value={d.ritualIntervals} min={0} max={5} onChange={v=>set("ritualIntervals",v)}/>
+            </Field>
+          )}
+          <Divider/>
+          <Field label="Additional Reach" hint="For extra effects, extended durations, etc.">
+            <StepperInput value={d.extraReach} min={0} max={10} onChange={v=>set("extraReach",v)}/>
+          </Field>
+        </div>
+      );
+    }
+
+    // ── Step 4: Yantras ───────────────────────────────────────────────────────
+    function StepYantras({ d, set }) {
+      const toggleY = key => {
+        const next = new Set(d.yantras);
+        next.has(key) ? next.delete(key) : next.add(key);
+        if (key==="Path Tool"  && !next.has(key)) set("pathToolDedicated",false);
+        if (key==="Order Tool" && !next.has(key)) set("orderToolDedicated",false);
+        set("yantras", next);
+      };
+
+      const anyDedicated  = d.yantras.has("Dedicated Tool") || d.pathToolDedicated || d.orderToolDedicated;
+      const personaActive = parseInt(d.persona, 10) > 0;
+      const count = d.yantras.size + (personaActive ? 1 : 0);
+      const max   = Math.ceil(d.gnosis / 2) + 1;
+      const over  = count > max;
+
+      function YRow({ name, bonus, isSpecial }) {
+        const sel = d.yantras.has(name);
+        const disabledByDed = name==="Dedicated Tool" && !sel && anyDedicated;
+        return (
+          <div onClick={()=>!disabledByDed&&toggleY(name)} style={{
+            display:"flex",justifyContent:"space-between",alignItems:"center",
+            padding:"9px 12px",borderRadius:8,cursor:disabledByDed?"not-allowed":"pointer",
+            border:`1px solid ${sel?C.accentLight:C.border}`,
+            background:sel?C.accentFaint:"rgba(255,255,255,0.02)",
+            marginBottom:4,opacity:disabledByDed?0.35:1,transition:"all .15s",
+          }}>
+            <span style={{ color:sel?C.accentLight:C.text,fontSize:13 }}>{name}</span>
+            <span style={{ color:isSpecial?C.success:C.warning,fontSize:12,fontWeight:600 }}>{bonus}</span>
+          </div>
+        );
+      }
+
+      function AlsoDedicatedRow({ toolKey, stateKey }) {
+        if (!d.yantras.has(toolKey)) return null;
+        const isChecked = d[stateKey];
+        const otherDed = (stateKey==="pathToolDedicated"
+          ? (d.orderToolDedicated || d.yantras.has("Dedicated Tool"))
+          : (d.pathToolDedicated  || d.yantras.has("Dedicated Tool")));
+        const disabled = !isChecked && otherDed;
+        return (
+          <div onClick={()=>!disabled&&set(stateKey,!isChecked)} style={{
+            display:"flex",alignItems:"center",gap:8,
+            padding:"6px 12px 6px 28px",marginBottom:4,cursor:disabled?"not-allowed":"pointer",
+            opacity:disabled?0.35:1,
+          }}>
+            <div style={{ width:15,height:15,borderRadius:3,flexShrink:0,
+              border:`2px solid ${isChecked?C.warning:C.textMuted}`,
+              background:isChecked?C.warning:"transparent",
+              display:"flex",alignItems:"center",justifyContent:"center" }}>
+              {isChecked&&<span style={{ color:C.bgDark,fontSize:10,fontWeight:900 }}>✓</span>}
+            </div>
+            <span style={{ color:C.warning,fontSize:12 }}>↳ Also my Dedicated Tool (−2 Paradox)</span>
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <div style={{
+            display:"flex",justifyContent:"space-between",alignItems:"center",
+            padding:"10px 14px",borderRadius:8,marginBottom:12,
+            background:over?C.dangerFaint:C.accentFaint,
+            border:`1px solid ${over?C.danger:C.accentBorder}`,
+          }}>
+            <span style={{ color:C.textMuted,fontSize:12 }}>Yantras selected</span>
+            <span style={{ color:over?C.danger:C.accentLight,fontSize:20,fontWeight:700 }}>{count} / {max}</span>
+          </div>
+
+          <SectionHead>Places</SectionHead>
+          <YRow name="Demesne"        bonus="+2"/>
+          <YRow name="Environment"    bonus="+1"/>
+          <YRow name="Supernal Verge" bonus="+2"/>
+
+          <SectionHead>Tools</SectionHead>
+          <YRow name="Dedicated Tool" bonus="−2 Paradox" isSpecial/>
+          <YRow name="Path Tool"      bonus="+1"/>
+          <AlsoDedicatedRow toolKey="Path Tool"  stateKey="pathToolDedicated"/>
+          <YRow name="Order Tool"     bonus="+1"/>
+          <AlsoDedicatedRow toolKey="Order Tool" stateKey="orderToolDedicated"/>
+
+          <SectionHead>Actions</SectionHead>
+          <YRow name="Concentration" bonus="+2"/>
+          <YRow name="High Speech"   bonus="+2"/>
+          <YRow name="Mudra"         bonus="+Skill"/>
+          <YRow name="Rune"          bonus="+2"/>
+
+          <SectionHead>Sympathy</SectionHead>
+          <YRow name="Material"         bonus="+2"/>
+          <YRow name="Representational" bonus="+1"/>
+          <YRow name="Symbolic"         bonus="+0"/>
+
+          <SectionHead>Sacraments</SectionHead>
+          <YRow name="Normal Sacrament"      bonus="+1"/>
+          <YRow name="Rare Sacrament"        bonus="+2"/>
+          <YRow name="Other Realm Sacrament" bonus="+3"/>
+
+          <SectionHead>Persona</SectionHead>
+          <SelectInput value={d.persona} onChange={v=>set("persona",v)} options={PERSONA_OPTS}/>
+          {personaActive&&<Hint color={C.warning}>Persona counts as 1 yantra slot (+{d.persona} dice)</Hint>}
+
+          {count>1&&<Hint style={{ marginTop:8 }}>First yantra is reflexive. Each additional adds 1 turn to casting.</Hint>}
+        </div>
+      );
+    }
+
+    // ── Step 5: Modifiers + Paradox ───────────────────────────────────────────
+    function StepModifiers({ d, set, derived }) {
+      const { hasParadoxRisk, paradoxDice, chanceOnly, totalMana } = derived;
+      return (
+        <div>
+          <SectionHead>Additional Modifiers</SectionHead>
+          <CheckboxRow label="Spend Willpower (+3 dice)" checked={d.spendWP} onChange={v=>set("spendWP",v)}/>
+          <Field label="Teamwork Dice">
+            <StepperInput value={d.teamworkDice} min={0} max={20} onChange={v=>set("teamworkDice",v)}/>
+          </Field>
+          <Field label="Other Modifier">
+            <StepperInput value={d.otherMod} min={-10} max={10} onChange={v=>set("otherMod",v)}/>
+          </Field>
+          <Divider/>
+          <SectionHead>Mana Summary</SectionHead>
+          {[
+            ["Non-Ruling Improvised",  d.method==="improvised"?1:0],
+            ["Indefinite Duration",    derived.durEntry?.mana||0],
+            ["Sympathetic / Temporal", (d.range==="sympathetic"||d.range==="temporal")?1:0],
+            ["Paradox Mitigation",     d.mitigateMana],
+            ["Additional Costs",       d.extraManaCost],
+          ].map(([label,val])=>(
+            <div key={label} style={{ display:"flex",justifyContent:"space-between",padding:"5px 0",borderBottom:`1px solid ${C.borderLight}` }}>
+              <span style={{ color:C.textMuted,fontSize:12 }}>{label}</span>
+              <span style={{ color:C.text,fontSize:12,fontWeight:600 }}>{val}</span>
+            </div>
+          ))}
+          <div style={{ display:"flex",justifyContent:"space-between",padding:"8px 0" }}>
+            <span style={{ color:C.text,fontSize:13,fontWeight:700 }}>Total Mana Required</span>
+            <span style={{ color:totalMana>0?C.warning:C.success,fontSize:15,fontWeight:700 }}>{totalMana}</span>
+          </div>
+          <Field label="Additional Mana Costs" hint="Spell-specific costs not listed above">
+            <StepperInput value={d.extraManaCost} min={0} max={10} onChange={v=>set("extraManaCost",v)}/>
+          </Field>
+          <Divider/>
+          <SectionHead>Paradox</SectionHead>
+          {!hasParadoxRisk ? (
+            <div style={{ padding:"10px 14px",borderRadius:8,background:C.successFaint,border:`1px solid ${C.success}` }}>
+              <span style={{ color:C.success,fontSize:13 }}>✓ No Paradox risk — Reach within free allowance</span>
+            </div>
+          ) : (
+            <>
+              {chanceOnly ? (
+                <div style={{ padding:"10px 14px",borderRadius:8,background:C.warningFaint,border:`1px solid ${C.warning}`,marginBottom:10 }}>
+                  <p style={{ margin:0,color:C.warning,fontSize:13,fontWeight:700 }}>⚠ Chance Die — Paradox fully mitigated</p>
+                  <p style={{ margin:"4px 0 0",color:C.textMuted,fontSize:11 }}>
+                    Excess Reach always forces a Chance Die, even if the full pool is mitigated.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ padding:"10px 14px",borderRadius:8,background:C.dangerFaint,border:`1px solid ${C.danger}`,marginBottom:10 }}>
+                  <span style={{ color:C.danger,fontSize:13 }}>⚠ Paradox risk — {derived.excessReach} excess Reach</span>
+                </div>
+              )}
+              <Field label="Previous Paradox Rolls (this scene)" hint="+1 die per previous roll">
+                <StepperInput value={d.prevParadox} min={0} max={10} onChange={v=>set("prevParadox",v)}/>
+              </Field>
+              <SectionHead>Sleeper Witnesses</SectionHead>
+              {WITNESSES_OPTS.map(w=>(
+                <RadioCard key={w.id} label={w.label} sub={w.sub}
+                  selected={d.witnesses===w.id} onClick={()=>set("witnesses",w.id)}/>
+              ))}
+              <CheckboxRow label="Inured to Spell (+2 dice)" sub="Spell no longer risks Wisdom loss"
+                checked={d.inured} onChange={v=>set("inured",v)}/>
+              <Field label="Mana for Paradox Mitigation" hint="−1 die per Mana · does not prevent Chance Die">
+                <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                  <StepperInput value={d.mitigateMana} min={0} max={10} onChange={v=>set("mitigateMana",v)}/>
+                  {d.mitigateMana>0&&<span style={{ color:C.success,fontSize:12 }}>−{d.mitigateMana} dice</span>}
+                </div>
+              </Field>
+              {!chanceOnly&&(
+                <div style={{ background:C.bgDeep,borderRadius:8,padding:14,textAlign:"center",marginTop:4 }}>
+                  <div style={{ fontSize:36,fontWeight:700,color:C.danger }}>{paradoxDice}</div>
+                  <div style={{ color:C.textMuted,fontSize:10,letterSpacing:2,textTransform:"uppercase" }}>Paradox Dice</div>
+                  {d.witnesses!=="none"&&(
+                    <div style={{ marginTop:6 }}>
+                      <Tag color="danger">{d.witnesses==="crowd"?"Rote quality":d.witnesses==="large"?"8-again":"9-again"}</Tag>
+                    </div>
+                  )}
+                </div>
+              )}
+              <Divider/>
+              <SectionHead>Contain vs Release</SectionHead>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                {[{id:"contain",label:"Contain",sub:"Absorb into soul",col:C.warning},
+                  {id:"release",label:"Release",sub:"Manifest externally",col:C.textMuted}].map(opt=>(
+                  <button key={opt.id} onClick={()=>set("paradoxChoice",opt.id)} style={{
+                    padding:12,borderRadius:8,cursor:"pointer",
+                    border:`1px solid ${d.paradoxChoice===opt.id?opt.col:C.border}`,
+                    background:d.paradoxChoice===opt.id?"rgba(233,196,106,0.1)":"rgba(255,255,255,0.02)",
+                    textAlign:"center",
+                  }}>
+                    <div style={{ color:opt.col,fontSize:13,fontWeight:600 }}>{opt.label}</div>
+                    <div style={{ color:C.textMuted,fontSize:11,marginTop:3 }}>{opt.sub}</div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
+    // ── Step 6: Cast ──────────────────────────────────────────────────────────
+    async function postDiscord(url, payload) {
+      const res = await fetch(url, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    }
+
+    function StepCast({ d, derived, character }) {
+      const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
+              potencyPen, durationPen, scalePen, yantraBonus, basePool,
+              durEntry, scaleEntry, isRote } = derived;
+      const [ds, setDs] = useState({});  // discord button states
+
+      const casterName    = character?.shadowName || character?.name || "Mage";
+      const spellTitle    = d.spellName ? `${casterName}'s ${d.spellName}` : `${casterName}'s Spell`;
+      const poolWebhook   = character?.discord?.dicePoolWebhook   || "";
+      const cardWebhook   = character?.discord?.spellPreviewWebhook || "";
+      const methodLabel   = CAST_METHODS.find(m=>m.id===d.method)?.label || d.method;
+      const arcDots       = "●".repeat(d.casterArcanumDots);
+
+      async function handlePool() {
+        if (!poolWebhook) { alert("No Dice Pool webhook set in character.discord.dicePoolWebhook"); return; }
+        setDs(s=>({...s,pool:"sending"}));
+        try {
+          const lines = [
+            `🎲 **${spellTitle}**`,
+            `Pool: **${dicePool}** dice  |  Reach: **${usedReach}/${freeReach}**  |  Mana: **${totalMana}**`,
+          ];
+          if (excessReach>0) lines.push(`⚠️ **Paradox:** ${chanceOnly?"Chance Die":paradoxDice+" dice"}`);
+          await postDiscord(poolWebhook, { content:lines.join("\n"), username:casterName });
+          setDs(s=>({...s,pool:"ok"}));
+          setTimeout(()=>setDs(s=>({...s,pool:null})),3000);
+        } catch { setDs(s=>({...s,pool:"error"})); setTimeout(()=>setDs(s=>({...s,pool:null})),4000); }
+      }
+
+      async function handleCard() {
+        if (!cardWebhook) { alert("No Spell Card webhook set in character.discord.spellPreviewWebhook"); return; }
+        setDs(s=>({...s,card:"sending"}));
+        try {
+          const fields = [
+            { name:"🎲 Dice Pool", value:String(dicePool),          inline:true },
+            { name:"↑ Reach",     value:`${usedReach}/${freeReach}${excessReach>0?" ⚠":""}`, inline:true },
+            { name:"⬡ Mana",      value:String(totalMana),          inline:true },
+            { name:"Potency",     value:String(d.potency),           inline:true },
+            { name:"Duration",    value:durEntry?.label||"—",        inline:true },
+            { name:"Scale",       value:scaleEntry?.label||"—",      inline:true },
+            { name:"Range",       value:RANGES.find(r=>r.id===d.range)?.label||d.range, inline:true },
+            { name:"Cast Time",   value:d.castTime==="instant"?"Instant":`Ritual${d.ritualIntervals>0?` +${d.ritualIntervals}i`:""}`, inline:true },
+          ];
+          if (excessReach>0) fields.push({ name:"⚠️ Paradox", value:chanceOnly?"Chance Die":paradoxDice+" dice", inline:true });
+          await postDiscord(cardWebhook, {
+            username:casterName,
+            embeds:[{ title:spellTitle, color:0x7b2cbf, fields,
+              footer:{ text:`${methodLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}` } }],
+          });
+          setDs(s=>({...s,card:"ok"}));
+          setTimeout(()=>setDs(s=>({...s,card:null})),3000);
+        } catch { setDs(s=>({...s,card:"error"})); setTimeout(()=>setDs(s=>({...s,card:null})),4000); }
+      }
+
+      function StatBox({ label, value, color, sub }) {
+        return (
+          <div style={{ flex:1,background:C.bgDeep,borderRadius:8,padding:"12px 8px",textAlign:"center" }}>
+            <div style={{ fontSize:28,fontWeight:700,color:color||C.accentLight,lineHeight:1 }}>{value}</div>
+            {sub&&<div style={{ fontSize:10,color:C.textMuted,marginTop:1 }}>{sub}</div>}
+            <div style={{ color:C.textMuted,fontSize:9,letterSpacing:2,textTransform:"uppercase",marginTop:3 }}>{label}</div>
+          </div>
+        );
+      }
+
+      function DBtn({ label, status, onClick, noHook }) {
+        const bg    = status==="ok"?C.success:status==="error"?C.danger:status==="sending"?"#666":C.discord;
+        const txt   = status==="ok"?"✓ Sent!":status==="error"?"✗ Failed":status==="sending"?"Sending…":label;
+        return (
+          <button onClick={onClick} disabled={!!status||noHook} style={{
+            padding:13,borderRadius:8,border:"none",cursor:status||noHook?"default":"pointer",
+            background:noHook?"#1e1e3a":bg,color:"#fff",fontSize:12,fontWeight:700,
+            opacity:noHook?0.4:1,transition:"background .3s",
+          }}>
+            {noHook?`${label} (no webhook)`:txt}
+          </button>
+        );
+      }
+
+      return (
+        <div>
+          <div style={{ textAlign:"center",marginBottom:14 }}>
+            <div style={{ fontSize:26,marginBottom:4 }}>⟡</div>
+            <h3 style={{ margin:0,color:C.accentLight,fontSize:16 }}>{spellTitle}</h3>
+            <p style={{ margin:"4px 0 0",color:C.textMuted,fontSize:11 }}>
+              {methodLabel} · {d.practice||"—"} · {d.casterArcanum} {arcDots}
+            </p>
+          </div>
+
+          <div style={{ display:"flex",gap:5,marginBottom:10 }}>
+            <StatBox label="Dice Pool" value={dicePool}/>
+            <StatBox label="Reach" value={`${usedReach}/${freeReach}`}
+              color={excessReach>0?C.warning:C.success}
+              sub={excessReach>0?`+${excessReach} excess`:""}/>
+            <StatBox label="Mana" value={totalMana} color={totalMana>0?C.warning:C.text}/>
+            <StatBox label="Paradox"
+              value={chanceOnly?"⚀":paradoxDice}
+              color={chanceOnly?C.warning:paradoxDice>0?C.danger:C.success}
+              sub={chanceOnly?"Chance Die":""}/>
+          </div>
+
+          {/* Dice breakdown */}
+          <div style={{ background:C.bgDeep,borderRadius:8,padding:14,marginBottom:10 }}>
+            <p style={{ margin:"0 0 8px",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:C.accentLight }}>Dice Breakdown</p>
+            {[
+              [isRote
+                ? `Skill (${d.roteSkill}) + Arcanum ${d.casterArcanumDots}`
+                : `Gnosis ${d.gnosis} + Arcanum ${d.casterArcanumDots}`,
+               `+${basePool}`],
+              potencyPen!==0  && [`Potency ${d.potency} penalty`,          `${potencyPen}`],
+              durationPen!==0 && [`Duration ${durEntry?.label} penalty`,   `${durationPen}`],
+              scalePen!==0    && [`Scale ${scaleEntry?.label} penalty`,    `${scalePen}`],
+              yantraBonus!==0 && ["Yantras / Intervals",                   `+${yantraBonus}`],
+              d.spendWP       && ["Willpower",                             "+3"],
+              d.teamworkDice>0&& ["Teamwork",                              `+${d.teamworkDice}`],
+              d.otherMod!==0  && ["Other modifier",                        `${d.otherMod>0?"+":""}${d.otherMod}`],
+            ].filter(Boolean).map(([k,v])=>(
+              <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.borderLight}` }}>
+                <span style={{ color:C.textMuted,fontSize:12 }}>{k}</span>
+                <span style={{ color:v.startsWith("-")?C.danger:v.startsWith("+")?C.success:C.text,fontSize:12,fontWeight:600 }}>{v}</span>
+              </div>
+            ))}
+            <div style={{ display:"flex",justifyContent:"space-between",padding:"6px 0" }}>
+              <span style={{ color:C.text,fontSize:13,fontWeight:700 }}>Total</span>
+              <span style={{ color:C.accentLight,fontSize:15,fontWeight:700 }}>{dicePool}</span>
+            </div>
+          </div>
+
+          {/* Spell factors */}
+          <div style={{ background:C.bgDeep,borderRadius:8,padding:14,marginBottom:10 }}>
+            <p style={{ margin:"0 0 8px",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:C.accentLight }}>Spell Factors</p>
+            {[
+              ["Potency",  d.potency],
+              ["Duration", durEntry?.label||"—"],
+              ["Scale",    scaleEntry?.label||"—"],
+              ["Range",    RANGES.find(r=>r.id===d.range)?.label||d.range],
+              ["Cast Time",d.castTime==="ritual"?`Ritual${d.ritualIntervals>0?` (+${d.ritualIntervals} intervals)`:""}`:"Instant"],
+            ].map(([k,v])=>(
+              <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.borderLight}` }}>
+                <span style={{ color:C.textMuted,fontSize:12 }}>{k}</span>
+                <span style={{ color:C.text,fontSize:12 }}>{v}</span>
+              </div>
+            ))}
+          </div>
+
+          {chanceOnly&&(
+            <div style={{ padding:"10px 14px",borderRadius:8,background:C.warningFaint,border:`1px solid ${C.warning}`,marginBottom:10 }}>
+              <p style={{ margin:0,color:C.warning,fontSize:12,fontWeight:700 }}>⚀ Paradox Chance Die</p>
+              <p style={{ margin:"3px 0 0",color:C.textMuted,fontSize:11 }}>
+                Fully mitigated — but excess Reach always incurs at least a Chance Die.
+              </p>
+            </div>
+          )}
+
+          {/* Discord */}
+          <SectionHead>Send to Discord</SectionHead>
+          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:6 }}>
+            <DBtn label="Send Dice Pool" status={ds.pool} onClick={handlePool} noHook={!poolWebhook}/>
+            <DBtn label="Send Card"      status={ds.card} onClick={handleCard} noHook={!cardWebhook}/>
+          </div>
+          {(!poolWebhook||!cardWebhook)&&(
+            <Hint>
+              Configure webhooks in your character JSON under <code style={{ color:C.accentLight }}>discord.dicePoolWebhook</code> / <code style={{ color:C.accentLight }}>discord.spellPreviewWebhook</code>.
+            </Hint>
+          )}
+        </div>
+      );
+    }
+
+    // ── Mini-bar ──────────────────────────────────────────────────────────────
+    function MiniBar({ derived, expanded, onToggle }) {
+      const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly } = derived;
+      function S({ label, value, color }) {
+        return (
+          <div style={{ textAlign:"center",flex:1 }}>
+            <div style={{ fontSize:expanded?18:14,fontWeight:700,color:color||C.accentLight,lineHeight:1 }}>{value}</div>
+            <div style={{ fontSize:8,letterSpacing:1.5,textTransform:"uppercase",color:C.textMuted,marginTop:1 }}>{label}</div>
+          </div>
+        );
+      }
+      return (
+        <div onClick={onToggle} style={{ background:C.bgCard,borderTop:`1px solid ${C.border}`,
+          padding:expanded?"12px 16px 8px":"7px 16px",cursor:"pointer",transition:"padding .2s" }}>
+          {expanded&&<p style={{ margin:"0 0 6px",fontSize:9,textTransform:"uppercase",letterSpacing:2,color:C.accentLight,textAlign:"center" }}>Live Preview ▲</p>}
+          <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+            <S label="Dice" value={dicePool}/>
+            <div style={{ width:1,height:24,background:C.border }}/>
+            <S label="Reach" value={`${usedReach}/${freeReach}`} color={excessReach>0?C.warning:C.success}/>
+            <div style={{ width:1,height:24,background:C.border }}/>
+            <S label="Mana" value={totalMana} color={totalMana>0?C.warning:C.text}/>
+            <div style={{ width:1,height:24,background:C.border }}/>
+            <S label="Paradox" value={chanceOnly?"⚀":paradoxDice} color={chanceOnly?C.warning:paradoxDice>0?C.danger:C.success}/>
+            <span style={{ color:C.textMuted,fontSize:12,marginLeft:2 }}>{expanded?"▼":"▲"}</span>
+          </div>
+          {!expanded&&<p style={{ margin:"2px 0 0",fontSize:8,textTransform:"uppercase",letterSpacing:2,color:C.textMuted,textAlign:"center" }}>tap to expand</p>}
+        </div>
+      );
+    }
+
+    // ── Character helpers ─────────────────────────────────────────────────────
+    function applyCharacterToForm(char, setD) {
+      let highestKey = "prime", highestDots = 0;
+      for (const [key, dots] of Object.entries(char.arcana || {})) {
+        if (dots > highestDots) { highestDots = dots; highestKey = key; }
+      }
+      let skillKey = "occult", skillDots = 0;
+      for (const [key, dots] of Object.entries(char.skills || {})) {
+        if (dots > skillDots) { skillDots = dots; skillKey = key; }
+      }
+      setD(prev => ({
+        ...prev,
+        gnosis:            char.gnosis         ?? prev.gnosis,
+        casterArcanum:     highestKey.charAt(0).toUpperCase() + highestKey.slice(1),
+        casterArcanumDots: highestDots         || prev.casterArcanumDots,
+        spellArcanumReq:   highestDots         || prev.spellArcanumReq,
+        activeSpells:      (char.activeSpells  || []).length,
+        roteSkill:         SKILL_KEY_TO_LABEL[skillKey] || "Occult",
+        roteSkillDots:     skillDots,
+      }));
+    }
+
+    // ── Character header ──────────────────────────────────────────────────────
+    function CharacterHeader({ character, onLoad, onSave, onNew }) {
+      const fileRef = useRef(null);
+      const manaC   = character?.mana?.current ?? 0;
+      const manaM   = character?.mana?.max     ?? 10;
+
+      function handleFileChange(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try { onLoad(JSON.parse(ev.target.result)); }
+          catch { alert("Invalid character file — could not parse JSON."); }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      }
+
+      return (
+        <div style={{ padding:"10px 16px",background:C.bgCard,borderBottom:`1px solid ${C.border}`,
+          display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8 }}>
+          <input type="file" accept=".json" ref={fileRef} onChange={handleFileChange} style={{ display:"none" }}/>
+          <div>
+            {character ? (
+              <>
+                <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                  <span style={{ color:C.accentLight,fontSize:14,fontWeight:700 }}>
+                    {character.shadowName || character.name}
+                  </span>
+                  {character.shadowName&&<span style={{ color:C.textMuted,fontSize:11 }}>({character.name})</span>}
+                </div>
+                <div style={{ color:C.textMuted,fontSize:11 }}>
+                  {character.path} · {character.order} · Gnosis {character.gnosis}
+                  <span style={{ color:manaC<3?C.danger:C.warning,marginLeft:8 }}>
+                    ⬡ {manaC}/{manaM} Mana
+                  </span>
+                </div>
+              </>
+            ) : (
+              <span style={{ color:C.textMuted,fontSize:13 }}>No character loaded — tap Load</span>
+            )}
+          </div>
+          <div style={{ display:"flex",gap:6 }}>
+            <button onClick={onNew} style={{ padding:"4px 10px",borderRadius:5,fontSize:11,fontWeight:600,
+              cursor:"pointer",background:"transparent",border:`1px solid ${C.border}`,color:C.textMuted }}>New</button>
+            <button onClick={()=>fileRef.current?.click()} style={{ padding:"4px 10px",borderRadius:5,fontSize:11,fontWeight:600,
+              cursor:"pointer",background:"transparent",border:`1px solid ${C.border}`,color:C.textMuted }}>Load</button>
+            <button onClick={character?onSave:undefined} style={{ padding:"4px 10px",borderRadius:5,fontSize:11,fontWeight:600,
+              cursor:character?"pointer":"not-allowed",
+              background:character?C.accentFaint:"transparent",
+              border:`1px solid ${character?C.accentBorder:C.border}`,
+              color:character?C.accentLight:C.textMuted,opacity:character?1:0.4 }}>Save</button>
+          </div>
+        </div>
+      );
+    }
+
+
+
+    // ── Initial form state ────────────────────────────────────────────────────
+    const INITIAL = {
+      gnosis:1, casterArcanum:"Forces", casterArcanumDots:1, spellArcanumReq:1,
+      activeSpells:0, roteSkill:"Computer", roteSkillDots:4, orderSkill:false,
+      spellName:"", method:"improvised", practice:"",
+      defaultPrimaryFactor:"potency", primaryFactor:"potency",
+      combined:false, combinedName:"", combinedArcanum:"Prime", combinedLevel:1, separateScales:false,
+      potency:1, durationIndex:0, advancedDuration:false,
+      scaleIndex:0, scaleMode:"subjects", advancedScale:false,
+      range:"touch", castTime:"ritual", ritualIntervals:0, extraReach:0,
+      yantras:new Set(), pathToolDedicated:false, orderToolDedicated:false, persona:"0",
+      spendWP:false, teamworkDice:0, otherMod:0, extraManaCost:0,
+      prevParadox:0, witnesses:"none", inured:false, mitigateMana:0, paradoxChoice:"contain",
+    };
+
+    // ── App root ──────────────────────────────────────────────────────────────
+    function App() {
+      const [d, setD]               = useState(INITIAL);
+      const [stepIdx, setStepIdx]   = useState(0);
+      const [miniExpanded, setMini] = useState(false);
+      const [character, setChar]    = useState(null);
+
+      const set = useCallback((key, val) => setD(prev => ({...prev, [key]:val})), []);
+
+      function handleLoad(char) {
+        setChar(char);
+        applyCharacterToForm(char, setD);
+      }
+      function handleSave() {
+        if (!character) return;
+        const blob = new Blob([JSON.stringify(character, null, 2)], { type:"application/json" });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href = url;
+        a.download = `${(character.shadowName||character.name||"character").replace(/\s+/g,"-")}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      function handleNew() {
+        const blank = {
+          name:"New Mage", shadowName:"", path:"", order:"", gnosis:1, wisdom:7,
+          mana:{current:10,max:10}, willpower:{current:5,max:5},
+          arcana:{death:0,fate:0,forces:0,life:0,matter:0,mind:0,prime:0,space:0,spirit:0,time:0},
+          skills:{}, rotes:[], praxes:[], improvisedFavorites:[], activeSpells:[],
+          discord:{spellPreviewWebhook:"",dicePoolWebhook:""},
+        };
+        setChar(blank);
+        setD({...INITIAL, yantras:new Set()});
+        setStepIdx(0);
+      }
+
+      const steps = d.combined
+        ? [BASE_STEPS[0], BASE_STEPS[1], {id:"combined",label:"Combined",icon:"⊞"}, ...BASE_STEPS.slice(2)]
+        : BASE_STEPS;
+
+      const currentStep = steps[stepIdx];
+      const derived     = deriveValues(d);
+
+      function renderStep() {
+        switch(currentStep.id) {
+          case "caster":    return <StepCaster    d={d} set={set}/>;
+          case "spell":     return <StepSpell     d={d} set={set} character={character}/>;
+          case "combined":  return <StepCombined  d={d} set={set}/>;
+          case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
+          case "yantras":   return <StepYantras   d={d} set={set}/>;
+          case "modifiers": return <StepModifiers d={d} set={set} derived={derived}/>;
+          case "cast":      return <StepCast      d={d} derived={derived} character={character}/>;
+          default:          return null;
+        }
+      }
+
+      return (
+        <div style={{ minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
+          background:"radial-gradient(ellipse at 50% 30%,#1a0a2e 0%,#0d0d1a 60%)",padding:"20px 12px" }}>
+
+          {/* Back link — floated top-left */}
+          <a href="index.html" style={{
+            position:"fixed",top:12,left:12,zIndex:10,
+            color:C.textMuted,fontSize:11,textDecoration:"none",
+            padding:"4px 10px",borderRadius:6,
+            background:C.bgCard,border:`1px solid ${C.border}`,letterSpacing:.5,
+          }}>← Classic View</a>
+
+          <div style={{ width:"100%",maxWidth:440,background:C.bgDark,borderRadius:20,
+            border:`1px solid ${C.accentBorder}`,
+            boxShadow:`0 0 60px rgba(123,44,191,0.12),0 30px 80px rgba(0,0,0,0.7)`,
+            display:"flex",flexDirection:"column",minHeight:750,overflow:"hidden" }}>
+
+            {/* Title bar */}
+            <div style={{ padding:"11px 16px 9px",
+              background:`linear-gradient(90deg,${C.bgDeep},${C.bgCard})`,
+              borderBottom:`1px solid ${C.accentBorder}`,textAlign:"center" }}>
+              <h1 style={{ fontFamily:"'Rajdhani',sans-serif",fontSize:14,fontWeight:700,
+                letterSpacing:3,textTransform:"uppercase",color:C.accentLight }}>
+                ⟡ Spell Factor Calculator ⟡
+              </h1>
+            </div>
+
+            <CharacterHeader character={character} onLoad={handleLoad} onSave={handleSave} onNew={handleNew}/>
+
+            {/* Step indicator */}
+            <div style={{ padding:"8px 16px 0",background:C.bgCard,borderBottom:`1px solid ${C.border}` }}>
+              <div style={{ display:"flex",gap:3 }}>
+                {steps.map((s,i)=>(
+                  <div key={s.id} onClick={()=>i<stepIdx&&setStepIdx(i)}
+                    style={{ flex:1,cursor:i<stepIdx?"pointer":"default" }}>
+                    <div style={{ height:3,borderRadius:2,marginBottom:3,
+                      background:i<stepIdx?C.accentLight
+                        :i===stepIdx?`linear-gradient(90deg,${C.accentLight},${C.accent})`
+                        :C.border,
+                      transition:"background .3s" }}/>
+                    <div style={{ fontSize:7,letterSpacing:.8,textTransform:"uppercase",
+                      textAlign:"center",paddingBottom:5,
+                      color:i===stepIdx?C.accentLight:i<stepIdx?"#6a4a8a":"#444",
+                      fontWeight:i===stepIdx?700:400 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Step header */}
+            <div style={{ padding:"10px 16px 8px",background:C.bgCard,
+              borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:10 }}>
+              <span style={{ fontSize:18 }}>{currentStep.icon}</span>
+              <div>
+                <h2 style={{ fontFamily:"'Rajdhani',sans-serif",fontSize:17,fontWeight:700,color:C.text,letterSpacing:1 }}>
+                  {currentStep.label}
+                </h2>
+                <p style={{ color:C.textMuted,fontSize:10 }}>Step {stepIdx+1} of {steps.length}</p>
+              </div>
+            </div>
+
+            {/* Step content */}
+            <div style={{ flex:1,overflowY:"auto",padding:"14px 16px 0" }}>
+              {renderStep()}
+              <div style={{ height:14 }}/>
+            </div>
+
+            <MiniBar derived={derived} expanded={miniExpanded} onToggle={()=>setMini(e=>!e)}/>
+
+            {/* Nav footer */}
+            <div style={{ padding:"10px 16px 14px",background:C.bgDeep,
+              borderTop:`1px solid ${C.border}`,display:"flex",gap:8 }}>
+              {stepIdx>0&&(
+                <button onClick={()=>setStepIdx(s=>s-1)} style={{ flex:1,padding:"11px 0",borderRadius:8,
+                  fontSize:13,fontWeight:700,cursor:"pointer",
+                  border:`1px solid ${C.border}`,background:"transparent",color:C.textMuted }}>
+                  ← Back
+                </button>
+              )}
+              {stepIdx<steps.length-1 ? (
+                <button onClick={()=>setStepIdx(s=>s+1)} style={{ flex:2,padding:"11px 0",borderRadius:8,
+                  fontSize:13,fontWeight:700,cursor:"pointer",border:"none",
+                  background:`linear-gradient(135deg,${C.accent},${C.accentLight})`,
+                  color:"#fff",boxShadow:`0 4px 16px rgba(123,44,191,0.4)` }}>
+                  {stepIdx===steps.length-2?"⟡ Cast →":"Next →"}
+                </button>
+              ) : (
+                <button onClick={handleNew} style={{ flex:2,padding:"11px 0",borderRadius:8,
+                  fontSize:13,fontWeight:700,cursor:"pointer",
+                  border:`1px solid ${C.border}`,background:"transparent",color:C.textMuted }}>
+                  ← New Spell
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
