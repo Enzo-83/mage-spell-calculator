@@ -1,10 +1,11 @@
 // Service Worker for Mage Spell Calculator PWA
-const CACHE_NAME = 'mage-spell-calc-v3';
+const CACHE_NAME = 'mage-spell-calc-v4';
 
 // Files to cache for offline use
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
+  '/wizard.html',
   './manifest.json',
   './js/spellFactors.js',
   './js/dicePool.js',
