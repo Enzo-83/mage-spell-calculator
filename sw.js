@@ -5,7 +5,7 @@ const CACHE_NAME = 'mage-spell-calc-v4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  '/wizard.html',
+  './wizard.html',
   './manifest.json',
   './js/spellFactors.js',
   './js/dicePool.js',
