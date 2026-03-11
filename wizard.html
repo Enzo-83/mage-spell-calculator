@@ -1337,6 +1337,12 @@
         setD({...INITIAL, yantras:new Set()});
         setStepIdx(0);
       }
+      function handleNewSpell() {
+        // Reset spell form to defaults but keep the loaded character
+        setD({...INITIAL, yantras:new Set()});
+        if (character) applyCharacterToForm(character, setD);
+        setStepIdx(0);
+      }
 
       const steps = d.combined
         ? [BASE_STEPS[0], BASE_STEPS[1], {id:"combined",label:"Combined",icon:"⊞"}, ...BASE_STEPS.slice(2)]
@@ -1445,7 +1451,7 @@
                   {stepIdx===steps.length-2?"⟡ Cast →":"Next →"}
                 </button>
               ) : (
-                <button onClick={handleNew} style={{ flex:2,padding:"11px 0",borderRadius:8,
+                <button onClick={handleNewSpell} style={{ flex:2,padding:"11px 0",borderRadius:8,
                   fontSize:13,fontWeight:700,cursor:"pointer",
                   border:`1px solid ${C.border}`,background:"transparent",color:C.textMuted }}>
                   ← New Spell
