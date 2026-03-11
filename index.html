@@ -3882,7 +3882,7 @@
                 document.getElementById('spellType').value = type;
                 document.getElementById('roteSpecificSection').style.display = type === 'rote' ? 'block' : 'none';
                 
-                document.getElementById('spellName').value = spell?.name || '';
+                document.getElementById('spellEditorName').value = spell?.name || '';
                 document.getElementById('spellPrimaryArcanum').value = spell?.primaryArcanum || 'prime';
                 document.getElementById('spellPrimaryLevel').value = spell?.primaryArcanumLevel || 1;
                 document.getElementById('spellSecondaryArcanum').value = spell?.secondaryArcanum || '';
@@ -3993,7 +3993,7 @@
             // Save spell
             function saveSpell() {
                 const type = document.getElementById('spellType').value;
-                const name = document.getElementById('spellName').value.trim();
+                const name = document.getElementById('spellEditorName').value.trim();
                 
                 if (!name) {
                     alert('Please enter a spell name.');
@@ -5123,7 +5123,7 @@
                         </div>
                         <div class="form-group">
                             <label>Spell Name</label>
-                            <input type="text" id="spellName" placeholder="Enter spell name">
+                            <input type="text" id="spellEditorName" placeholder="Enter spell name">
                         </div>
                     </div>
                 </div>

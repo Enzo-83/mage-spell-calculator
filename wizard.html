@@ -450,7 +450,7 @@
     // ── Step 2: Spell ─────────────────────────────────────────────────────────
     function spellToMethod(spell) {
       if (spell.type === "praxis")          return "praxis";
-      if (spell.type === "improvised_fav")  return "improvised";
+      if (spell.type === "improvised_fav" || spell.type === "improvised")  return "improvised";
       if (spell.roteCreator === "grimoire") return "rote_grimoire";
       if (spell.roteCreator === "self")     return "rote_self";
       return "rote_order";
