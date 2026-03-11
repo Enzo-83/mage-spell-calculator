@@ -58,6 +58,13 @@
 
     // ── Game data ─────────────────────────────────────────────────────────────
     const ARCANA = ["Death","Fate","Forces","Life","Matter","Mind","Prime","Space","Spirit","Time"];
+    const PATHS = {
+      acanthus:  { rulingArcana: ["Fate","Time"] },
+      mastigos:  { rulingArcana: ["Mind","Space"] },
+      moros:     { rulingArcana: ["Death","Matter"] },
+      obrimos:   { rulingArcana: ["Forces","Prime"] },
+      thyrsus:   { rulingArcana: ["Life","Spirit"] },
+    };
     const PRACTICES = [
       ["Compelling","Knowing","Unveiling"],
       ["Ruling","Shielding","Veiling"],
@@ -153,7 +160,7 @@
       { value:"4", label:"+4 (Full Persona)" },
     ];
     // Paradox dice per excess Reach, keyed by Gnosis (from GNOSIS_CHART in spellFactors.js)
-    const PARADOX_PER_REACH = { 1:1,2:1,3:1,4:2,5:2,6:3,7:3,8:4,9:4,10:5 };
+    const PARADOX_PER_REACH = { 1:1,2:1,3:2,4:2,5:3,6:3,7:4,8:4,9:5,10:5 };
 
     const BASE_STEPS = [
       { id:"caster",    label:"Caster",    icon:"⚡" },
@@ -170,7 +177,7 @@
       return excess > 0 ? excess * -2 : 0;
     }
 
-    function deriveValues(d) {
+    function deriveValues(d, character) {
       const arcanumDots = d.casterArcanumDots;
       const isPotencyPrimary  = d.primaryFactor === "potency";
       const isDurationPrimary = d.primaryFactor === "duration";
@@ -260,7 +267,10 @@
       const chanceOnly     = hasParadoxRisk && paradoxDice === 0;
 
       // Mana
-      const nonRulingMana  = d.method === "improvised" ? 1 : 0;
+      const pathData = character?.path ? PATHS[character.path.toLowerCase()] : null;
+      const rulingArcana = pathData ? pathData.rulingArcana : [];
+      const isRuling = rulingArcana.includes(d.casterArcanum);
+      const nonRulingMana  = (d.method === "improvised" && !isRuling) ? 1 : 0;
       const indefiniteMana = durEntry.mana || 0;
       const sympathyMana   = (d.range === "sympathetic" || d.range === "temporal") ? 1 : 0;
       const totalMana      = nonRulingMana + indefiniteMana + sympathyMana + d.mitigateMana + d.extraManaCost;
@@ -271,7 +281,7 @@
         durEntry, scaleEntry, durTable, scaleTable, durIdx, scaleIdx,
         usedReach, freeReach, excessReach,
         hasParadoxRisk, paradoxDice, chanceOnly, dedicatedActive,
-        yantraBonus, basePool, dicePool, totalMana,
+        yantraBonus, basePool, dicePool, totalMana, nonRulingMana,
         isRote, roteSkillDots, spellsOver,
       };
     }
@@ -470,7 +480,7 @@
         const def = spell.defaults || {};
         set("spellName",            spell.name);
         set("method",               spellToMethod(spell));
-        set("practice",             spell.practice         || "");
+        set("practice",             arcKey(spell.practice)  || "");
         set("defaultPrimaryFactor", spell.primaryFactor    || "potency");
         set("primaryFactor",        spell.primaryFactor    || "potency");
         set("casterArcanum",        arcKey(spell.primaryArcanum));
@@ -912,7 +922,7 @@
           <Divider/>
           <SectionHead>Mana Summary</SectionHead>
           {[
-            ["Non-Ruling Improvised",  d.method==="improvised"?1:0],
+            ["Non-Ruling Improvised",  derived.nonRulingMana],
             ["Indefinite Duration",    derived.durEntry?.mana||0],
             ["Sympathetic / Temporal", (d.range==="sympathetic"||d.range==="temporal")?1:0],
             ["Paradox Mitigation",     d.mitigateMana],
@@ -1349,7 +1359,7 @@
         : BASE_STEPS;
 
       const currentStep = steps[stepIdx];
-      const derived     = deriveValues(d);
+      const derived     = deriveValues(d, character);
 
       function renderStep() {
         switch(currentStep.id) {
