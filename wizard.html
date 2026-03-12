@@ -1276,16 +1276,33 @@
                              : d.method === "praxis" ? "Exceptional at 3 successes"
                              : "Standard (10-again)";
 
+      // Build dice bot command: $cod N, $rote N, $cod8 N, etc.
+      function formatDiceCommand() {
+        const isRoteQ = methodInfo?.roteQuality;
+        let cmd = "$" + (isRoteQ ? "rote" : "cod");
+        // 8-again or 9-again (not applicable to rote quality, only standard)
+        // No special again handling for spell pool — only paradox witnesses use it
+        return cmd + " " + dicePool;
+      }
+
       async function handlePool() {
         if (!poolWebhook) { alert("No Dice Pool webhook set in character.discord.dicePoolWebhook"); return; }
         setDs(s=>({...s,pool:"sending"}));
         try {
-          const lines = [
-            `🎲 **${spellTitle}**`,
-            `Pool: **${dicePool}** dice  |  Reach: **${usedReach}/${freeReach}**  |  Mana: **${totalMana}**`,
+          // 1. Send embed summary
+          const fields = [
+            { name:"🎲 Dice Pool", value:String(dicePool),          inline:true },
+            { name:"↑ Reach",     value:`${usedReach}/${freeReach}${excessReach>0?" ⚠":""}`, inline:true },
+            { name:"⬡ Mana",      value:String(totalMana),          inline:true },
           ];
-          if (excessReach>0) lines.push(`⚠️ **Paradox:** ${chanceOnly?"Chance Die":paradoxDice+" dice"}`);
-          await postDiscord(poolWebhook, { content:lines.join("\n"), username:casterName });
+          if (excessReach>0) fields.push({ name:"⚠️ Paradox", value:chanceOnly?"Chance Die":paradoxDice+" dice", inline:true });
+          await postDiscord(poolWebhook, {
+            username:casterName,
+            embeds:[{ title:spellTitle, color:ARCANUM_COLORS[d.casterArcanum]||0x7b2cbf, fields,
+              footer:{ text:`${rollQualityLabel} · ${methodLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}` } }],
+          });
+          // 2. Send dice bot command
+          await postDiscord(poolWebhook, { content:formatDiceCommand(), username:casterName });
           setDs(s=>({...s,pool:"ok"}));
           setTimeout(()=>setDs(s=>({...s,pool:null})),3000);
         } catch { setDs(s=>({...s,pool:"error"})); setTimeout(()=>setDs(s=>({...s,pool:null})),4000); }

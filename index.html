@@ -4929,20 +4929,30 @@
                 showDiscordStatus('Sending...', 'sending');
                 
                 try {
-                    // Build message with spell dice and character identifier
-                    const spellCommand = formatDicePoolCommand(poolResult.finalPool, poolResult.rollQuality);
                     const characterName = currentCharacter.shadowName || currentCharacter.name || 'Unknown';
-                    const message = `${spellCommand} - ${characterName}`;
+                    const spellCommand = formatDicePoolCommand(poolResult.finalPool, poolResult.rollQuality);
+
+                    // 1. Send embed summary
+                    const embed = buildSpellPreviewEmbed(spellResult, poolResult);
+                    // Add roll quality to footer
+                    let rollQualityText = poolResult.rollQuality.description;
+                    if (poolResult.rollQuality.exceptionalAt === 3) {
+                        rollQualityText += ' (Exceptional at 3)';
+                    }
+                    embed.footer = { text: rollQualityText };
                     
-                    const response = await fetch(diceWebhook, {
+                    await fetch(diceWebhook, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content: message })
+                        body: JSON.stringify({ embeds: [embed], username: characterName })
                     });
-                    
-                    if (!response.ok) {
-                        throw new Error('Webhook request failed');
-                    }
+
+                    // 2. Send dice bot command
+                    await fetch(diceWebhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: spellCommand })
+                    });
                     
                     showDiscordStatus('✓ Sent!', 'success');
                     
