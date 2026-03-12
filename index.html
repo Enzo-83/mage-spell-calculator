@@ -4156,6 +4156,7 @@
                 const primaryDots = currentCharacter.arcana[spell.primaryArcanum] || 0;
                 document.getElementById('arcanumDots').value = primaryDots;
                 document.getElementById('spellRequirement').value = spell.primaryArcanumLevel;
+                window.currentCastingArcanum = spell.primaryArcanum;
                 
                 // Primary factor
                 document.getElementById('defaultPrimaryFactor').value = spell.primaryFactor;
@@ -4728,6 +4729,14 @@
                 return command;
             }
             
+            // Discord embed accent bar colors by Arcanum
+            const ARCANUM_COLORS = {
+                death:  0x536270,  fate:   0xE8E8E8,  forces: 0xED4245,
+                life:   0x2ECC71,  matter: 0x8B4513,  mind:   0xFEE75C,
+                prime:  0x3498DB,  space:  0x9B59B6,  spirit: 0xE67E22,
+                time:   0x1ABC9C,
+            };
+
             // Build spell preview embed for Discord
             function buildSpellPreviewEmbed(spellResult, poolResult) {
                 const fields = [];
@@ -4862,20 +4871,18 @@
                 }
                 
                 // Build embed
+                const embedColor = window.currentCastingArcanum
+                    ? (ARCANUM_COLORS[window.currentCastingArcanum] ?? 0x7B2CBF)
+                    : 0x7B2CBF;
                 const embed = {
                     title: embedTitle,
-                    color: 0x7B2CBF, // Purple accent
+                    color: embedColor,
                     fields: fields,
                     footer: {
                         text: rollQualityText
                     },
                     timestamp: new Date().toISOString()
                 };
-                
-                // Add Paradox warning if applicable
-                if (spellResult.reach.excess > 0) {
-                    embed.color = 0xE9C46A; // Warning yellow
-                }
                 
                 return embed;
             }

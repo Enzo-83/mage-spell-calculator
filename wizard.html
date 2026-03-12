@@ -177,6 +177,20 @@
     // Paradox dice per excess Reach, keyed by Gnosis (from GNOSIS_CHART in spellFactors.js)
     const PARADOX_PER_REACH = { 1:1,2:1,3:2,4:2,5:3,6:3,7:4,8:4,9:5,10:5 };
 
+    // Discord embed accent bar colors by Arcanum (decimal-safe hex literals)
+    const ARCANUM_COLORS = {
+      Death:  0x536270,  // dark slate
+      Fate:   0xE8E8E8,  // near-white
+      Forces: 0xED4245,  // red
+      Life:   0x2ECC71,  // green
+      Matter: 0x8B4513,  // brown
+      Mind:   0xFEE75C,  // yellow
+      Prime:  0x3498DB,  // blue
+      Space:  0x9B59B6,  // purple
+      Spirit: 0xE67E22,  // orange
+      Time:   0x1ABC9C,  // cyan
+    };
+
     const BASE_STEPS = [
       { id:"caster",    label:"Caster",    icon:"⚡" },
       { id:"spell",     label:"Spell",     icon:"✦" },
@@ -193,7 +207,25 @@
     }
 
     function deriveValues(d, character) {
-      const arcanumDots = d.casterArcanumDots;
+      // Method info (needed early for Grimoire checks)
+      const methodInfo = CAST_METHODS.find(m => m.id === d.method) || CAST_METHODS[0];
+      const isRote   = d.method.startsWith("rote");
+
+      // Combined spell overrides
+      const isCombined = d.combined && d.combinedSpells.length > 0;
+      let arcanumDots = d.casterArcanumDots;
+      let spellArcanumReq = d.spellArcanumReq;
+      let combinedPenalty = 0;
+      let combinedExtraReach = 0;
+
+      if (isCombined) {
+        const cs = d.combinedSpells;
+        arcanumDots = Math.min(...cs.map(s => s.casterDots));
+        spellArcanumReq = Math.min(...cs.map(s => s.level));
+        combinedPenalty = cs.length > 1 ? -2 * (cs.length - 1) : 0;
+        combinedExtraReach = cs.reduce((sum, s) => sum + (s.extraReach || 0), 0);
+      }
+
       const isPotencyPrimary  = d.primaryFactor === "potency";
       const isDurationPrimary = d.primaryFactor === "duration";
 
@@ -217,31 +249,27 @@
       const totalFactorPen = potencyPen + durationPen + scalePen;
 
       // Reach accounting
-      let usedReach = d.extraReach;
+      let usedReach = d.extraReach + combinedExtraReach;
       if (d.primaryFactor !== d.defaultPrimaryFactor) usedReach += 1;
       if (d.castTime === "instant" && !methodInfo.doubleRitual) usedReach += 1;
       if (d.range === "sensory")    usedReach += 1;
       if (d.range === "remote")     usedReach += 2;
       if (d.advancedDuration)       usedReach += 1;
       if (d.advancedScale)          usedReach += 1;
-      if (d.separateScales)         usedReach += 1;
+      if (d.separateScales && isCombined) usedReach += 1;
 
       // Spell Control Reach — 1 + spellsCurrentlyOver (progressive)
       const spellsOver = Math.max(0, d.activeSpells - d.gnosis);
       if (d.activeSpells >= d.gnosis) usedReach += 1 + spellsOver;
 
-      // Free Reach: Rotes always 5; non-Rote: max(1, arcanum − req + 1)
-      const isRote   = d.method.startsWith("rote");
-      const freeReach = isRote ? Math.max(1, 5 - d.spellArcanumReq + 1) : Math.max(1, arcanumDots - d.spellArcanumReq + 1);
+      // Free Reach: Rotes use 5 for arcanum; non-Rote: actual dots
+      const freeReach = isRote ? Math.max(1, 5 - spellArcanumReq + 1) : Math.max(1, arcanumDots - spellArcanumReq + 1);
       const excessReach = Math.max(0, usedReach - freeReach);
 
       // Rote skill dots (Order bonus already applied here)
       const roteSkillDots = d.orderSkill
         ? (parseInt(d.roteSkillDots, 10) || 0) + 1
         : (parseInt(d.roteSkillDots, 10) || 0);
-
-      // Method info for downstream mechanics
-      const methodInfo = CAST_METHODS.find(m => m.id === d.method) || CAST_METHODS[0];
 
       // Yantra bonus
       let yantraBonus = 0;
@@ -271,7 +299,7 @@
       const yantraCapApplied = yantraNet > 5;
       const yantraCapAdj = yantraCapApplied ? -(yantraNet - 5) : 0;
 
-      const dicePool = Math.max(0, basePool + totalFactorPen + yantraBonus + yantraCapAdj + wpBonus + d.teamworkDice + d.otherMod);
+      const dicePool = Math.max(0, basePool + totalFactorPen + combinedPenalty + yantraBonus + yantraCapAdj + wpBonus + d.teamworkDice + d.otherMod);
 
       // Paradox
       const dedicatedActive    = d.yantras.has("Dedicated Tool") || d.pathToolDedicated || d.orderToolDedicated;
@@ -307,6 +335,7 @@
         hasParadoxRisk, paradoxDice, chanceOnly, dedicatedActive,
         yantraBonus, basePool, dicePool, totalMana, nonRulingMana,
         isRote, roteSkillDots, spellsOver, methodInfo, yantraCapApplied, yantraCapAdj,
+        isCombined, combinedPenalty,
       };
     }
 
@@ -430,9 +459,13 @@
     }
 
     // ── Step 1: Caster ────────────────────────────────────────────────────────
-    function StepCaster({ d, set }) {
+    function StepCaster({ d, set, character, onQuickCast }) {
       const atLimit   = d.activeSpells >= d.gnosis;
       const spellsOver = Math.max(0, d.activeSpells - d.gnosis);
+      const rotes     = character?.rotes              || [];
+      const praxes    = character?.praxes             || [];
+      const favorites = character?.improvisedFavorites || [];
+      const allSpells = [...rotes, ...praxes, ...favorites];
       return (
         <div>
           <Field label="Gnosis">
@@ -477,6 +510,38 @@
           </div>
           <CheckboxRow label="Order Skill" sub="+1 Mudra die when casting Order Rotes"
             checked={d.orderSkill} onChange={v=>set("orderSkill",v)}/>
+
+          {allSpells.length > 0 && (
+            <>
+              <Divider/>
+              <SectionHead>⚡ Quick Cast</SectionHead>
+              <Hint style={{ marginBottom:8 }}>Tap a spell to load it and jump straight to Factors.</Hint>
+              <div style={{ borderRadius:8,border:`1px solid ${C.border}`,overflow:"hidden" }}>
+                {allSpells.map((spell,i)=>{
+                  const isRote = spell.type === "rote";
+                  const isPraxis = spell.type === "praxis";
+                  const tagLabel = isRote ? "Rote" : isPraxis ? "Praxis" : "Fav";
+                  const tagColor = isRote ? undefined : isPraxis ? "warning" : "danger";
+                  return (
+                    <div key={spell.id} onClick={()=>onQuickCast(spell)} style={{
+                      padding:"9px 12px",cursor:"pointer",transition:"background .15s",
+                      borderBottom:i<allSpells.length-1?`1px solid ${C.borderLight}`:"none",
+                      display:"flex",justifyContent:"space-between",alignItems:"center",
+                    }}>
+                      <div style={{ flex:1,minWidth:0 }}>
+                        <div style={{ color:C.text,fontSize:13 }}>{spell.name}</div>
+                        <div style={{ color:C.textMuted,fontSize:10 }}>
+                          {arcKey(spell.primaryArcanum)} {"●".repeat(spell.primaryArcanumLevel||1)}
+                          {" · "}{spell.practice}
+                        </div>
+                      </div>
+                      <Tag color={tagColor}>{tagLabel}</Tag>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       );
     }
@@ -501,42 +566,7 @@
       const hasAnySpells = rotes.length + praxes.length + favorites.length > 0;
 
       function loadSpell(spell) {
-        const def = spell.defaults || {};
-        set("spellName",            spell.name);
-        set("method",               spellToMethod(spell));
-        set("practice",             arcKey(spell.practice)  || "");
-        set("defaultPrimaryFactor", spell.primaryFactor    || "potency");
-        set("primaryFactor",        spell.primaryFactor    || "potency");
-        set("casterArcanum",        arcKey(spell.primaryArcanum));
-        set("spellArcanumReq",      spell.primaryArcanumLevel ?? 1);
-
-        // Look up caster's actual dots in this spell's arcanum
-        if (character?.arcana) {
-          const dots = character.arcana[spell.primaryArcanum] || 0;
-          if (dots > 0) set("casterArcanumDots", dots);
-        }
-
-        // Look up rote skill dots and order-skill status from character
-        if (spell.roteSkill && character) {
-          set("roteSkill", SKILL_KEY_TO_LABEL[spell.roteSkill] || d.roteSkill);
-          const skillDots = character.skills?.[spell.roteSkill] || 0;
-          set("roteSkillDots", skillDots);
-          const orderData = character.order ? ORDERS[character.order] : null;
-          const orderSkills = orderData ? orderData.roteSkills : [];
-          const additionalSkills = character.additionalRoteSkills || [];
-          set("orderSkill", orderSkills.includes(spell.roteSkill) || additionalSkills.includes(spell.roteSkill));
-        } else {
-          set("roteSkill", SKILL_KEY_TO_LABEL[spell.roteSkill] || d.roteSkill);
-        }
-
-        set("potency",              def.potency       ?? 1);
-        set("durationIndex",        def.durationIndex ?? 0);
-        set("advancedDuration",     def.advancedDuration ?? false);
-        set("scaleIndex",           def.scaleIndex    ?? 0);
-        set("scaleMode",            def.scaleMode     ?? "subjects");
-        set("advancedScale",        def.advancedScale ?? false);
-        set("range",                def.range         ?? "touch");
-        set("castTime",             def.castTime      ?? "ritual");
+        loadSpellData(spell, character, set);
       }
 
       function SpellRow({ spell, last }) {
@@ -612,7 +642,13 @@
           <SectionHead>Casting Method</SectionHead>
           {CAST_METHODS.map(m=>(
             <RadioCard key={m.id} label={m.label} sub={m.sub}
-              selected={d.method===m.id} onClick={()=>set("method",m.id)}/>
+              selected={d.method===m.id} onClick={()=>{
+                set("method",m.id);
+                if (m.doubleRitual) set("castTime","ritual");
+                if (!m.mudra && d.yantras.has("Mudra")) {
+                  const next = new Set(d.yantras); next.delete("Mudra"); set("yantras",next);
+                }
+              }}/>
           ))}
           <Divider/>
           <SectionHead>Practice</SectionHead>
@@ -670,21 +706,137 @@
     }
 
     // ── Step 2.5: Combined Spell ──────────────────────────────────────────────
-    function StepCombined({ d, set }) {
+    function getMaxCombined(gnosis) { return gnosis >= 9 ? 4 : gnosis >= 6 ? 3 : gnosis >= 3 ? 2 : 1; }
+
+    function StepCombined({ d, set, character }) {
+      const max = getMaxCombined(d.gnosis);
+      const spells = d.combinedSpells;
+      const [showManual, setShowManual] = useState(false);
+      const [manName, setManName]     = useState("");
+      const [manArc, setManArc]       = useState("Prime");
+      const [manLvl, setManLvl]       = useState(1);
+
+      // Library spells (exclude rotes — only praxes + improvised can be combined)
+      const libPraxes    = character?.praxes             || [];
+      const libFavorites = character?.improvisedFavorites || [];
+      const libSpells    = [...libPraxes, ...libFavorites];
+
+      function addFromLib(spell) {
+        if (spells.length >= max) return;
+        if (spells.some(s=>s.id===spell.id)) return; // no duplicates
+        const dots = character?.arcana?.[spell.primaryArcanum] || spell.primaryArcanumLevel || 1;
+        set("combinedSpells", [...spells, {
+          id: spell.id, name: spell.name, type: spell.type,
+          arcanum: spell.primaryArcanum, level: spell.primaryArcanumLevel || 1,
+          casterDots: dots, extraReach: 0,
+        }]);
+      }
+      function addManual() {
+        if (spells.length >= max || !manName.trim()) return;
+        set("combinedSpells", [...spells, {
+          id: "manual_"+Date.now(), name: manName.trim(), type: "improvised",
+          arcanum: manArc.toLowerCase(), level: manLvl,
+          casterDots: character?.arcana?.[manArc.toLowerCase()] || manLvl, extraReach: 0,
+        }]);
+        setManName(""); setManLvl(1); setShowManual(false);
+      }
+      function remove(id) { set("combinedSpells", spells.filter(s=>s.id!==id)); }
+      function setReach(id, val) {
+        set("combinedSpells", spells.map(s=>s.id===id?{...s, extraReach:val}:s));
+      }
+
+      // Find lowest arcanum
+      const lowestLevel = spells.length ? Math.min(...spells.map(s=>s.level)) : 0;
+      const lowestDots  = spells.length ? Math.min(...spells.map(s=>s.casterDots)) : 0;
+      const comboPenalty = spells.length > 1 ? -2 * (spells.length - 1) : 0;
+      const allPraxes   = spells.length > 0 && spells.every(s=>s.type==="praxis");
+
       return (
         <div>
           <div style={{ padding:"10px 14px",borderRadius:8,background:C.accentFaint,border:`1px solid ${C.accentBorder}`,marginBottom:14 }}>
-            <p style={{ margin:0,color:C.accentLight,fontSize:12 }}>
-              Uses the lowest Arcanum requirement. Dice penalty: −(number of combined spells).
+            <p style={{ margin:0,color:C.accentLight,fontSize:12,lineHeight:1.5 }}>
+              Pool: Gnosis + <strong>lowest Arcanum</strong> · {comboPenalty!==0?`${comboPenalty} dice penalty`:""} · Rotes cannot be combined.
+              {allPraxes&&" · All Praxes → Exceptional at 3."}
             </p>
           </div>
-          <Field label="Second Spell Name">
-            <TextInput value={d.combinedName} onChange={v=>set("combinedName",v)} placeholder="Second spell name"/>
-          </Field>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
-            <Field label="Arcanum"><SelectInput value={d.combinedArcanum} onChange={v=>set("combinedArcanum",v)} options={ARCANA}/></Field>
-            <Field label="Level"><StepperInput value={d.combinedLevel} min={1} max={5} onChange={v=>set("combinedLevel",v)}/></Field>
+
+          {/* Stats bar */}
+          <div style={{ display:"flex",gap:6,marginBottom:12 }}>
+            <div style={{ flex:1,textAlign:"center",padding:"8px 4px",borderRadius:8,background:C.bgDeep,border:`1px solid ${C.borderLight}` }}>
+              <div style={{ fontSize:9,color:C.textMuted,letterSpacing:1,textTransform:"uppercase" }}>Spells</div>
+              <div style={{ fontSize:18,fontWeight:700,color:spells.length>=max?C.warning:C.accentLight }}>{spells.length}/{max}</div>
+            </div>
+            <div style={{ flex:1,textAlign:"center",padding:"8px 4px",borderRadius:8,background:C.bgDeep,border:`1px solid ${C.borderLight}` }}>
+              <div style={{ fontSize:9,color:C.textMuted,letterSpacing:1,textTransform:"uppercase" }}>Lowest Arc</div>
+              <div style={{ fontSize:14,fontWeight:700,color:C.accentLight }}>{lowestDots>0?`${lowestDots} dots`:"—"}</div>
+            </div>
+            <div style={{ flex:1,textAlign:"center",padding:"8px 4px",borderRadius:8,background:C.bgDeep,border:`1px solid ${C.borderLight}` }}>
+              <div style={{ fontSize:9,color:C.textMuted,letterSpacing:1,textTransform:"uppercase" }}>Penalty</div>
+              <div style={{ fontSize:14,fontWeight:700,color:comboPenalty<0?C.danger:C.success }}>{comboPenalty||"0"}</div>
+            </div>
           </div>
+
+          {/* Spell list */}
+          {spells.map(spell=>{
+            const isLowest = spell.level === lowestLevel;
+            return (
+              <div key={spell.id} style={{ padding:"10px 12px",borderRadius:8,marginBottom:6,
+                border:`1px solid ${isLowest?C.warning:C.border}`,
+                background:isLowest?C.warningFaint:"rgba(255,255,255,0.02)" }}>
+                <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+                  <div>
+                    <span style={{ color:C.text,fontSize:13,fontWeight:600 }}>{spell.name}</span>
+                    <span style={{ color:C.textMuted,fontSize:11,marginLeft:8 }}>
+                      {arcKey(spell.arcanum)} {"●".repeat(spell.level)}
+                    </span>
+                    {isLowest&&<span style={{ color:C.warning,fontSize:10,marginLeft:6 }}>★ lowest</span>}
+                  </div>
+                  <button onClick={()=>remove(spell.id)} style={{ background:"none",border:"none",
+                    color:C.danger,cursor:"pointer",fontSize:16,padding:"0 4px" }}>✕</button>
+                </div>
+                <div style={{ display:"flex",alignItems:"center",gap:8,marginTop:6 }}>
+                  <span style={{ color:C.textMuted,fontSize:11 }}>+Reach for this spell:</span>
+                  <StepperInput value={spell.extraReach} min={0} max={5} onChange={v=>setReach(spell.id,v)}/>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Add buttons */}
+          {spells.length < max && (
+            <div style={{ display:"flex",gap:8,marginTop:8,marginBottom:8 }}>
+              {libSpells.length > 0 && !showManual && (
+                <div style={{ flex:1 }}>
+                  <SelectInput value="" onChange={id=>{
+                    const spell = libSpells.find(s=>s.id===id);
+                    if (spell) addFromLib(spell);
+                  }} options={[
+                    {value:"", label:"+ From Library…"},
+                    ...libSpells.filter(s=>!spells.some(cs=>cs.id===s.id))
+                      .map(s=>({value:s.id, label:`${s.name} (${arcKey(s.primaryArcanum)} ${s.primaryArcanumLevel})`}))
+                  ]}/>
+                </div>
+              )}
+              <button onClick={()=>setShowManual(s=>!s)} style={{
+                padding:"8px 14px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
+                border:`1px solid ${C.border}`,background:"rgba(255,255,255,0.02)",color:C.textMuted,
+              }}>{showManual?"Cancel":"+ Manual"}</button>
+            </div>
+          )}
+
+          {showManual && spells.length < max && (
+            <div style={{ padding:12,borderRadius:8,border:`1px solid ${C.border}`,background:C.bgDeep,marginBottom:8 }}>
+              <Field label="Spell Name"><TextInput value={manName} onChange={setManName} placeholder="Spell name"/></Field>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
+                <Field label="Arcanum"><SelectInput value={manArc} onChange={setManArc} options={ARCANA}/></Field>
+                <Field label="Level"><StepperInput value={manLvl} min={1} max={5} onChange={setManLvl}/></Field>
+              </div>
+              <button onClick={addManual} style={{ width:"100%",padding:10,borderRadius:8,cursor:"pointer",
+                border:"none",background:C.accent,color:"#fff",fontSize:12,fontWeight:700,marginTop:4 }}>Add Spell</button>
+            </div>
+          )}
+
+          <Divider/>
           <CheckboxRow label="Separate Scales (+1 Reach)"
             sub="Allow different spells to affect different targets/areas"
             checked={d.separateScales} onChange={v=>set("separateScales",v)}/>
@@ -822,6 +974,29 @@
               ))}
             </div>
           </Field>
+          {d.range==="aimed"&&(
+            <div style={{ background:C.bgDeep,borderRadius:8,padding:"10px 14px",marginBottom:8,
+              border:`1px solid ${C.warningFaint}` }}>
+              <p style={{ margin:"0 0 6px",fontSize:10,letterSpacing:1.5,textTransform:"uppercase",color:C.warning,fontWeight:700 }}>🎯 Aimed Spell Roll</p>
+              <p style={{ margin:"0 0 6px",color:C.textMuted,fontSize:12,lineHeight:1.5 }}>
+                <span style={{ color:C.text,fontWeight:600 }}>Gnosis ({d.gnosis}) + highest of Athletics or Firearms − target's Defense</span>
+              </p>
+              <p style={{ margin:"0 0 4px",fontSize:10,color:C.textMuted }}>Rolled after spellcasting & Paradox, but on the same turn (reflexive).</p>
+              <div style={{ display:"flex",gap:8,marginTop:6 }}>
+                {[
+                  ["Short", d.gnosis*10],
+                  ["Medium", d.gnosis*20],
+                  ["Long", d.gnosis*40],
+                ].map(([band,yards])=>(
+                  <div key={band} style={{ flex:1,textAlign:"center",padding:"6px 4px",borderRadius:6,
+                    background:"rgba(255,255,255,0.03)",border:`1px solid ${C.borderLight}` }}>
+                    <div style={{ fontSize:10,color:C.textMuted }}>{band}</div>
+                    <div style={{ fontSize:14,fontWeight:700,color:C.accentLight }}>{yards}yd</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <Divider/>
 
           {/* Casting Time */}
@@ -1086,7 +1261,8 @@
     function StepCast({ d, derived, character }) {
       const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
               potencyPen, durationPen, scalePen, yantraBonus, basePool,
-              durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj } = derived;
+              durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj,
+              isCombined, combinedPenalty } = derived;
       const [ds, setDs] = useState({});  // discord button states
 
       const casterName    = character?.shadowName || character?.name || "Mage";
@@ -1133,7 +1309,7 @@
           if (excessReach>0) fields.push({ name:"⚠️ Paradox", value:chanceOnly?"Chance Die":paradoxDice+" dice", inline:true });
           await postDiscord(cardWebhook, {
             username:casterName,
-            embeds:[{ title:spellTitle, color:0x7b2cbf, fields,
+            embeds:[{ title:spellTitle, color:ARCANUM_COLORS[d.casterArcanum]||0x7b2cbf, fields,
               footer:{ text:`${methodLabel} · ${rollQualityLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}` } }],
           });
           setDs(s=>({...s,card:"ok"}));
@@ -1175,6 +1351,14 @@
             </p>
           </div>
 
+          {d.spellDescription && (
+            <div style={{ background:C.bgDeep,borderRadius:8,padding:"10px 14px",marginBottom:10,
+              border:`1px solid ${C.borderLight}` }}>
+              <p style={{ margin:0,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",color:C.accentLight,marginBottom:4 }}>Spell Effect</p>
+              <p style={{ margin:0,color:C.textMuted,fontSize:12,lineHeight:1.5 }}>{d.spellDescription}</p>
+            </div>
+          )}
+
           <div style={{ display:"flex",gap:5,marginBottom:10 }}>
             <StatBox label="Dice Pool" value={dicePool}/>
             <StatBox label="Reach" value={`${usedReach}/${freeReach}`}
@@ -1193,8 +1377,11 @@
             {[
               [isRote
                 ? `Skill (${d.roteSkill}) + Arcanum ${d.casterArcanumDots}`
+                : isCombined
+                ? `Gnosis ${d.gnosis} + Lowest Arcanum`
                 : `Gnosis ${d.gnosis} + Arcanum ${d.casterArcanumDots}`,
                `+${basePool}`],
+              combinedPenalty!==0 && [`Combined (${d.combinedSpells.length} spells)`, `${combinedPenalty}`],
               potencyPen!==0  && [`Potency ${d.potency} penalty`,          `${potencyPen}`],
               durationPen!==0 && [`Duration ${durEntry?.label} penalty`,   `${durationPen}`],
               scalePen!==0    && [`Scale ${scaleEntry?.label} penalty`,    `${scalePen}`],
@@ -1370,13 +1557,53 @@
 
 
 
+    // ── Load spell helper (shared by StepSpell and Quick Cast) ───────────────
+    function loadSpellData(spell, character, set) {
+      const def = spell.defaults || {};
+      set("spellName",            spell.name);
+      set("spellDescription",     spell.description      || "");
+      const method = spellToMethod(spell);
+      set("method",               method);
+      const mi = CAST_METHODS.find(m=>m.id===method);
+      if (mi?.doubleRitual) set("castTime","ritual");
+      set("practice",             arcKey(spell.practice)  || "");
+      set("defaultPrimaryFactor", spell.primaryFactor    || "potency");
+      set("primaryFactor",        spell.primaryFactor    || "potency");
+      set("casterArcanum",        arcKey(spell.primaryArcanum));
+      set("spellArcanumReq",      spell.primaryArcanumLevel ?? 1);
+
+      if (character?.arcana) {
+        const dots = character.arcana[spell.primaryArcanum] || 0;
+        if (dots > 0) set("casterArcanumDots", dots);
+      }
+
+      if (spell.roteSkill && character) {
+        set("roteSkill", SKILL_KEY_TO_LABEL[spell.roteSkill] || "Occult");
+        const skillDots = character.skills?.[spell.roteSkill] || 0;
+        set("roteSkillDots", skillDots);
+        const orderData = character.order ? ORDERS[character.order] : null;
+        const orderSkills = orderData ? orderData.roteSkills : [];
+        const additionalSkills = character.additionalRoteSkills || [];
+        set("orderSkill", orderSkills.includes(spell.roteSkill) || additionalSkills.includes(spell.roteSkill));
+      }
+
+      set("potency",              def.potency       ?? 1);
+      set("durationIndex",        def.durationIndex ?? 0);
+      set("advancedDuration",     def.advancedDuration ?? false);
+      set("scaleIndex",           def.scaleIndex    ?? 0);
+      set("scaleMode",            def.scaleMode     ?? "subjects");
+      set("advancedScale",        def.advancedScale ?? false);
+      set("range",                def.range         ?? "touch");
+      set("castTime",             mi?.doubleRitual ? "ritual" : (def.castTime ?? "ritual"));
+    }
+
     // ── Initial form state ────────────────────────────────────────────────────
     const INITIAL = {
       gnosis:1, casterArcanum:"Forces", casterArcanumDots:1, spellArcanumReq:1,
       activeSpells:0, roteSkill:"Computer", roteSkillDots:4, orderSkill:false,
-      spellName:"", method:"improvised", practice:"",
+      spellName:"", spellDescription:"", method:"improvised", practice:"",
       defaultPrimaryFactor:"potency", primaryFactor:"potency",
-      combined:false, combinedName:"", combinedArcanum:"Prime", combinedLevel:1, separateScales:false,
+      combined:false, combinedSpells:[], separateScales:false,
       potency:1, durationIndex:0, advancedDuration:false,
       scaleIndex:0, scaleMode:"subjects", advancedScale:false,
       range:"touch", castTime:"ritual", ritualIntervals:0, extraReach:0,
@@ -1426,6 +1653,12 @@
         if (character) applyCharacterToForm(character, setD);
         setStepIdx(0);
       }
+      function handleQuickCast(spell) {
+        loadSpellData(spell, character, set);
+        // Jump to Factors step (index 2 normally, 3 if combined is active)
+        const factorsIdx = d.combined ? 3 : 2;
+        setStepIdx(factorsIdx);
+      }
 
       const steps = d.combined
         ? [BASE_STEPS[0], BASE_STEPS[1], {id:"combined",label:"Combined",icon:"⊞"}, ...BASE_STEPS.slice(2)]
@@ -1436,9 +1669,9 @@
 
       function renderStep() {
         switch(currentStep.id) {
-          case "caster":    return <StepCaster    d={d} set={set}/>;
+          case "caster":    return <StepCaster    d={d} set={set} character={character} onQuickCast={handleQuickCast}/>;
           case "spell":     return <StepSpell     d={d} set={set} character={character}/>;
-          case "combined":  return <StepCombined  d={d} set={set}/>;
+          case "combined":  return <StepCombined  d={d} set={set} character={character}/>;
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
           case "yantras":   return <StepYantras   d={d} set={set}/>;
           case "modifiers": return <StepModifiers d={d} set={set} derived={derived}/>;
