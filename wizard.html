@@ -65,6 +65,16 @@
       obrimos:   { rulingArcana: ["Forces","Prime"] },
       thyrsus:   { rulingArcana: ["Life","Spirit"] },
     };
+    const ORDERS = {
+      adamantineArrow:     { roteSkills: ["athletics","intimidation","medicine"] },
+      guardiansOfTheVeil:  { roteSkills: ["investigation","stealth","subterfuge"] },
+      mysterium:           { roteSkills: ["investigation","occult","survival"] },
+      silverLadder:        { roteSkills: ["expression","persuasion","subterfuge"] },
+      freeCouncil:         { roteSkills: ["crafts","persuasion","science"] },
+      seersOfTheThrone:    { roteSkills: ["investigation","occult","persuasion"] },
+      apostate:            { roteSkills: [] },
+      nameless:            { roteSkills: [] },
+    };
     const PRACTICES = [
       ["Compelling","Knowing","Unveiling"],
       ["Ruling","Shielding","Veiling"],
@@ -87,11 +97,11 @@
     };
 
     const CAST_METHODS = [
-      { id:"improvised",    label:"Improvised",         sub:"+1 Mana if not Ruling Arcanum" },
-      { id:"praxis",        label:"Praxis",              sub:"Exceptional at 3 successes" },
-      { id:"rote_order",    label:"Rote – Order",        sub:"Rote Quality + Mudra (Order)" },
-      { id:"rote_self",     label:"Rote – Your Design",  sub:"Rote Quality + Mudra" },
-      { id:"rote_grimoire", label:"Rote – Grimoire",     sub:"Rote Quality · 2× Ritual time" },
+      { id:"improvised",    label:"Improvised",         sub:"+1 Mana if not Ruling Arcanum",        mudra:false, roteQuality:false, doubleRitual:false },
+      { id:"praxis",        label:"Praxis",              sub:"Exceptional at 3 successes",           mudra:false, roteQuality:false, doubleRitual:false },
+      { id:"rote_order",    label:"Rote – Learned",      sub:"Mudra available · No Rote Quality",    mudra:true,  roteQuality:false, doubleRitual:false },
+      { id:"rote_self",     label:"Rote – Your Design",  sub:"Rote Quality + Mudra",                 mudra:true,  roteQuality:true,  doubleRitual:false },
+      { id:"rote_grimoire", label:"Rote – Grimoire",     sub:"Rote Quality · 2× Ritual · No Instant",mudra:false, roteQuality:true,  doubleRitual:true  },
     ];
 
     const DURATION_STANDARD = [
@@ -131,12 +141,17 @@
       { label:"80 Subjects", level:5 },
     ];
     const SCALE_ADV_AREA = [
-      { label:"Large House", level:1 },
-      { label:"Full Block",  level:2 },
-      { label:"Small Town",  level:3 },
-      { label:"Town",        level:4 },
-      { label:"City Block",  level:5 },
+      { label:"Large House",       level:1 },
+      { label:"Parking Lot",      level:2 },
+      { label:"Supermarket",      level:3 },
+      { label:"Shopping Mall",    level:4 },
+      { label:"City Block (Max)", level:5 },
     ];
+    const RITUAL_INTERVALS = {
+      1:"3 hours", 2:"3 hours", 3:"1 hour", 4:"1 hour",
+      5:"30 min",  6:"30 min",  7:"10 min", 8:"10 min",
+      9:"1 min",  10:"1 min",
+    };
     const RANGES = [
       { id:"self",        label:"Self" },
       { id:"touch",       label:"Touch" },
@@ -204,7 +219,7 @@
       // Reach accounting
       let usedReach = d.extraReach;
       if (d.primaryFactor !== d.defaultPrimaryFactor) usedReach += 1;
-      if (d.castTime === "instant") usedReach += 1;
+      if (d.castTime === "instant" && !methodInfo.doubleRitual) usedReach += 1;
       if (d.range === "sensory")    usedReach += 1;
       if (d.range === "remote")     usedReach += 2;
       if (d.advancedDuration)       usedReach += 1;
@@ -217,13 +232,16 @@
 
       // Free Reach: Rotes always 5; non-Rote: max(1, arcanum − req + 1)
       const isRote   = d.method.startsWith("rote");
-      const freeReach = isRote ? 5 : Math.max(1, arcanumDots - d.spellArcanumReq + 1);
+      const freeReach = isRote ? Math.max(1, 5 - d.spellArcanumReq + 1) : Math.max(1, arcanumDots - d.spellArcanumReq + 1);
       const excessReach = Math.max(0, usedReach - freeReach);
 
       // Rote skill dots (Order bonus already applied here)
       const roteSkillDots = d.orderSkill
         ? (parseInt(d.roteSkillDots, 10) || 0) + 1
         : (parseInt(d.roteSkillDots, 10) || 0);
+
+      // Method info for downstream mechanics
+      const methodInfo = CAST_METHODS.find(m => m.id === d.method) || CAST_METHODS[0];
 
       // Yantra bonus
       let yantraBonus = 0;
@@ -234,7 +252,7 @@
       if (d.yantras.has("Supernal Verge"))         yantraBonus += 2;
       if (d.yantras.has("Concentration"))          yantraBonus += 2;
       if (d.yantras.has("High Speech"))            yantraBonus += 2;
-      if (d.yantras.has("Mudra") && isRote)        yantraBonus += roteSkillDots;
+      if (d.yantras.has("Mudra") && isRote && methodInfo.mudra) yantraBonus += roteSkillDots;
       if (d.yantras.has("Rune"))                   yantraBonus += 2;
       if (d.yantras.has("Material"))               yantraBonus += 2;
       if (d.yantras.has("Representational"))       yantraBonus += 1;
@@ -247,7 +265,13 @@
       // Base pool: Rotes = Skill + Arcanum; Improvised/Praxis = Gnosis + Arcanum
       const basePool = isRote ? roteSkillDots + arcanumDots : d.gnosis + arcanumDots;
       const wpBonus  = d.spendWP ? 3 : 0;
-      const dicePool = Math.max(0, basePool + totalFactorPen + yantraBonus + wpBonus + d.teamworkDice + d.otherMod);
+
+      // Yantra cap: after offsetting spell factor penalties, net yantra bonus can't exceed +5
+      const yantraNet = yantraBonus + totalFactorPen; // totalFactorPen is negative or 0
+      const yantraCapApplied = yantraNet > 5;
+      const yantraCapAdj = yantraCapApplied ? -(yantraNet - 5) : 0;
+
+      const dicePool = Math.max(0, basePool + totalFactorPen + yantraBonus + yantraCapAdj + wpBonus + d.teamworkDice + d.otherMod);
 
       // Paradox
       const dedicatedActive    = d.yantras.has("Dedicated Tool") || d.pathToolDedicated || d.orderToolDedicated;
@@ -282,7 +306,7 @@
         usedReach, freeReach, excessReach,
         hasParadoxRisk, paradoxDice, chanceOnly, dedicatedActive,
         yantraBonus, basePool, dicePool, totalMana, nonRulingMana,
-        isRote, roteSkillDots, spellsOver,
+        isRote, roteSkillDots, spellsOver, methodInfo, yantraCapApplied, yantraCapAdj,
       };
     }
 
@@ -485,7 +509,26 @@
         set("primaryFactor",        spell.primaryFactor    || "potency");
         set("casterArcanum",        arcKey(spell.primaryArcanum));
         set("spellArcanumReq",      spell.primaryArcanumLevel ?? 1);
-        set("roteSkill",            SKILL_KEY_TO_LABEL[spell.roteSkill] || d.roteSkill);
+
+        // Look up caster's actual dots in this spell's arcanum
+        if (character?.arcana) {
+          const dots = character.arcana[spell.primaryArcanum] || 0;
+          if (dots > 0) set("casterArcanumDots", dots);
+        }
+
+        // Look up rote skill dots and order-skill status from character
+        if (spell.roteSkill && character) {
+          set("roteSkill", SKILL_KEY_TO_LABEL[spell.roteSkill] || d.roteSkill);
+          const skillDots = character.skills?.[spell.roteSkill] || 0;
+          set("roteSkillDots", skillDots);
+          const orderData = character.order ? ORDERS[character.order] : null;
+          const orderSkills = orderData ? orderData.roteSkills : [];
+          const additionalSkills = character.additionalRoteSkills || [];
+          set("orderSkill", orderSkills.includes(spell.roteSkill) || additionalSkills.includes(spell.roteSkill));
+        } else {
+          set("roteSkill", SKILL_KEY_TO_LABEL[spell.roteSkill] || d.roteSkill);
+        }
+
         set("potency",              def.potency       ?? 1);
         set("durationIndex",        def.durationIndex ?? 0);
         set("advancedDuration",     def.advancedDuration ?? false);
@@ -783,15 +826,33 @@
 
           {/* Casting Time */}
           <SectionHead>Casting Time</SectionHead>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
-            <RadioCard label="Ritual" sub="Standard · +1 die/interval" selected={d.castTime==="ritual"} onClick={()=>set("castTime","ritual")}/>
-            <RadioCard label="Instant" sub="+1 Reach" selected={d.castTime==="instant"} onClick={()=>set("castTime","instant")}/>
-          </div>
-          {d.castTime==="ritual"&&(
-            <Field label="Ritual Intervals (0–5)" hint="+1 die per interval · max +5">
-              <StepperInput value={d.ritualIntervals} min={0} max={5} onChange={v=>set("ritualIntervals",v)}/>
-            </Field>
-          )}
+          {(()=>{
+            const mi = CAST_METHODS.find(m=>m.id===d.method);
+            const isGrimoire = mi && mi.doubleRitual;
+            const interval = RITUAL_INTERVALS[d.gnosis] || "3 hours";
+            const displayInterval = isGrimoire ? `2× ${interval}` : interval;
+            return (
+              <>
+                <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                  <RadioCard label="Ritual" sub={`${displayInterval} / interval`} selected={d.castTime==="ritual"} onClick={()=>set("castTime","ritual")}/>
+                  {isGrimoire ? (
+                    <div style={{ padding:"10px 14px",borderRadius:8,border:`1px solid ${C.border}`,
+                      background:"rgba(255,255,255,0.02)",opacity:0.4,textAlign:"center" }}>
+                      <div style={{ fontSize:13,fontWeight:600,color:C.textMuted }}>Instant</div>
+                      <div style={{ fontSize:10,color:C.danger,marginTop:2 }}>Not allowed (Grimoire)</div>
+                    </div>
+                  ) : (
+                    <RadioCard label="Instant" sub="+1 Reach" selected={d.castTime==="instant"} onClick={()=>set("castTime","instant")}/>
+                  )}
+                </div>
+                {d.castTime==="ritual"&&(
+                  <Field label="Ritual Intervals (0–5)" hint={`+1 die per interval · ${displayInterval} each · max +5`}>
+                    <StepperInput value={d.ritualIntervals} min={0} max={5} onChange={v=>set("ritualIntervals",v)}/>
+                  </Field>
+                )}
+              </>
+            );
+          })()}
           <Divider/>
           <Field label="Additional Reach" hint="For extra effects, extended durations, etc.">
             <StepperInput value={d.extraReach} min={0} max={10} onChange={v=>set("extraReach",v)}/>
@@ -884,7 +945,10 @@
           <SectionHead>Actions</SectionHead>
           <YRow name="Concentration" bonus="+2"/>
           <YRow name="High Speech"   bonus="+2"/>
-          <YRow name="Mudra"         bonus="+Skill"/>
+          {(()=>{
+            const mi = CAST_METHODS.find(m=>m.id===d.method);
+            return mi && mi.mudra ? <YRow name="Mudra" bonus="+Skill"/> : null;
+          })()}
           <YRow name="Rune"          bonus="+2"/>
 
           <SectionHead>Sympathy</SectionHead>
@@ -1022,15 +1086,19 @@
     function StepCast({ d, derived, character }) {
       const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
               potencyPen, durationPen, scalePen, yantraBonus, basePool,
-              durEntry, scaleEntry, isRote } = derived;
+              durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj } = derived;
       const [ds, setDs] = useState({});  // discord button states
 
       const casterName    = character?.shadowName || character?.name || "Mage";
       const spellTitle    = d.spellName ? `${casterName}'s ${d.spellName}` : `${casterName}'s Spell`;
       const poolWebhook   = character?.discord?.dicePoolWebhook   || "";
       const cardWebhook   = character?.discord?.spellPreviewWebhook || "";
-      const methodLabel   = CAST_METHODS.find(m=>m.id===d.method)?.label || d.method;
+      const methodLabel   = methodInfo?.label || d.method;
       const arcDots       = "●".repeat(d.casterArcanumDots);
+      const interval      = RITUAL_INTERVALS[d.gnosis] || "3 hours";
+      const rollQualityLabel = methodInfo?.roteQuality ? "Rote Quality (reroll 1–7)"
+                             : d.method === "praxis" ? "Exceptional at 3 successes"
+                             : "Standard (10-again)";
 
       async function handlePool() {
         if (!poolWebhook) { alert("No Dice Pool webhook set in character.discord.dicePoolWebhook"); return; }
@@ -1059,13 +1127,14 @@
             { name:"Duration",    value:durEntry?.label||"—",        inline:true },
             { name:"Scale",       value:scaleEntry?.label||"—",      inline:true },
             { name:"Range",       value:RANGES.find(r=>r.id===d.range)?.label||d.range, inline:true },
-            { name:"Cast Time",   value:d.castTime==="instant"?"Instant":`Ritual${d.ritualIntervals>0?` +${d.ritualIntervals}i`:""}`, inline:true },
+            { name:"Cast Time",   value:(d.castTime==="instant" && !methodInfo?.doubleRitual)?"Instant"
+                :`Ritual${d.ritualIntervals>0?` +${d.ritualIntervals} × ${methodInfo?.doubleRitual?"2×":""}${interval}`:""}${methodInfo?.doubleRitual?" (2×)":""}`, inline:true },
           ];
           if (excessReach>0) fields.push({ name:"⚠️ Paradox", value:chanceOnly?"Chance Die":paradoxDice+" dice", inline:true });
           await postDiscord(cardWebhook, {
             username:casterName,
             embeds:[{ title:spellTitle, color:0x7b2cbf, fields,
-              footer:{ text:`${methodLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}` } }],
+              footer:{ text:`${methodLabel} · ${rollQualityLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}` } }],
           });
           setDs(s=>({...s,card:"ok"}));
           setTimeout(()=>setDs(s=>({...s,card:null})),3000);
@@ -1133,6 +1202,7 @@
               d.spendWP       && ["Willpower",                             "+3"],
               d.teamworkDice>0&& ["Teamwork",                              `+${d.teamworkDice}`],
               d.otherMod!==0  && ["Other modifier",                        `${d.otherMod>0?"+":""}${d.otherMod}`],
+              yantraCapApplied && ["Yantra cap (net max +5)",               `${yantraCapAdj}`],
             ].filter(Boolean).map(([k,v])=>(
               <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.borderLight}` }}>
                 <span style={{ color:C.textMuted,fontSize:12 }}>{k}</span>
@@ -1149,11 +1219,14 @@
           <div style={{ background:C.bgDeep,borderRadius:8,padding:14,marginBottom:10 }}>
             <p style={{ margin:"0 0 8px",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:C.accentLight }}>Spell Factors</p>
             {[
-              ["Potency",  d.potency],
-              ["Duration", durEntry?.label||"—"],
-              ["Scale",    scaleEntry?.label||"—"],
-              ["Range",    RANGES.find(r=>r.id===d.range)?.label||d.range],
-              ["Cast Time",d.castTime==="ritual"?`Ritual${d.ritualIntervals>0?` (+${d.ritualIntervals} intervals)`:""}`:"Instant"],
+              ["Potency",     d.potency],
+              ["Duration",    durEntry?.label||"—"],
+              ["Scale",       scaleEntry?.label||"—"],
+              ["Range",       RANGES.find(r=>r.id===d.range)?.label||d.range],
+              ["Cast Time",   (d.castTime==="instant" && !methodInfo?.doubleRitual)?"Instant"
+                              :`Ritual${d.ritualIntervals>0?` (+${d.ritualIntervals} × ${methodInfo?.doubleRitual?"2×":""}${interval})`:""}`
+                              + (methodInfo?.doubleRitual?" (2× time)":"")],
+              ["Roll Quality",rollQualityLabel],
             ].map(([k,v])=>(
               <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.borderLight}` }}>
                 <span style={{ color:C.textMuted,fontSize:12 }}>{k}</span>
