@@ -4931,15 +4931,43 @@
                 try {
                     const characterName = currentCharacter.shadowName || currentCharacter.name || 'Unknown';
                     const spellCommand = formatDicePoolCommand(poolResult.finalPool, poolResult.rollQuality);
+                    const spellName = document.getElementById('spellName').value.trim();
+                    const embedTitle = spellName
+                        ? `${characterName}'s ${spellName}`
+                        : `${characterName}'s Spell`;
 
-                    // 1. Send embed summary
-                    const embed = buildSpellPreviewEmbed(spellResult, poolResult);
-                    // Add roll quality to footer
+                    // Roll quality label
                     let rollQualityText = poolResult.rollQuality.description;
                     if (poolResult.rollQuality.exceptionalAt === 3) {
                         rollQualityText += ' (Exceptional at 3)';
                     }
-                    embed.footer = { text: rollQualityText };
+
+                    // Arcanum color
+                    const embedColor = window.currentCastingArcanum
+                        ? (ARCANUM_COLORS[window.currentCastingArcanum] ?? 0x7B2CBF)
+                        : 0x7B2CBF;
+
+                    // 1. Send compact embed summary
+                    const fields = [
+                        { name: '🎲 Dice Pool', value: String(poolResult.finalPool), inline: true },
+                        { name: '↑ Reach', value: `${spellResult.reach.used}/${spellResult.reach.freeReach}${spellResult.reach.excess > 0 ? ' ⚠' : ''}`, inline: true },
+                        { name: '⬡ Mana', value: String(spellResult.totals.manaCost), inline: true },
+                    ];
+                    if (spellResult.reach.excess > 0) {
+                        const paradoxInfo = getCurrentParadoxInfo();
+                        const pVal = paradoxInfo
+                            ? (paradoxInfo.isChanceDie ? 'Chance Die' : paradoxInfo.finalDice + ' dice')
+                            : spellResult.totals.paradoxDice + ' dice';
+                        fields.push({ name: '⚠️ Paradox', value: pVal, inline: true });
+                    }
+
+                    const embed = {
+                        title: embedTitle,
+                        color: embedColor,
+                        fields: fields,
+                        footer: { text: rollQualityText },
+                        timestamp: new Date().toISOString()
+                    };
                     
                     await fetch(diceWebhook, {
                         method: 'POST',
