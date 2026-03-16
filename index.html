@@ -1224,6 +1224,103 @@
             color: var(--danger);
             font-size: 0.9em;
         }
+
+        .mana-adjuster {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .mana-adjuster .mana-adj-label {
+            color: var(--text-muted);
+            font-size: 0.8em;
+            margin-right: auto;
+        }
+        .mana-adjuster .mana-adj-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text-light);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .mana-adjuster .mana-adj-btn:hover {
+            border-color: var(--accent-light);
+            background: rgba(123,44,191,0.1);
+        }
+        .mana-adjuster .mana-adj-value {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--warning);
+            min-width: 24px;
+            text-align: center;
+        }
+        .mana-adjuster .mana-adj-info {
+            color: var(--text-muted);
+            font-size: 0.75em;
+            margin-left: 4px;
+        }
+
+        .mana-ledger {
+            margin-top: 10px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .mana-ledger-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            padding: 2px 0;
+        }
+        .mana-ledger-row .label { color: var(--text-muted); }
+        .mana-ledger-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.06);
+            margin: 4px 0;
+        }
+        .mana-ledger-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            font-weight: 700;
+            padding: 2px 0;
+        }
+        .mana-validation {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+        }
+        .mana-validation.ok {
+            background: rgba(42, 157, 143, 0.15);
+            color: var(--success);
+        }
+        .mana-validation.warn {
+            background: rgba(233, 196, 106, 0.15);
+            color: var(--warning);
+        }
+        .mana-validation.block {
+            background: rgba(199, 62, 29, 0.15);
+            color: var(--danger);
+        }
+        .mana-deducted-notice {
+            margin-top: 6px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(42, 157, 143, 0.15);
+            border: 1px solid var(--success);
+            color: var(--success);
+            font-size: 0.85em;
+            display: none;
+        }
         
         /* Live Preview Card */
         .live-preview-card {
@@ -1915,6 +2012,15 @@
                 <input type="file" id="fileInput" accept=".json" style="display: none;">
             </div>
         </div>
+        <div class="mana-adjuster" id="manaAdjuster" style="display: none;">
+            <span class="mana-adj-label">⬡ Mana</span>
+            <button class="mana-adj-btn" id="btnManaDown" title="Decrease mana">−</button>
+            <span class="mana-adj-value" id="manaAdjValue">0</span>
+            <span style="color: var(--text-muted); font-size: 0.8em;">/</span>
+            <span style="color: var(--text-muted); font-size: 0.8em;" id="manaAdjMax">10</span>
+            <button class="mana-adj-btn" id="btnManaUp" title="Increase mana">+</button>
+            <span class="mana-adj-info" id="manaAdjInfo">per turn: 1</span>
+        </div>
         
         <h1>⟡ Spell Factor Calculator ⟡</h1>
         
@@ -2078,6 +2184,11 @@
                 <div class="form-group">
                     <label>Potency</label>
                     <input type="number" id="potency" min="1" max="20" value="1">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="advancedPotency">
+                        <label for="advancedPotency" style="margin: 0; text-transform: none;">Advanced Potency +1 Reach</label>
+                    </div>
+                    <div class="info-text" id="advancedPotencyInfo" style="display: none; color: var(--warning);">+2 Withstand vs Dispellation · +1 die to Clash of Wills</div>
                 </div>
                 
                 <div class="form-group">
@@ -2318,6 +2429,24 @@
                         <span class="mana-cost" id="manaTotalCost">0</span>
                     </div>
                 </div>
+                <div class="mana-ledger" id="manaLedger" style="display: none;">
+                    <div class="mana-ledger-row">
+                        <span class="label">Current mana</span>
+                        <span id="manaLedgerCurrent">0</span>
+                    </div>
+                    <div class="mana-ledger-row">
+                        <span class="label">Cost</span>
+                        <span style="color: var(--warning);" id="manaLedgerCost">−0</span>
+                    </div>
+                    <div class="mana-ledger-divider"></div>
+                    <div class="mana-ledger-total">
+                        <span>After cast</span>
+                        <span id="manaLedgerAfter">0</span>
+                    </div>
+                    <div style="font-size: 0.75em; color: var(--text-muted); margin-top: 4px;" id="manaPerTurnInfo"></div>
+                </div>
+                <div class="mana-validation" id="manaValidation" style="display: none;"></div>
+                <div class="mana-deducted-notice" id="manaDeductedNotice">✓ Mana deducted</div>
                 <div class="mana-pool-status" id="manaPoolStatus">
                     <span id="manaPoolDisplay">No character loaded</span>
                 </div>
@@ -2685,6 +2814,10 @@
                 populateDurationSelect(this.checked);
             });
             
+            document.getElementById('advancedPotency').addEventListener('change', function() {
+                document.getElementById('advancedPotencyInfo').style.display = this.checked ? 'block' : 'none';
+            });
+            
             document.getElementById('advancedScale').addEventListener('change', function() {
                 populateScaleSelect(this.checked, getScaleType());
             });
@@ -2829,7 +2962,7 @@
             
             // Checkboxes that trigger recalculation
             const autoCalcCheckboxes = [
-                'advancedDuration', 'advancedScale', 'isOrderSkill', 'spendWillpower'
+                'advancedDuration', 'advancedScale', 'advancedPotency', 'isOrderSkill', 'spendWillpower'
             ];
             
             autoCalcCheckboxes.forEach(id => {
@@ -2903,6 +3036,7 @@
                     defaultPrimaryFactor: document.getElementById('defaultPrimaryFactor').value,
                     primaryFactor: document.getElementById('primaryFactor').value,
                     potency: parseInt(document.getElementById('potency').value) || 1,
+                    useAdvancedPotency: document.getElementById('advancedPotency').checked,
                     durationIndex: parseInt(document.getElementById('duration').value) || 0,
                     useAdvancedDuration: document.getElementById('advancedDuration').checked,
                     scaleIndex: parseInt(document.getElementById('scale').value) || 0,
@@ -3053,7 +3187,7 @@
                 const scalePenalty = result.factors.scale.penalty;
                 
                 const potencyEl = document.getElementById('previewPotency');
-                potencyEl.textContent = `Potency ${result.factors.potency.value}`;
+                potencyEl.textContent = `Potency ${result.factors.potency.value}${result.advancedPotency ? ' (Adv)' : ''}`;
                 potencyEl.className = 'preview-factor' + (potPenalty < 0 ? ' has-penalty' : '');
                 
                 const durationEl = document.getElementById('previewDuration');
@@ -3270,10 +3404,13 @@
                 const poolStatus = document.getElementById('manaPoolStatus');
                 const poolDisplay = document.getElementById('manaPoolDisplay');
                 const exceedWarning = document.getElementById('manaExceedWarning');
+                const ledger = document.getElementById('manaLedger');
+                const validation = document.getElementById('manaValidation');
                 
                 if (currentCharacter) {
                     const currentMana = currentCharacter.mana.current;
                     const maxMana = currentCharacter.mana.max;
+                    const manaAfter = currentMana - totalMana;
                     
                     poolDisplay.textContent = `Character Mana: ${currentMana} / ${maxMana}`;
                     
@@ -3282,6 +3419,36 @@
                     const manaPerTurn = getManaPerTurn(gnosis);
                     const castingTimeType = document.getElementById('castingTime').value;
                     const isRitual = castingTimeType === 'ritual';
+                    
+                    // Update mana ledger
+                    if (totalMana > 0) {
+                        ledger.style.display = 'block';
+                        document.getElementById('manaLedgerCurrent').textContent = currentMana;
+                        document.getElementById('manaLedgerCost').textContent = '−' + totalMana;
+                        const afterEl = document.getElementById('manaLedgerAfter');
+                        afterEl.textContent = Math.max(0, manaAfter);
+                        afterEl.style.color = manaAfter > 0 ? 'var(--success)' : manaAfter === 0 ? 'var(--warning)' : 'var(--danger)';
+                        document.getElementById('manaPerTurnInfo').textContent = `Per-turn limit: ${manaPerTurn} mana (Gnosis ${gnosis})`;
+                    } else {
+                        ledger.style.display = 'none';
+                    }
+                    
+                    // Update validation banner
+                    if (totalMana > 0) {
+                        validation.style.display = 'block';
+                        if (manaAfter < 0) {
+                            validation.className = 'mana-validation block';
+                            validation.textContent = `✗ Insufficient mana — need ${totalMana}, have ${currentMana}`;
+                        } else if (manaAfter === 0) {
+                            validation.className = 'mana-validation warn';
+                            validation.textContent = '⚠ This will use your last mana — 0 remaining';
+                        } else {
+                            validation.className = 'mana-validation ok';
+                            validation.textContent = `✓ Mana sufficient — ${manaAfter} remaining after cast`;
+                        }
+                    } else {
+                        validation.style.display = 'none';
+                    }
                     
                     let warningText = '';
                     poolStatus.className = 'mana-pool-status';
@@ -3306,7 +3473,12 @@
                     poolDisplay.textContent = 'No character loaded';
                     poolStatus.className = 'mana-pool-status';
                     exceedWarning.style.display = 'none';
+                    ledger.style.display = 'none';
+                    validation.style.display = 'none';
                 }
+                
+                // Reset deducted notice when spell changes
+                document.getElementById('manaDeductedNotice').style.display = 'none';
             }
             
             // Paradox input event listeners
@@ -3366,21 +3538,46 @@
             function updateCharacterHeader() {
                 const nameEl = document.getElementById('headerCharacterName');
                 const pathEl = document.getElementById('headerCharacterPath');
+                const manaAdj = document.getElementById('manaAdjuster');
                 
                 if (currentCharacter) {
                     nameEl.textContent = currentCharacter.name || 'Unnamed Mage';
                     const pathData = PATHS[currentCharacter.path];
                     const orderData = ORDERS[currentCharacter.order];
                     pathEl.textContent = `${pathData ? pathData.label : ''} ${orderData ? orderData.label : ''}`.trim();
+                    
+                    // Show mana adjuster
+                    manaAdj.style.display = 'flex';
+                    updateManaAdjusterDisplay();
                 } else {
                     nameEl.textContent = 'No Character Loaded';
                     pathEl.textContent = 'Click "New" or "Load" to begin';
+                    manaAdj.style.display = 'none';
                 }
                 
                 // Also refresh spell library
                 if (typeof renderSpellLibrary === 'function') {
                     renderSpellLibrary();
                 }
+            }
+            
+            function updateManaAdjusterDisplay() {
+                if (!currentCharacter) return;
+                const manaC = currentCharacter.mana.current;
+                const manaM = currentCharacter.mana.max;
+                const manaPerTurn = getManaPerTurn(currentCharacter.gnosis);
+                document.getElementById('manaAdjValue').textContent = manaC;
+                document.getElementById('manaAdjMax').textContent = manaM;
+                document.getElementById('manaAdjInfo').textContent = `per turn: ${manaPerTurn}`;
+            }
+            
+            function adjustCharacterMana(delta) {
+                if (!currentCharacter) return;
+                const manaM = currentCharacter.mana.max;
+                const newVal = Math.max(0, Math.min(manaM, currentCharacter.mana.current + delta));
+                currentCharacter.mana.current = newVal;
+                updateManaAdjusterDisplay();
+                updateManaSummary();
             }
             
             // Open character editor modal
@@ -3897,6 +4094,7 @@
                 // Default settings
                 const defaults = spell?.defaults || {};
                 document.getElementById('spellDefaultPotency').value = defaults.potency || 1;
+                document.getElementById('spellAdvancedPotency').checked = defaults.useAdvancedPotency || false;
                 document.getElementById('spellYantraDice').value = defaults.yantraDice || 0;
                 document.getElementById('spellAdvancedDuration').checked = defaults.useAdvancedDuration || false;
                 document.getElementById('spellAdvancedScale').checked = defaults.useAdvancedScale || false;
@@ -4024,6 +4222,7 @@
                     reachOptions: reachOptions,
                     defaults: {
                         potency: parseInt(document.getElementById('spellDefaultPotency').value) || 1,
+                        useAdvancedPotency: document.getElementById('spellAdvancedPotency').checked,
                         yantraDice: parseInt(document.getElementById('spellYantraDice').value) || 0,
                         durationIndex: parseInt(document.getElementById('spellDefaultDuration').value) || 0,
                         useAdvancedDuration: document.getElementById('spellAdvancedDuration').checked,
@@ -4172,6 +4371,8 @@
                 // Default settings
                 const defaults = spell.defaults || {};
                 document.getElementById('potency').value = defaults.potency || 1;
+                document.getElementById('advancedPotency').checked = defaults.useAdvancedPotency || false;
+                document.getElementById('advancedPotencyInfo').style.display = defaults.useAdvancedPotency ? 'block' : 'none';
                 document.getElementById('advancedDuration').checked = defaults.useAdvancedDuration || false;
                 populateDurationSelect(defaults.useAdvancedDuration || false);
                 document.getElementById('duration').value = defaults.durationIndex || 0;
@@ -4765,7 +4966,7 @@
                 // Factors row 1
                 fields.push({
                     name: 'Potency',
-                    value: `${spellResult.factors.potency.value}`,
+                    value: `${spellResult.factors.potency.value}${spellResult.advancedPotency ? ' (Adv)' : ''}`,
                     inline: true
                 });
                 fields.push({
@@ -4901,6 +5102,29 @@
                 }
             }
             
+            // Deduct mana from character on cast
+            let manaAlreadyDeducted = false;
+            
+            function deductMana() {
+                if (manaAlreadyDeducted || !currentCharacter) return;
+                const totalMana = parseInt(document.getElementById('manaTotalCost').textContent) || 0;
+                if (totalMana <= 0) return;
+                const newMana = Math.max(0, currentCharacter.mana.current - totalMana);
+                currentCharacter.mana.current = newMana;
+                manaAlreadyDeducted = true;
+                updateManaAdjusterDisplay();
+                updateManaSummary();
+                // Show deducted notice
+                const notice = document.getElementById('manaDeductedNotice');
+                notice.textContent = `✓ Mana deducted — ${newMana} remaining`;
+                notice.style.display = 'block';
+            }
+            
+            function resetManaDeductedFlag() {
+                manaAlreadyDeducted = false;
+                document.getElementById('manaDeductedNotice').style.display = 'none';
+            }
+            
             // Send Dice Pool to Discord
             async function sendDicePool() {
                 if (!currentCharacter) {
@@ -4982,6 +5206,7 @@
                         body: JSON.stringify({ content: spellCommand })
                     });
                     
+                    deductMana();
                     showDiscordStatus('✓ Sent!', 'success');
                     
                 } catch (error) {
@@ -5045,6 +5270,17 @@
             // Initialize Discord send buttons
             document.getElementById('btnSendDicePool').addEventListener('click', sendDicePool);
             document.getElementById('btnSendCard').addEventListener('click', sendCard);
+            
+            // Mana adjuster buttons
+            document.getElementById('btnManaUp').addEventListener('click', function() { adjustCharacterMana(1); });
+            document.getElementById('btnManaDown').addEventListener('click', function() { adjustCharacterMana(-1); });
+            
+            // Reset mana deducted flag when spell parameters change
+            ['castingMethod','arcanumDots','spellRequirement','gnosis','potency','advancedPotency',
+             'duration','advancedDuration','castingTime','additionalManaCost','paradoxMana'].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', resetManaDeductedFlag);
+            });
             
             // Initialize spell library
             initSpellLibrary();
@@ -5322,6 +5558,10 @@
                         <div class="form-group">
                             <label>Potency</label>
                             <input type="number" id="spellDefaultPotency" min="1" max="10" value="1">
+                            <label class="checkbox-group" style="margin-top: 4px;">
+                                <input type="checkbox" id="spellAdvancedPotency">
+                                <span style="text-transform: none; font-size: 0.85em;">Advanced Potency</span>
+                            </label>
                         </div>
                         <div class="form-group">
                             <label>Expected Yantra Dice</label>
