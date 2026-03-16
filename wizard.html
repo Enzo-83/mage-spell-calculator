@@ -1767,12 +1767,12 @@
       }
 
       set("potency",              def.potency       ?? 1);
-      set("advancedPotency",      def.advancedPotency ?? false);
+      set("advancedPotency",      def.advancedPotency ?? def.useAdvancedPotency ?? false);
       set("durationIndex",        def.durationIndex ?? 0);
-      set("advancedDuration",     def.advancedDuration ?? false);
+      set("advancedDuration",     def.advancedDuration ?? def.useAdvancedDuration ?? false);
       set("scaleIndex",           def.scaleIndex    ?? 0);
       set("scaleMode",            def.scaleMode     ?? "subjects");
-      set("advancedScale",        def.advancedScale ?? false);
+      set("advancedScale",        def.advancedScale ?? def.useAdvancedScale ?? false);
       set("range",                def.range         ?? "touch");
       set("castTime",             mi?.doubleRitual ? "ritual" : (def.castTime ?? "ritual"));
     }
