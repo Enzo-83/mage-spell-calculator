@@ -463,7 +463,7 @@
     }
 
     // ── Step 1: Caster ────────────────────────────────────────────────────────
-    function StepCaster({ d, set, character, onQuickCast }) {
+    function StepCaster({ d, set, character, onQuickCast, onClash }) {
       const atLimit   = d.activeSpells >= d.gnosis;
       const spellsOver = Math.max(0, d.activeSpells - d.gnosis);
       const rotes     = character?.rotes              || [];
@@ -472,6 +472,16 @@
       const allSpells = [...rotes, ...praxes, ...favorites];
       return (
         <div>
+          {character && (
+            <button onClick={onClash} style={{
+              width:"100%",padding:"10px 14px",borderRadius:8,cursor:"pointer",marginBottom:12,
+              background:"rgba(157,78,221,0.08)",border:`1px solid ${C.accentBorder}`,
+              display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+              color:C.accentLight,fontSize:12,fontWeight:700,
+            }}>
+              <span style={{ fontSize:14 }}>⚔</span> Clash of Wills
+            </button>
+          )}
           <Field label="Gnosis">
             <StepperInput value={d.gnosis} min={1} max={10} onChange={v=>set("gnosis",v)}/>
             <Hint>Ritual: {d.gnosis<=3?"3h":d.gnosis<=6?"2h":"1h"} · Max Yantras: {Math.ceil(d.gnosis/2)+1}</Hint>
@@ -1767,6 +1777,145 @@
       set("castTime",             mi?.doubleRitual ? "ritual" : (def.castTime ?? "ritual"));
     }
 
+    // ── Clash of Wills ─────────────────────────────────────────────────────────
+    const CLASH_DUR_OPTIONS = [
+      { id:0, label:"None / Scene", bonus:0 },
+      { id:1, label:"Day",          bonus:1 },
+      { id:2, label:"Week",         bonus:2 },
+      { id:3, label:"Month",        bonus:3 },
+      { id:4, label:"Year / Indef", bonus:4 },
+    ];
+
+    function ClashOfWills({ character, gnosis, onClose }) {
+      const [clashArc, setClashArc]     = useState("");
+      const [clashDur, setClashDur]     = useState(0);
+      const [clashAdvPot, setClashAdvPot] = useState(false);
+      const [clashWP, setClashWP]       = useState(false);
+      const [ds, setDs]                 = useState(null);
+
+      // Build arcanum options from character
+      const arcOptions = [];
+      if (character?.arcana) {
+        for (const [key, dots] of Object.entries(character.arcana)) {
+          if (dots > 0) arcOptions.push({ key, dots, label: key.charAt(0).toUpperCase() + key.slice(1) });
+        }
+        arcOptions.sort((a,b) => b.dots - a.dots);
+      }
+      const selectedArc = clashArc || (arcOptions[0]?.key || "");
+      const arcDots = character?.arcana?.[selectedArc] || 0;
+
+      const durBonus = CLASH_DUR_OPTIONS.find(o => o.id === clashDur)?.bonus || 0;
+      const pool = gnosis + arcDots + durBonus + (clashAdvPot ? 1 : 0) + (clashWP ? 3 : 0);
+
+      // Breakdown text
+      const arcLabel = selectedArc.charAt(0).toUpperCase() + selectedArc.slice(1);
+      const parts = [`Gnosis ${gnosis}`, `${arcLabel} ${arcDots}`];
+      if (durBonus > 0) parts.push(`Duration +${durBonus}`);
+      if (clashAdvPot) parts.push("Adv Potency +1");
+      if (clashWP) parts.push("Willpower +3");
+
+      const poolWebhook = character?.discord?.dicePoolWebhook || "";
+      const casterName  = character?.shadowName || character?.name || "Mage";
+
+      async function handleSend() {
+        if (!poolWebhook) { alert("No Dice Pool webhook set in character.discord.dicePoolWebhook"); return; }
+        setDs("sending");
+        try {
+          await postDiscord(poolWebhook, {
+            username: casterName,
+            embeds: [{ title: `${casterName}'s Clash of Wills`, color: 0x9d4edd,
+              fields: [
+                { name: "⚔ Clash Pool", value: String(pool), inline: true },
+                { name: "Arcanum", value: `${arcLabel} ${arcDots}`, inline: true },
+              ],
+              footer: { text: parts.join(" + ") },
+            }],
+          });
+          await postDiscord(poolWebhook, { content: `$cod ${pool}`, username: casterName });
+          setDs("ok");
+          setTimeout(() => setDs(null), 3000);
+        } catch { setDs("error"); setTimeout(() => setDs(null), 4000); }
+      }
+
+      return (
+        <div style={{ position:"absolute",top:0,left:0,right:0,bottom:0,zIndex:20,
+          background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
+          <div style={{ width:"100%",maxWidth:380,background:C.bgCard,borderRadius:16,
+            border:`1px solid ${C.accentBorder}`,overflow:"hidden" }}>
+
+            <div style={{ padding:"12px 16px",background:C.bgDeep,borderBottom:`1px solid ${C.accentBorder}`,
+              display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                <span style={{ fontSize:16 }}>⚔</span>
+                <span style={{ fontSize:13,fontWeight:700,letterSpacing:2,textTransform:"uppercase",color:C.accentLight }}>Clash of Wills</span>
+              </div>
+              <span onClick={onClose} style={{ fontSize:11,color:C.textMuted,cursor:"pointer",padding:"4px 8px" }}>✕ Close</span>
+            </div>
+
+            <div style={{ padding:"14px 16px" }}>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr auto",gap:10,marginBottom:12 }}>
+                <div>
+                  <Label>Arcanum</Label>
+                  <select value={selectedArc} onChange={e=>setClashArc(e.target.value)} style={{
+                    width:"100%",padding:8,borderRadius:6,background:C.bgDeep,border:`1px solid ${C.border}`,
+                    color:C.text,fontSize:13 }}>
+                    {arcOptions.map(a=>(
+                      <option key={a.key} value={a.key}>{a.label} ({a.dots})</option>
+                    ))}
+                    {arcOptions.length===0&&<option value="">No character</option>}
+                  </select>
+                </div>
+                <div>
+                  <Label>Gnosis</Label>
+                  <div style={{ padding:8,borderRadius:6,background:C.bgDeep,border:`1px solid ${C.border}`,
+                    fontSize:13,color:C.accentLight,fontWeight:700,textAlign:"center",minWidth:40 }}>{gnosis}</div>
+                </div>
+              </div>
+
+              <Label>Spell duration (advanced)</Label>
+              <div style={{ display:"flex",flexWrap:"wrap",gap:5,marginBottom:12 }}>
+                {CLASH_DUR_OPTIONS.map(opt=>(
+                  <button key={opt.id} onClick={()=>setClashDur(opt.id)} style={{
+                    padding:"7px 11px",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",
+                    border:`1px solid ${clashDur===opt.id?C.accentLight:C.border}`,
+                    background:clashDur===opt.id?C.accentFaint:"rgba(255,255,255,0.02)",
+                    color:clashDur===opt.id?C.accentLight:C.textMuted,
+                  }}>
+                    {opt.label}{opt.bonus>0&&<span style={{ color:C.success,fontSize:10,marginLeft:3 }}>+{opt.bonus}</span>}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display:"flex",flexDirection:"column",gap:4,marginBottom:14 }}>
+                <CheckboxRow label="Advanced Potency" sub="+1 die" checked={clashAdvPot} onChange={setClashAdvPot}/>
+                <CheckboxRow label="Spend Willpower" sub="+3 dice" checked={clashWP} onChange={setClashWP}/>
+              </div>
+
+              <div style={{ background:C.bgDeep,borderRadius:8,padding:14,textAlign:"center",marginBottom:12 }}>
+                <div style={{ fontSize:36,fontWeight:700,color:C.accentLight,lineHeight:1 }}>{pool}</div>
+                <div style={{ fontSize:9,letterSpacing:2,textTransform:"uppercase",color:C.textMuted,marginTop:3 }}>Clash dice pool</div>
+                <div style={{ marginTop:8,fontSize:11,color:C.textMuted }}>{parts.join(" + ")}</div>
+              </div>
+
+              <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}>
+                <button onClick={handleSend} disabled={!!ds||!poolWebhook} style={{
+                  padding:11,borderRadius:8,border:"none",cursor:ds||!poolWebhook?"default":"pointer",
+                  background:ds==="ok"?C.success:ds==="error"?C.danger:ds==="sending"?"#666":C.discord,
+                  color:"#fff",fontSize:12,fontWeight:700,opacity:!poolWebhook?0.4:1,
+                }}>
+                  {!poolWebhook?"Send (no webhook)":ds==="ok"?"✓ Sent!":ds==="error"?"✗ Failed":ds==="sending"?"Sending…":"Send to Discord"}
+                </button>
+                <button onClick={onClose} style={{ padding:11,borderRadius:8,cursor:"pointer",
+                  background:"transparent",border:`1px solid ${C.border}`,color:C.textMuted,fontSize:12,fontWeight:700 }}>
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // ── Initial form state ────────────────────────────────────────────────────
     const INITIAL = {
       gnosis:1, casterArcanum:"Forces", casterArcanumDots:1, spellArcanumReq:1,
@@ -1788,6 +1937,7 @@
       const [stepIdx, setStepIdx]   = useState(0);
       const [miniExpanded, setMini] = useState(false);
       const [character, setChar]    = useState(null);
+      const [clashOpen, setClashOpen] = useState(false);
 
       const set = useCallback((key, val) => setD(prev => ({...prev, [key]:val})), []);
 
@@ -1843,7 +1993,7 @@
 
       function renderStep() {
         switch(currentStep.id) {
-          case "caster":    return <StepCaster    d={d} set={set} character={character} onQuickCast={handleQuickCast}/>;
+          case "caster":    return <StepCaster    d={d} set={set} character={character} onQuickCast={handleQuickCast} onClash={()=>setClashOpen(true)}/>;
           case "spell":     return <StepSpell     d={d} set={set} character={character}/>;
           case "combined":  return <StepCombined  d={d} set={set} character={character}/>;
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
@@ -1869,7 +2019,9 @@
           <div style={{ width:"100%",maxWidth:440,background:C.bgDark,borderRadius:20,
             border:`1px solid ${C.accentBorder}`,
             boxShadow:`0 0 60px rgba(123,44,191,0.12),0 30px 80px rgba(0,0,0,0.7)`,
-            display:"flex",flexDirection:"column",minHeight:750,overflow:"hidden" }}>
+            display:"flex",flexDirection:"column",minHeight:750,overflow:"hidden",position:"relative" }}>
+
+            {clashOpen && <ClashOfWills character={character} gnosis={d.gnosis} onClose={()=>setClashOpen(false)}/>}
 
             {/* Title bar */}
             <div style={{ padding:"11px 16px 9px",

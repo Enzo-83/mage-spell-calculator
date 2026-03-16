@@ -1321,6 +1321,32 @@
             font-size: 0.85em;
             display: none;
         }
+
+        .clash-header h2 {
+            font-size: 1.1em;
+            color: var(--accent-light);
+        }
+        .clash-chevron {
+            color: var(--text-muted);
+            font-size: 0.85em;
+        }
+        .clash-pool-display {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 10px 16px;
+            text-align: center;
+            flex: 0 0 auto;
+        }
+        .clash-pool-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--accent-light);
+        }
+        .clash-pool-label {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
         
         /* Live Preview Card */
         .live-preview-card {
@@ -2600,6 +2626,60 @@
             </div>
         </div>
         
+        <!-- Clash of Wills -->
+        <div class="card" id="clashOfWillsSection">
+            <div class="clash-header" id="clashToggle" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 14px;">⚔</span>
+                    <h2 style="margin: 0;">Clash of Wills</h2>
+                </div>
+                <span class="clash-chevron" id="clashChevron">▶</span>
+            </div>
+            <div id="clashBody" style="display: none; margin-top: 12px;">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Arcanum for Clash</label>
+                        <select id="clashArcanum">
+                            <option value="">Load a character first</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Spell Duration</label>
+                        <select id="clashDuration">
+                            <option value="0">Standard / Scene (+0)</option>
+                            <option value="1">Day (+1)</option>
+                            <option value="2">Week (+2)</option>
+                            <option value="3">Month (+3)</option>
+                            <option value="4">Year / Indefinite (+4)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 16px; margin-top: 4px; margin-bottom: 12px;">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="clashAdvPotency">
+                        <label for="clashAdvPotency" style="margin: 0; text-transform: none;">Advanced Potency (+1)</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="clashWillpower">
+                        <label for="clashWillpower" style="margin: 0; text-transform: none;">Willpower (+3)</label>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="clash-pool-display">
+                        <span class="clash-pool-value" id="clashPoolValue">0</span>
+                        <span class="clash-pool-label">dice</span>
+                    </div>
+                    <div class="clash-breakdown" id="clashBreakdown" style="flex: 1; font-size: 0.85em; color: var(--text-muted); line-height: 1.5;"></div>
+                    <button class="discord-send-btn" id="btnSendClash" title="Send Clash to Discord" style="padding: 8px 14px; font-size: 0.85em;">
+                        <svg class="discord-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                        </svg>
+                        Send
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <!-- Spell Library -->
         <div class="card" id="spellLibrarySection">
             <div class="spell-library-header">
@@ -3558,6 +3638,11 @@
                 // Also refresh spell library
                 if (typeof renderSpellLibrary === 'function') {
                     renderSpellLibrary();
+                }
+                
+                // Refresh Clash of Wills arcanum list
+                if (typeof populateClashArcanum === 'function') {
+                    populateClashArcanum();
                 }
             }
             
@@ -5101,6 +5186,139 @@
                     }, type === 'success' ? 3000 : 5000);
                 }
             }
+            
+            // =================================================================
+            // CLASH OF WILLS
+            // =================================================================
+            
+            function populateClashArcanum() {
+                const select = document.getElementById('clashArcanum');
+                select.innerHTML = '';
+                if (!currentCharacter) {
+                    select.innerHTML = '<option value="">Load a character first</option>';
+                    return;
+                }
+                const arcana = currentCharacter.arcana || {};
+                const sorted = Object.entries(arcana)
+                    .filter(([, dots]) => dots > 0)
+                    .sort((a, b) => b[1] - a[1]);
+                for (const [key, dots] of sorted) {
+                    const label = key.charAt(0).toUpperCase() + key.slice(1);
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = `${label} (${dots})`;
+                    select.appendChild(opt);
+                }
+                if (sorted.length === 0) {
+                    select.innerHTML = '<option value="">No arcana</option>';
+                }
+                updateClashPool();
+            }
+            
+            function updateClashPool() {
+                if (!currentCharacter) {
+                    document.getElementById('clashPoolValue').textContent = '0';
+                    document.getElementById('clashBreakdown').textContent = '';
+                    return;
+                }
+                const gnosis = currentCharacter.gnosis || 1;
+                const arcKey = document.getElementById('clashArcanum').value;
+                const arcDots = currentCharacter.arcana?.[arcKey] || 0;
+                const durBonus = parseInt(document.getElementById('clashDuration').value) || 0;
+                const advPot = document.getElementById('clashAdvPotency').checked ? 1 : 0;
+                const wp = document.getElementById('clashWillpower').checked ? 3 : 0;
+                const pool = gnosis + arcDots + durBonus + advPot + wp;
+                
+                document.getElementById('clashPoolValue').textContent = pool;
+                
+                const arcLabel = arcKey ? arcKey.charAt(0).toUpperCase() + arcKey.slice(1) : '—';
+                const parts = [`Gnosis ${gnosis}`, `${arcLabel} ${arcDots}`];
+                if (durBonus > 0) parts.push(`Dur +${durBonus}`);
+                if (advPot) parts.push('Adv Pot +1');
+                if (wp) parts.push('WP +3');
+                document.getElementById('clashBreakdown').textContent = parts.join(' + ');
+            }
+            
+            async function sendClashToDiscord() {
+                if (!currentCharacter) {
+                    alert('No character loaded.');
+                    return;
+                }
+                const discord = currentCharacter.discord || {};
+                const webhook = discord.dicePoolWebhook;
+                if (!webhook) {
+                    alert('No Dice Pool webhook configured.');
+                    return;
+                }
+                
+                const gnosis = currentCharacter.gnosis || 1;
+                const arcKey = document.getElementById('clashArcanum').value;
+                const arcDots = currentCharacter.arcana?.[arcKey] || 0;
+                const durBonus = parseInt(document.getElementById('clashDuration').value) || 0;
+                const advPot = document.getElementById('clashAdvPotency').checked ? 1 : 0;
+                const wp = document.getElementById('clashWillpower').checked ? 3 : 0;
+                const pool = gnosis + arcDots + durBonus + advPot + wp;
+                
+                const arcLabel = arcKey ? arcKey.charAt(0).toUpperCase() + arcKey.slice(1) : '—';
+                const parts = [`Gnosis ${gnosis}`, `${arcLabel} ${arcDots}`];
+                if (durBonus > 0) parts.push(`Dur +${durBonus}`);
+                if (advPot) parts.push('Adv Pot +1');
+                if (wp) parts.push('WP +3');
+                
+                const casterName = currentCharacter.shadowName || currentCharacter.name || 'Mage';
+                const sendBtn = document.getElementById('btnSendClash');
+                sendBtn.disabled = true;
+                
+                try {
+                    await fetch(webhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: casterName,
+                            embeds: [{
+                                title: `${casterName}'s Clash of Wills`,
+                                color: 0x9d4edd,
+                                fields: [
+                                    { name: '⚔ Clash Pool', value: String(pool), inline: true },
+                                    { name: 'Arcanum', value: `${arcLabel} ${arcDots}`, inline: true },
+                                ],
+                                footer: { text: parts.join(' + ') },
+                            }],
+                        })
+                    });
+                    await fetch(webhook, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ content: `$cod ${pool}`, username: casterName })
+                    });
+                    showDiscordStatus('✓ Clash Sent!', 'success');
+                } catch (e) {
+                    console.error('Clash send error:', e);
+                    showDiscordStatus('✗ Failed', 'error');
+                } finally {
+                    sendBtn.disabled = false;
+                }
+            }
+            
+            // Clash toggle
+            document.getElementById('clashToggle').addEventListener('click', function() {
+                const body = document.getElementById('clashBody');
+                const chev = document.getElementById('clashChevron');
+                if (body.style.display === 'none') {
+                    body.style.display = 'block';
+                    chev.textContent = '▼';
+                } else {
+                    body.style.display = 'none';
+                    chev.textContent = '▶';
+                }
+            });
+            
+            // Clash recalc listeners
+            document.getElementById('clashArcanum').addEventListener('change', updateClashPool);
+            document.getElementById('clashDuration').addEventListener('change', updateClashPool);
+            document.getElementById('clashAdvPotency').addEventListener('change', updateClashPool);
+            document.getElementById('clashWillpower').addEventListener('change', updateClashPool);
+            document.getElementById('btnSendClash').addEventListener('click', sendClashToDiscord);
             
             // Deduct mana from character on cast
             let manaAlreadyDeducted = false;
