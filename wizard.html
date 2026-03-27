@@ -292,8 +292,8 @@
       yantraBonus += parseInt(d.persona, 10) || 0;
       yantraBonus += d.ritualIntervals;
 
-      // Base pool: Rotes = Skill + Arcanum; Improvised/Praxis = Gnosis + Arcanum
-      const basePool = isRote ? roteSkillDots + arcanumDots : d.gnosis + arcanumDots;
+      // Base pool: MtAw 2e always uses Gnosis + Arcanum. Rote Skill bonus comes via Mudra Yantra.
+      const basePool = d.gnosis + arcanumDots;
       const wpBonus  = d.spendWP ? 3 : 0;
 
       // Yantra cap: after offsetting spell factor penalties, net yantra bonus can't exceed +5
