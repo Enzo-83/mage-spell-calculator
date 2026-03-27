@@ -15,34 +15,19 @@
 function calculateBasePool(params) {
     const {
         gnosis,
-        arcanumDots,
-        castingMethod,
-        roteSkill = 0 // Skill dots used for Rote casting
+        arcanumDots
     } = params;
     
-    // Check if this is any type of Rote
-    const isRote = castingMethod.startsWith('rote');
-    
-    if (isRote) {
-        return {
-            pool: roteSkill + arcanumDots,
-            source: 'Skill + Arcanum',
-            components: {
-                primary: { label: 'Rote Skill', value: roteSkill },
-                secondary: { label: 'Arcanum', value: arcanumDots }
-            }
-        };
-    } else {
-        // Improvised or Praxis
-        return {
-            pool: gnosis + arcanumDots,
-            source: 'Gnosis + Arcanum',
-            components: {
-                primary: { label: 'Gnosis', value: gnosis },
-                secondary: { label: 'Arcanum', value: arcanumDots }
-            }
-        };
-    }
+    // MtAw 2e: All spellcasting uses Gnosis + Arcanum as base pool.
+    // Rote Skill bonus comes via the Mudra Yantra, not the base pool.
+    return {
+        pool: gnosis + arcanumDots,
+        source: 'Gnosis + Arcanum',
+        components: {
+            primary: { label: 'Gnosis', value: gnosis },
+            secondary: { label: 'Arcanum', value: arcanumDots }
+        }
+    };
 }
 
 /**

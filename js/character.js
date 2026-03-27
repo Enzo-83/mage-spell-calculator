@@ -775,20 +775,9 @@ function calculateSpellCardData(spell, character) {
     const highestDots = Math.max(primaryDots, secondaryDots || 0);
     
     // Calculate dice pool base
-    let basePool = 0;
-    let baseSource = '';
-    
-    if (isRote && spell.roteSkill) {
-        // Rote: Skill + Arcanum
-        const skillDots = character.skills[spell.roteSkill] || 0;
-        basePool = skillDots + primaryDots;
-        const skillLabel = getSkillLabel(spell.roteSkill);
-        baseSource = `${skillLabel} ${skillDots} + ${capitalize(spell.primaryArcanum)} ${primaryDots}`;
-    } else {
-        // Praxis/Improvised: Gnosis + Arcanum
-        basePool = character.gnosis + primaryDots;
-        baseSource = `Gnosis ${character.gnosis} + ${capitalize(spell.primaryArcanum)} ${primaryDots}`;
-    }
+    // MtAw 2e: All spellcasting uses Gnosis + Arcanum. Rote Skill bonus comes via Mudra Yantra.
+    let basePool = character.gnosis + primaryDots;
+    let baseSource = `Gnosis ${character.gnosis} + ${capitalize(spell.primaryArcanum)} ${primaryDots}`;
     
     // Calculate Free Reach
     let freeReach = 1;
@@ -818,11 +807,12 @@ function calculateSpellCardData(spell, character) {
     // Roll quality
     let rollQuality = 'Standard';
     if (isRote) {
-        if (spell.roteCreator === 'self' || spell.roteCreator === 'order') {
+        if (spell.roteCreator === 'self') {
             rollQuality = 'Rote Quality';
         } else if (spell.roteCreator === 'grimoire') {
             rollQuality = 'Rote Quality (2× time)';
         }
+        // 'order' (Learned) rotes do NOT get Rote Quality
     } else if (isPraxis) {
         rollQuality = 'Exceptional at 3';
     }
