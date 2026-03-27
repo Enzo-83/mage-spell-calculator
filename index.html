@@ -2066,6 +2066,23 @@
                     <input type="number" id="gnosis" min="1" max="10" value="1">
                     <div class="info-text" id="gnosisInfo">Ritual: 3 hours | Max Yantras: 2</div>
                 </div>
+                <div class="form-group" id="spellArcanumGroup">
+                    <label>Spell's Arcanum</label>
+                    <select id="spellArcanum">
+                        <option value="">— Select —</option>
+                        <option value="death">Death</option>
+                        <option value="fate">Fate</option>
+                        <option value="forces">Forces</option>
+                        <option value="life">Life</option>
+                        <option value="matter">Matter</option>
+                        <option value="mind">Mind</option>
+                        <option value="prime">Prime</option>
+                        <option value="space">Space</option>
+                        <option value="spirit">Spirit</option>
+                        <option value="time">Time</option>
+                    </select>
+                    <div class="info-text" id="spellArcanumInfo"></div>
+                </div>
                 <div class="form-group">
                     <label>Caster's Arcanum Dots</label>
                     <input type="number" id="arcanumDots" min="1" max="5" value="3">
@@ -3022,7 +3039,7 @@
             
             // Auto-calculate on any relevant input change
             const autoCalcInputs = [
-                'gnosis', 'arcanumDots', 'spellRequirement', 'activeSpells',
+                'gnosis', 'spellArcanum', 'arcanumDots', 'spellRequirement', 'activeSpells',
                 'castingMethod', 'defaultPrimaryFactor', 'primaryFactor',
                 'potency', 'duration', 'scale', 'range', 'castingTime',
                 'ritualIntervals', 'additionalReach', 'roteSkill',
@@ -3067,6 +3084,52 @@
             if (highSpeechEl) {
                 highSpeechEl.addEventListener('change', calculate);
                 highSpeechEl.addEventListener('input', calculate);
+            }
+            
+            // Spell Arcanum dropdown: auto-fill dots from character + show ruling/inferior
+            document.getElementById('spellArcanum').addEventListener('change', function() {
+                const selectedArcanum = this.value;
+                window.currentCastingArcanum = selectedArcanum || null;
+                
+                if (selectedArcanum && currentCharacter) {
+                    // Auto-fill caster's dots in this arcanum
+                    const dots = currentCharacter.arcana[selectedArcanum] || 0;
+                    if (dots > 0) {
+                        document.getElementById('arcanumDots').value = dots;
+                    }
+                }
+                
+                updateSpellArcanumInfo();
+            });
+            
+            // Update Spell Arcanum info text (ruling/inferior indicator)
+            function updateSpellArcanumInfo() {
+                const infoEl = document.getElementById('spellArcanumInfo');
+                const selectedArcanum = document.getElementById('spellArcanum').value;
+                
+                if (!selectedArcanum || !currentCharacter) {
+                    infoEl.textContent = '';
+                    infoEl.style.color = '';
+                    return;
+                }
+                
+                const pathData = PATHS[currentCharacter.path];
+                if (!pathData) {
+                    infoEl.textContent = '';
+                    infoEl.style.color = '';
+                    return;
+                }
+                
+                if (pathData.rulingArcana.includes(selectedArcanum)) {
+                    infoEl.textContent = '✓ Ruling Arcanum (no extra Mana)';
+                    infoEl.style.color = 'var(--success)';
+                } else if (pathData.inferiorArcanum === selectedArcanum) {
+                    infoEl.textContent = '✗ Inferior Arcanum (+1 Mana if improvised)';
+                    infoEl.style.color = 'var(--danger)';
+                } else {
+                    infoEl.textContent = 'Common Arcanum (+1 Mana if improvised)';
+                    infoEl.style.color = 'var(--warning)';
+                }
             }
             
             // Main calculation function
@@ -3436,27 +3499,16 @@
                 const isImprovised = castingMethod === 'improvised';
                 
                 if (isImprovised && currentCharacter) {
-                    // Get selected arcanum from somewhere - for now check primary arcanum
-                    // This is a simplified check - ideally we'd track which arcanum is being used
-                    const arcanumDots = parseInt(document.getElementById('arcanumDots').value) || 1;
+                    const selectedArcanum = document.getElementById('spellArcanum').value;
                     
-                    // Check all arcana to see if current level matches a ruling arcanum
-                    // For simplicity, we'll just check if any ruling arcanum has the dots
-                    const pathData = PATHS[currentCharacter.path];
-                    let isRuling = false;
-                    
-                    if (pathData) {
-                        for (const rulingArc of pathData.rulingArcana) {
-                            if (currentCharacter.arcana[rulingArc] >= arcanumDots) {
-                                // User might be using a ruling arcanum
-                                isRuling = true;
-                                break;
-                            }
+                    if (selectedArcanum) {
+                        // Direct check: is this specific arcanum a ruling arcanum?
+                        const isRuling = isRulingArcanum(currentCharacter, selectedArcanum);
+                        if (!isRuling) {
+                            manaNonRuling = 1;
                         }
-                    }
-                    
-                    // If no ruling arcanum matches, cost +1 Mana
-                    if (!isRuling) {
+                    } else {
+                        // No arcanum selected — assume non-ruling to be safe
                         manaNonRuling = 1;
                     }
                 }
@@ -3887,6 +3939,17 @@
                 if (highestDots > 0) {
                     document.getElementById('arcanumDots').value = highestDots;
                 }
+                
+                // Refresh arcanum dots if a spell arcanum is already selected
+                const selectedArc = document.getElementById('spellArcanum').value;
+                if (selectedArc) {
+                    const dots = currentCharacter.arcana[selectedArc] || 0;
+                    if (dots > 0) {
+                        document.getElementById('arcanumDots').value = dots;
+                    }
+                    window.currentCastingArcanum = selectedArc;
+                }
+                updateSpellArcanumInfo();
             }
             
             // Save character to file
@@ -4437,10 +4500,12 @@
                 document.getElementById('practice').value = spell.practice;
                 
                 // Arcanum
+                document.getElementById('spellArcanum').value = spell.primaryArcanum;
+                window.currentCastingArcanum = spell.primaryArcanum;
                 const primaryDots = currentCharacter.arcana[spell.primaryArcanum] || 0;
                 document.getElementById('arcanumDots').value = primaryDots;
                 document.getElementById('spellRequirement').value = spell.primaryArcanumLevel;
-                window.currentCastingArcanum = spell.primaryArcanum;
+                updateSpellArcanumInfo();
                 
                 // Primary factor
                 document.getElementById('defaultPrimaryFactor').value = spell.primaryFactor;
@@ -4592,6 +4657,7 @@
                     // Hide/show single spell controls - keep Practice & Primary Factor visible
                     if (this.checked) {
                         // In combined mode, hide arcanum inputs (we use combined spells' arcana)
+                        document.getElementById('spellArcanumGroup').style.display = 'none';
                         document.getElementById('arcanumDots').closest('.form-group').style.display = 'none';
                         document.getElementById('spellRequirement').closest('.form-group').style.display = 'none';
                         // Hide Rote options
@@ -4606,6 +4672,7 @@
                             castingMethod.value = 'improvised';
                         }
                     } else {
+                        document.getElementById('spellArcanumGroup').style.display = '';
                         document.getElementById('arcanumDots').closest('.form-group').style.display = '';
                         document.getElementById('spellRequirement').closest('.form-group').style.display = '';
                         const castingMethod = document.getElementById('castingMethod');
@@ -5761,7 +5828,7 @@
                         <div class="form-group">
                             <label>Rote Source</label>
                             <select id="spellRoteCreator">
-                                <option value="order">Order Rote (Rote Quality, Mudra)</option>
+                                <option value="order">Order Rote (Mudra only)</option>
                                 <option value="self">Your Design (Rote Quality, Mudra)</option>
                                 <option value="grimoire">Grimoire (Rote Quality, 2× time)</option>
                             </select>
