@@ -1959,7 +1959,118 @@
         .discord-settings-btn:hover {
             background: rgba(88, 101, 242, 0.3);
         }
-        
+        /* ── Active Spell button in preview ── */
+        .btn-set-active {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: rgba(123, 44, 191, 0.25);
+            color: var(--accent-light);
+            border: 1px solid var(--accent-border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85em;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        .btn-set-active:hover:not(:disabled) {
+            background: rgba(123, 44, 191, 0.45);
+        }
+        .btn-set-active:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .btn-set-active.confirmed {
+            background: rgba(42, 157, 143, 0.3);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        /* ── Active spell items in character modal ── */
+        .active-spell-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+            margin-bottom: 8px;
+        }
+        .active-spell-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .active-spell-name {
+            font-weight: 600;
+            font-size: 0.92em;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .active-spell-meta {
+            font-size: 0.78em;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .active-spell-badge {
+            font-size: 0.72em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .badge-rote      { background: rgba(42,157,143,0.2);  color: var(--success); }
+        .badge-praxis    { background: rgba(123,44,191,0.2);  color: var(--accent-light); }
+        .badge-improvised{ background: rgba(255,255,255,0.08); color: var(--text-muted); }
+        .btn-dismiss-spell {
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 1px solid rgba(199,62,29,0.4);
+            background: rgba(199,62,29,0.15);
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 0.78em;
+            font-weight: 600;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .btn-dismiss-spell:hover { background: rgba(199,62,29,0.3); }
+
+        /* ── Read-only active spells counter in Caster section ── */
+        .active-spells-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            font-size: 0.9em;
+            color: var(--text);
+            min-height: 36px;
+            box-sizing: border-box;
+        }
+        .active-spells-count {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--accent-light);
+            min-width: 18px;
+            text-align: center;
+        }
+        .active-spells-manage-link {
+            font-size: 0.78em;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: auto;
+        }
+        .active-spells-manage-link:hover { 
+            color: var(--accent-light); 
+        }
         .discord-status {
             font-size: 0.8em;
             padding: 4px 8px;
@@ -2094,8 +2205,11 @@
                 </div>
                 <div class="form-group">
                     <label>Currently Active Spells</label>
-                    <input type="number" id="activeSpells" min="0" max="20" value="0">
-                    <div class="info-text" id="activeSpellsInfo">Max: 1 (Gnosis). At limit: +1 Reach per spell over.</div>
+                    <div class="active-spells-display">
+                        <span class="active-spells-count" id="activeSpellsCount">0</span>
+                        <span id="activeSpellsInfo" style="color:var(--text-muted);font-size:0.8em;">/ 1 max</span>
+                        <span class="active-spells-manage-link" id="activeSpellsManageLink">Manage →</span>
+                    </div>
                 </div>
                 <div class="form-group" id="roteSkillGroup" style="display: none;">
                     <label>Rote Skill</label>
@@ -2628,6 +2742,9 @@
             <!-- Discord Actions -->
             <div class="preview-actions" id="discordActions">
                 <span class="discord-status" id="discordStatus" style="display: none;"></span>
+                <button class="btn-set-active" id="btnSetActive" title="Track this spell as currently active" disabled>
+                    ⚡ Set as Active
+                </button>
                 <button class="discord-send-btn" id="btnSendDicePool" title="Send Dice Pool to Discord">
                     <svg class="discord-icon" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
@@ -3174,7 +3291,7 @@
                     arcanumDots: arcanumDots,
                     spellArcanumReq: spellArcanumReq,
                     gnosis: gnosis,
-                    activeSpells: parseInt(document.getElementById('activeSpells').value) || 0,
+                    activeSpells: parseInt(document.getElementById('activeSpellsCount')?.textContent) || 0,
                     castingMethod: castingMethod,
                     defaultPrimaryFactor: document.getElementById('defaultPrimaryFactor').value,
                     primaryFactor: document.getElementById('primaryFactor').value,
@@ -3228,6 +3345,12 @@
                 }
                 
                 const poolResult = calculateDicePool(poolParams);
+                
+                // Enable "Set as Active" only when character is loaded
+                const setActiveBtn = document.getElementById('btnSetActive');
+                if (setActiveBtn) {
+                    setActiveBtn.disabled = !currentCharacter;
+                }
                 
                 // Store combined info for display
                 poolResult.isCombinedSpell = isCombinedSpell;
@@ -3641,6 +3764,8 @@
                 document.getElementById('btnEditCharacter').addEventListener('click', openCharacterEditor);
                 document.getElementById('btnLoadCharacter').addEventListener('click', () => document.getElementById('fileInput').click());
                 document.getElementById('btnSaveCharacter').addEventListener('click', saveCharacter);
+                document.getElementById('btnSetActive').addEventListener('click', setSpellAsActive);
+                document.getElementById('activeSpellsManageLink').addEventListener('click', openCharacterEditor);
                 document.getElementById('fileInput').addEventListener('change', handleFileLoad);
                 
                 // Modal controls
@@ -3911,6 +4036,7 @@
                 // Update header and form
                 updateCharacterHeader();
                 applyCharacterToForm();
+                saveCharacterToLocalStorage();
                 closeCharacterEditor();
             }
             
@@ -3923,8 +4049,9 @@
                 updateGnosisInfo();
                 updateCombinedMaxInfo(); // Update combined spell availability
                 
-                // Active spells count
-                document.getElementById('activeSpells').value = getActiveSpellCount(currentCharacter);
+            // Active spells count — driven by activeSpells array
+                syncActiveSpellCount();
+                renderActiveSpellsList();
                 
                 // Find highest arcanum for default
                 let highestArcanum = 'prime';
@@ -3959,6 +4086,163 @@
                     return;
                 }
                 downloadCharacter(currentCharacter);
+            }
+
+            // ─── ACTIVE SPELL TRACKING ─────────────────────────────────────────────
+
+            function getActiveDurationLabel() {
+                const useAdv = document.getElementById('advancedDuration')?.checked;
+                const idx    = parseInt(document.getElementById('duration')?.value) || 0;
+                const opts   = useAdv ? DURATION_ADVANCED : DURATION_STANDARD;
+                return opts[idx]?.label || '—';
+            }
+
+            function getActiveScaleLabel() {
+                const useAdv = document.getElementById('advancedScale')?.checked;
+                const idx    = parseInt(document.getElementById('scale')?.value) || 0;
+                const mode   = document.getElementById('scaleType')?.value || 'subjects';
+                if (useAdv) {
+                    const pool = mode === 'aoe' ? SCALE_ADVANCED_AOE : SCALE_ADVANCED_SUBJECTS;
+                    return pool[idx]?.label || '—';
+                }
+                const pool = mode === 'aoe' ? SCALE_STANDARD_AOE : SCALE_STANDARD_SUBJECTS;
+                return pool[idx]?.label || '—';
+            }
+
+            function setSpellAsActive() {
+                if (!currentCharacter) return;
+
+                const result = window.currentSpellResult;
+                const name   = (document.getElementById('spellName')?.value?.trim()
+                             || document.getElementById('librarySpellName')?.value?.trim()
+                             || 'Unnamed Spell');
+                const arcanum = (document.getElementById('primaryArcanum')?.value
+                              || 'prime').toLowerCase();
+                const dots    = parseInt(document.getElementById('arcanumDots')?.value) || 1;
+                const method  = document.getElementById('castingMethod')?.value || 'improvised';
+
+                const snapshot = {
+                    name,
+                    arcanum,
+                    arcanumLevel: dots,
+                    castMethod:   method,
+                    potency:      parseInt(document.getElementById('potency')?.value) || 1,
+                    duration:     getActiveDurationLabel(),
+                    scale:        getActiveScaleLabel(),
+                    reach:        result?.reach?.used  ?? 0,
+                    mana:         result?.totals?.manaCost ?? 0,
+                };
+
+                addActiveSpell(currentCharacter, snapshot);
+                saveCharacterToLocalStorage();
+                syncActiveSpellCount();
+                renderActiveSpellsList();
+
+                // Brief visual feedback on button
+                const btn = document.getElementById('btnSetActive');
+                if (btn) {
+                    btn.classList.add('confirmed');
+                    btn.textContent = '✓ Active!';
+                    setTimeout(() => {
+                        btn.classList.remove('confirmed');
+                        btn.textContent = '⚡ Set as Active';
+                    }, 1400);
+                }
+            }
+
+            function dismissActiveSpell(spellId) {
+                if (!currentCharacter) return;
+                removeActiveSpell(currentCharacter, spellId);
+                saveCharacterToLocalStorage();
+                syncActiveSpellCount();
+                renderActiveSpellsList();
+            }
+
+            function syncActiveSpellCount() {
+                const count  = currentCharacter?.activeSpells?.length || 0;
+                const gnosis = parseInt(document.getElementById('gnosis')?.value) || 1;
+
+                const countEl = document.getElementById('activeSpellsCount');
+                if (countEl) countEl.textContent = count;
+
+                const infoEl = document.getElementById('activeSpellsInfo');
+                if (infoEl) infoEl.textContent = `/ ${gnosis} max (Gnosis ${gnosis})`;
+
+                // Keep spellControlWarning spans in sync
+                const curEl = document.getElementById('currentActiveSpells');
+                const maxEl = document.getElementById('maxActiveSpells');
+                if (curEl) curEl.textContent = count;
+                if (maxEl) maxEl.textContent = gnosis;
+
+                // Modal badge
+                const badgeEl = document.getElementById('activeSpellsModalCount');
+                if (badgeEl) badgeEl.textContent = count > 0 ? `(${count})` : '';
+            }
+
+            function renderActiveSpellsList() {
+                const container = document.getElementById('activeSpellsList');
+                const emptyEl   = document.getElementById('activeSpellsEmpty');
+                if (!container) return;
+
+                // Remove existing spell cards (keep the empty placeholder node)
+                container.querySelectorAll('.active-spell-item').forEach(el => el.remove());
+
+                const spells = currentCharacter?.activeSpells || [];
+
+                if (spells.length === 0) {
+                    if (emptyEl) emptyEl.style.display = 'block';
+                    return;
+                }
+                if (emptyEl) emptyEl.style.display = 'none';
+
+                const ARCANUM_HEX = {
+                    death:'#6b7280', fate:'#a78bfa', forces:'#f59e0b', life:'#34d399',
+                    matter:'#9ca3af', mind:'#60a5fa', prime:'#f472b6', space:'#818cf8',
+                    spirit:'#a3e635', time:'#fbbf24',
+                };
+
+                spells.forEach(spell => {
+                    const methodMap = {
+                        improvised:'Improv', improvised_fav:'Improv',
+                        praxis:'Praxis',
+                        roteGrimoire:'Rote (Grimoire)',
+                        roteOwn:'Rote (Own)',
+                        roteLearned:'Rote (Learned)',
+                    };
+                    const methodLabel = methodMap[spell.castMethod] || spell.castMethod || 'Improv';
+                    const badgeClass  = spell.castMethod?.startsWith('rote') ? 'badge-rote'
+                                      : spell.castMethod === 'praxis'        ? 'badge-praxis'
+                                      : 'badge-improvised';
+                    const dotColor = ARCANUM_HEX[spell.arcanum?.toLowerCase()] || '#a78bfa';
+                    const dotStr   = '●'.repeat(Math.min(spell.arcanumLevel || 1, 5));
+
+                    const item = document.createElement('div');
+                    item.className = 'active-spell-item';
+                    item.innerHTML = `
+                        <span class="active-spell-badge ${badgeClass}">${methodLabel}</span>
+                        <div class="active-spell-info">
+                            <div class="active-spell-name">${spell.name}</div>
+                            <div class="active-spell-meta">
+                                <span style="color:${dotColor}">${capitalize(spell.arcanum || 'prime')} ${dotStr}</span>
+                                &nbsp;·&nbsp;Pot ${spell.potency}
+                                &nbsp;·&nbsp;${spell.duration}
+                                &nbsp;·&nbsp;${spell.scale}
+                                &nbsp;·&nbsp;${spell.reach}R / ${spell.mana}M
+                            </div>
+                        </div>
+                        <button class="btn-dismiss-spell" data-spell-id="${spell.id}">Dismiss</button>
+                    `;
+                    item.querySelector('.btn-dismiss-spell')
+                        .addEventListener('click', () => dismissActiveSpell(spell.id));
+                    container.appendChild(item);
+                });
+            }
+
+            function saveCharacterToLocalStorage() {
+                if (!currentCharacter) return;
+                try {
+                    localStorage.setItem('mage_current_character', JSON.stringify(currentCharacter));
+                } catch(e) { /* quota */ }
             }
             
             // Handle file load
@@ -6100,9 +6384,12 @@
                 
                 <!-- Active Spells -->
                 <div class="modal-section">
-                    <h3>Active Spells</h3>
-                    <div class="spell-list" id="activeSpellsList">
-                        <div class="spell-list-empty">No active spells</div>
+                    <h3>Active Spells <span id="activeSpellsModalCount" style="color:var(--text-muted);font-weight:400;font-size:0.85em;"></span></h3>
+                    <div class="info-text" style="margin-bottom:10px;">
+                        Spells added via "⚡ Set as Active" in the Live Preview. Each counts against your Spell Control limit.
+                    </div>
+                    <div id="activeSpellsList">
+                        <div class="spell-list-empty" id="activeSpellsEmpty">No active spells.</div>
                     </div>
                 </div>
                 
