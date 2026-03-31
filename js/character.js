@@ -384,25 +384,23 @@ function createImprovisedFavorite(params = {}) {
 }
 
 /**
- * Create an Active Spell entry
+ * Create an Active Spell entry (snapshot of a cast spell)
  * @param {Object} params - Spell parameters
- * @returns {Object} - Active spell data object
+ * @returns {Object} - Active spell snapshot
  */
 function createActiveSpell(params = {}) {
     return {
-        id: generateId(),
-        name: params.name || "Active Spell",
-        arcanum: params.arcanum || "prime",
+        id:           generateId(),
+        name:         params.name         || "Unnamed Spell",
+        arcanum:      params.arcanum      || "prime",
         arcanumLevel: params.arcanumLevel || 1,
-        potency: params.potency || 1,
-        duration: params.duration || "1 scene",
-        durationRemaining: params.durationRemaining || "",
-        reachUsed: params.reachUsed || 0,
-        freeReach: params.freeReach || 1,
-        isRelinquished: params.isRelinquished || false,
-        relinquishedSafely: params.relinquishedSafely || false,
-        notes: params.notes || "",
-        castAt: params.castAt || new Date().toISOString()
+        castMethod:   params.castMethod   || "improvised",
+        potency:      params.potency      || 1,
+        duration:     params.duration     || "—",
+        scale:        params.scale        || "—",
+        reach:        params.reach        || 0,
+        mana:         params.mana         || 0,
+        addedAt:      new Date().toISOString(),
     };
 }
 
