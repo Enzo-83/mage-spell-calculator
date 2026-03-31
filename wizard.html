@@ -499,10 +499,18 @@
             <Field label="Spell Arcanum Req." hint="Min dots for spell">
               <StepperInput value={d.spellArcanumReq} min={1} max={5} onChange={v=>set("spellArcanumReq",v)}/>
             </Field>
-            <Field label="Active Spells">
-              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
-                <StepperInput value={d.activeSpells} min={0} max={20} onChange={v=>set("activeSpells",v)}/>
-                <span style={{ color:C.textMuted,fontSize:11 }}>/{d.gnosis}</span>
+          <Field label="Active Spells">
+              <div style={{ display:"flex", alignItems:"center", gap:8,
+                padding:"6px 10px", borderRadius:6,
+                border:`1px solid ${C.border}`,
+                background:"rgba(255,255,255,0.03)", minHeight:36 }}>
+                <span style={{ fontSize:17, fontWeight:700, color:C.accentLight,
+                  minWidth:18, textAlign:"center" }}>
+                  {d.activeSpells}
+                </span>
+                <span style={{ color:C.textMuted, fontSize:11 }}>
+                  / {d.gnosis} · synced
+                </span>
               </div>
             </Field>
           </div>
@@ -1319,8 +1327,129 @@
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
     }
+// ── Active Spells Drawer ─────────────────────────────────────────────────
+    function ActiveSpellsDrawer({ spells, onDismiss, onClose }) {
+      const ARCANUM_HEX = {
+        death:'#6b7280', fate:'#a78bfa', forces:'#f59e0b', life:'#34d399',
+        matter:'#9ca3af', mind:'#60a5fa', prime:'#f472b6', space:'#818cf8',
+        spirit:'#a3e635', time:'#fbbf24',
+      };
+      const methodLabel = m => ({
+        improvised:'Improv', improvised_fav:'Improv',
+        praxis:'Praxis',
+        roteGrimoire:'Rote·Grimoire',
+        roteOwn:'Rote·Own',
+        roteLearned:'Rote·Learned',
+      }[m] || m || 'Improv');
+      const badgeColor = m =>
+        m?.startsWith('rote') ? C.success :
+        m === 'praxis'        ? C.accentLight : C.textMuted;
 
-    function StepCast({ d, derived, character, onManaChange }) {
+      return (
+        <div style={{ position:"absolute", top:0, left:0, right:0, bottom:0,
+          background:"rgba(10,5,20,0.95)", zIndex:20,
+          display:"flex", flexDirection:"column",
+          borderRadius:20, overflow:"hidden" }}>
+
+          {/* Header */}
+          <div style={{ padding:"14px 16px",
+            display:"flex", justifyContent:"space-between", alignItems:"center",
+            borderBottom:`1px solid ${C.border}`,
+            background:`linear-gradient(90deg,${C.bgDeep},${C.bgCard})`,
+            flexShrink:0 }}>
+            <div>
+              <span style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:13, fontWeight:700,
+                letterSpacing:2, textTransform:"uppercase", color:C.accentLight }}>
+                ⚡ Active Spells
+              </span>
+              <span style={{ color:C.textMuted, fontSize:11, marginLeft:8 }}>
+                {spells.length} sustained
+              </span>
+            </div>
+            <button onClick={onClose} style={{ background:"transparent",
+              border:`1px solid ${C.border}`, color:C.textMuted,
+              padding:"4px 12px", borderRadius:6, cursor:"pointer", fontSize:12 }}>
+              ✕ Close
+            </button>
+          </div>
+
+          {/* Info banner */}
+          <div style={{ padding:"8px 16px", flexShrink:0,
+            background:"rgba(123,44,191,0.08)",
+            borderBottom:`1px solid ${C.border}`,
+            fontSize:11, color:C.textMuted, lineHeight:1.5 }}>
+            Each active spell counts against your Spell Control limit.
+            Dismiss a spell when you drop it.
+          </div>
+
+          {/* Spell list */}
+          <div style={{ flex:1, overflowY:"auto", padding:"12px 16px" }}>
+            {spells.length === 0 ? (
+              <div style={{ textAlign:"center", color:C.textMuted,
+                fontSize:13, padding:"48px 0" }}>
+                <div style={{ fontSize:32, marginBottom:10 }}>✦</div>
+                No active spells.
+                <div style={{ fontSize:11, marginTop:6, color:C.textMuted }}>
+                  Use "⚡ Set as Active" on the Cast screen.
+                </div>
+              </div>
+            ) : spells.map(spell => {
+              const arc      = (spell.arcanum || 'prime').toLowerCase();
+              const dotColor = ARCANUM_HEX[arc] || '#a78bfa';
+              const dots     = '●'.repeat(Math.min(spell.arcanumLevel || 1, 5));
+              const mLabel   = methodLabel(spell.castMethod);
+              const bColor   = badgeColor(spell.castMethod);
+              return (
+                <div key={spell.id} style={{ borderRadius:10,
+                  border:`1px solid ${C.border}`,
+                  background:"rgba(255,255,255,0.02)",
+                  padding:"12px 14px", marginBottom:10 }}>
+                  <div style={{ display:"flex", justifyContent:"space-between",
+                    alignItems:"flex-start", gap:8 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:4 }}>
+                        <span style={{ fontSize:9, fontWeight:700,
+                          padding:"2px 6px", borderRadius:4,
+                          color:bColor,
+                          border:`1px solid ${bColor}44`,
+                          background:`${bColor}18`,
+                          textTransform:"uppercase", letterSpacing:.5 }}>
+                          {mLabel}
+                        </span>
+                      </div>
+                      <div style={{ fontWeight:700, fontSize:14, color:C.text,
+                        whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                        {spell.name}
+                      </div>
+                      <div style={{ fontSize:11, color:C.textMuted, marginTop:3 }}>
+                        <span style={{ color:dotColor }}>
+                          {arc.charAt(0).toUpperCase()+arc.slice(1)} {dots}
+                        </span>
+                        {' · '}Pot {spell.potency}
+                        {' · '}{spell.duration}
+                        {' · '}{spell.scale}
+                      </div>
+                      <div style={{ fontSize:10, color:C.textMuted, marginTop:2 }}>
+                        {spell.reach} Reach · {spell.mana} Mana
+                      </div>
+                    </div>
+                    <button onClick={() => onDismiss(spell.id)} style={{
+                      flexShrink:0, padding:"6px 12px", borderRadius:7,
+                      border:"1px solid rgba(199,62,29,0.4)",
+                      background:"rgba(199,62,29,0.12)",
+                      color:"#f87171", cursor:"pointer",
+                      fontSize:12, fontWeight:600 }}>
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet }) {
       const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
               potencyPen, durationPen, scalePen, yantraBonus, basePool,
               durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj,
@@ -1581,6 +1710,36 @@
           )}
 
           {/* Discord */}
+          {/* Set as Active */}
+          <button onClick={() => {
+            if (!character || !onSetActive) return;
+            const durOpts   = d.advancedDuration ? DURATION_ADVANCED : DURATION_STANDARD;
+            const scaleOpts = d.advancedScale
+              ? (d.scaleMode === 'aoe' ? SCALE_ADV_AREA : SCALE_ADV_SUBJECTS)
+              : (d.scaleMode === 'aoe' ? SCALE_STD_AREA : SCALE_STD_SUBJECTS);
+            onSetActive({
+              name:         d.spellName || 'Unnamed Spell',
+              arcanum:      (d.casterArcanum || 'prime').toLowerCase(),
+              arcanumLevel: d.casterArcanumDots,
+              castMethod:   d.method,
+              potency:      d.potency,
+              duration:     durOpts[d.durationIndex]?.label   || '—',
+              scale:        scaleOpts[d.scaleIndex]?.label    || '—',
+              reach:        usedReach,
+              mana:         totalMana,
+            });
+            if (onOpenSheet) onOpenSheet();
+          }} disabled={!character} style={{
+            width:"100%", padding:13, borderRadius:8, marginBottom:10,
+            border:`1px solid ${character ? C.accentBorder : C.border}`,
+            background: character ? "rgba(123,44,191,0.2)" : "transparent",
+            color: character ? C.accentLight : C.textMuted,
+            cursor: character ? "pointer" : "not-allowed",
+            fontSize:13, fontWeight:700, letterSpacing:.5,
+            opacity: character ? 1 : 0.4,
+          }}>
+            ⚡ Set as Active
+          </button>
           <SectionHead>Send to Discord</SectionHead>
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:6 }}>
             <DBtn label="Send Dice Pool" status={ds.pool} onClick={handlePool} noHook={!poolWebhook}/>
@@ -1651,7 +1810,7 @@
     }
 
     // ── Character header ──────────────────────────────────────────────────────
-    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange }) {
+    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, activeCount, onSheetToggle }) {
       const fileRef = useRef(null);
       const [manaOpen, setManaOpen] = useState(false);
       const manaC   = character?.mana?.current ?? 0;
@@ -1712,6 +1871,22 @@
                 background:character?C.accentFaint:"transparent",
                 border:`1px solid ${character?C.accentBorder:C.border}`,
                 color:character?C.accentLight:C.textMuted,opacity:character?1:0.4 }}>Save</button>
+              <button onClick={character ? onSheetToggle : undefined}
+                style={{ position:"relative", padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
+                  cursor: character ? "pointer" : "not-allowed",
+                  background: activeCount > 0 ? "rgba(123,44,191,0.2)" : "transparent",
+                  border:`1px solid ${activeCount > 0 ? C.accentBorder : C.border}`,
+                  color: activeCount > 0 ? C.accentLight : C.textMuted,
+                  opacity: character ? 1 : 0.4 }}>
+                ⚡ Spells
+                {activeCount > 0 && (
+                  <span style={{ position:"absolute", top:-5, right:-5,
+                    background:C.accent, color:"#fff", borderRadius:"50%",
+                    fontSize:9, fontWeight:700, width:16, height:16,
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    lineHeight:1, pointerEvents:"none" }}>{activeCount}</span>
+                )}
+              </button>
             </div>
           </div>
           {character && manaOpen && (
@@ -1937,14 +2112,51 @@
       const [stepIdx, setStepIdx]   = useState(0);
       const [miniExpanded, setMini] = useState(false);
       const [character, setChar]    = useState(null);
-      const [clashOpen, setClashOpen] = useState(false);
+      const [clashOpen, setClashOpen]   = useState(false);
+      const [activeSpells, setActiveSpells] = useState([]);
+      const [sheetOpen,    setSheetOpen]    = useState(false);
 
       const set = useCallback((key, val) => setD(prev => ({...prev, [key]:val})), []);
 
       function handleLoad(char) {
         setChar(char);
         applyCharacterToForm(char, setD);
+        setActiveSpells(char.activeSpells || []);
       }
+      
+      function addActiveSpellWizard(snapshot) {
+        const newSpell = {
+          id:           'as_' + Date.now(),
+          name:         snapshot.name         || 'Unnamed Spell',
+          arcanum:      snapshot.arcanum      || 'prime',
+          arcanumLevel: snapshot.arcanumLevel || 1,
+          castMethod:   snapshot.castMethod   || 'improvised',
+          potency:      snapshot.potency      || 1,
+          duration:     snapshot.duration     || '—',
+          scale:        snapshot.scale        || '—',
+          reach:        snapshot.reach        || 0,
+          mana:         snapshot.mana         || 0,
+          addedAt:      new Date().toISOString(),
+        };
+        const next = [...activeSpells, newSpell];
+        setActiveSpells(next);
+        set('activeSpells', next.length);
+        if (character) {
+          character.activeSpells = next;
+          try { localStorage.setItem('mage_current_character', JSON.stringify(character)); } catch(e){}
+        }
+      }
+
+      function dismissActiveSpellWizard(id) {
+        const next = activeSpells.filter(s => s.id !== id);
+        setActiveSpells(next);
+        set('activeSpells', next.length);
+        if (character) {
+          character.activeSpells = next;
+          try { localStorage.setItem('mage_current_character', JSON.stringify(character)); } catch(e){}
+        }
+      }
+      
       function handleSave() {
         if (!character) return;
         const blob = new Blob([JSON.stringify(character, null, 2)], { type:"application/json" });
@@ -1999,7 +2211,7 @@
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
           case "yantras":   return <StepYantras   d={d} set={set}/>;
           case "modifiers": return <StepModifiers d={d} set={set} derived={derived} character={character}/>;
-          case "cast":      return <StepCast      d={d} derived={derived} character={character} onManaChange={handleManaChange}/>;
+          case 'cast':      return <StepCast d={d} derived={derived} character={character} onManaChange={handleManaChange} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)}/>;
           default:          return null;
         }
       }
@@ -2021,7 +2233,14 @@
             boxShadow:`0 0 60px rgba(123,44,191,0.12),0 30px 80px rgba(0,0,0,0.7)`,
             display:"flex",flexDirection:"column",minHeight:750,overflow:"hidden",position:"relative" }}>
 
-            {clashOpen && <ClashOfWills character={character} gnosis={d.gnosis} onClose={()=>setClashOpen(false)}/>}
+        {clashOpen && <ClashOfWills character={character} gnosis={d.gnosis} onClose={()=>setClashOpen(false)}/>}
+            {sheetOpen && (
+              <ActiveSpellsDrawer
+                spells={activeSpells}
+                onDismiss={dismissActiveSpellWizard}
+                onClose={() => setSheetOpen(false)}
+              />
+            )}
 
             {/* Title bar */}
             <div style={{ padding:"11px 16px 9px",
@@ -2033,7 +2252,15 @@
               </h1>
             </div>
 
-            <CharacterHeader character={character} onLoad={handleLoad} onSave={handleSave} onNew={handleNew} onManaChange={handleManaChange}/>
+            <CharacterHeader
+              character={character}
+              onLoad={handleLoad}
+              onSave={handleSave}
+              onNew={handleNew}
+              onManaChange={handleManaChange}
+              activeCount={activeSpells.length}
+              onSheetToggle={() => setSheetOpen(o => !o)}
+            />
 
             {/* Step indicator */}
             <div style={{ padding:"8px 16px 0",background:C.bgCard,borderBottom:`1px solid ${C.border}` }}>
