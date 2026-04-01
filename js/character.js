@@ -252,6 +252,9 @@ function createNewCharacter() {
         // Additional Rote Skills (from Legacies, etc.)
         additionalRoteSkills: [],
         
+        // Additional Ruling Arcana (from Legacy, max 1)
+        additionalRulingArcana: [],
+        
         // Dedicated Magical Tool
         dedicatedTool: "",
         
@@ -425,7 +428,10 @@ function generateId() {
 function isRulingArcanum(character, arcanum) {
     const pathData = PATHS[character.path];
     if (!pathData) return false;
-    return pathData.rulingArcana.includes(arcanum);
+    if (pathData.rulingArcana.includes(arcanum)) return true;
+    // Check Legacy (or other source) additional Ruling Arcana
+    const additional = character.additionalRulingArcana || [];
+    return additional.includes(arcanum);
 }
 
 /**
