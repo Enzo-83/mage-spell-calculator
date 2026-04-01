@@ -2666,6 +2666,10 @@
                         <span class="mana-cost" id="manaIndefinite">0</span>
                     </div>
                     <div class="mana-row">
+                        <span class="mana-source">Sympathetic / Temporal:</span>
+                        <span class="mana-cost" id="manaSympathy">0</span>
+                    </div>
+                    <div class="mana-row">
                         <span class="mana-source">Paradox Mitigation:</span>
                         <span class="mana-cost" id="manaParadox">0</span>
                     </div>
@@ -3737,14 +3741,25 @@
                 // Paradox Mitigation
                 manaParadox = parseInt(document.getElementById('paradoxMana').value) || 0;
                 
+                // Sympathetic / Temporal range: +1 Mana
+                let manaSympathy = 0;
+                const rangeVal = document.getElementById('range').value;
+                if (rangeVal === 'sympathetic' || rangeVal === 'temporal') {
+                    manaSympathy = 1;
+                }
+                
                 // Update display
                 document.getElementById('manaNonRuling').textContent = manaNonRuling;
                 document.getElementById('manaIndefinite').textContent = manaIndefinite;
+                document.getElementById('manaSympathy').textContent = manaSympathy;
                 document.getElementById('manaParadox').textContent = manaParadox;
                 document.getElementById('manaAdditional').textContent = manaAdditional;
                 
-                const totalMana = manaNonRuling + manaIndefinite + manaParadox + manaAdditional;
+                const totalMana = manaNonRuling + manaIndefinite + manaSympathy + manaParadox + manaAdditional;
                 document.getElementById('manaTotalCost').textContent = totalMana;
+                
+                // Sync Status Row in Live Preview
+                document.getElementById('previewMana').textContent = totalMana;
                 
                 // Update pool status
                 const poolStatus = document.getElementById('manaPoolStatus');
