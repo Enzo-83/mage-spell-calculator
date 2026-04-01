@@ -3328,17 +3328,10 @@
                     return;
                 }
                 
-                const pathData = PATHS[currentCharacter.path];
-                if (!pathData) {
-                    infoEl.textContent = '';
-                    infoEl.style.color = '';
-                    return;
-                }
-                
-                if (pathData.rulingArcana.includes(selectedArcanum)) {
+                if (isRulingArcanum(currentCharacter, selectedArcanum)) {
                     infoEl.textContent = '✓ Ruling Arcanum (no extra Mana)';
                     infoEl.style.color = 'var(--success)';
-                } else if (pathData.inferiorArcanum === selectedArcanum) {
+                } else if (isInferiorArcanum(currentCharacter, selectedArcanum)) {
                     infoEl.textContent = '✗ Inferior Arcanum (+1 Mana if improvised)';
                     infoEl.style.color = 'var(--danger)';
                 } else {
@@ -3872,7 +3865,13 @@
                 document.getElementById('btnApplyCharacter').addEventListener('click', applyCharacterChanges);
                 
                 // Path change updates ruling/inferior arcana display
-                document.getElementById('charPath').addEventListener('change', updateArcanaDisplay);
+                document.getElementById('charPath').addEventListener('change', () => {
+                    populateLegacyRulingArcanum();
+                    updateArcanaDisplay();
+                });
+                
+                // Legacy ruling arcanum change updates arcana display
+                document.getElementById('charLegacyRulingArcanum').addEventListener('change', updateArcanaDisplay);
                 
                 // Order change updates additional rote skills display
                 document.getElementById('charOrder').addEventListener('change', populateAdditionalRoteSkills);
@@ -3990,6 +3989,9 @@
                 // Update arcana display (ruling/inferior)
                 updateArcanaDisplay();
                 
+                // Update legacy ruling arcanum dropdown
+                populateLegacyRulingArcanum();
+                
                 // Update additional rote skills checkboxes
                 populateAdditionalRoteSkills();
                 
@@ -4017,6 +4019,13 @@
                     // Mark inferior arcanum
                     const inferiorContainer = document.getElementById(`arcana_${pathData.inferiorArcanum}`)?.closest('.arcana-input');
                     if (inferiorContainer) inferiorContainer.classList.add('inferior');
+                }
+                
+                // Mark legacy ruling arcanum (if set)
+                const legacyArc = document.getElementById('charLegacyRulingArcanum')?.value;
+                if (legacyArc) {
+                    const container = document.getElementById(`arcana_${legacyArc}`)?.closest('.arcana-input');
+                    if (container) container.classList.add('ruling');
                 }
             }
             
@@ -4062,6 +4071,29 @@
                     }
                 });
                 return checked;
+            }
+            
+            // Populate legacy ruling arcanum dropdown (exclude path ruling arcana)
+            function populateLegacyRulingArcanum() {
+                const select = document.getElementById('charLegacyRulingArcanum');
+                const path = document.getElementById('charPath').value;
+                const pathData = PATHS[path];
+                const pathRuling = pathData ? pathData.rulingArcana : [];
+                const current = (currentCharacter.additionalRulingArcana || [])[0] || '';
+                
+                // Keep the "None" option, rebuild the rest
+                select.innerHTML = '<option value="">— None —</option>' +
+                    Object.entries(ARCANA)
+                        .filter(([key]) => !pathRuling.includes(key))
+                        .map(([key, data]) => 
+                            `<option value="${key}" ${key === current ? 'selected' : ''}>${data.label}</option>`
+                        ).join('');
+            }
+            
+            // Read legacy ruling arcanum from form
+            function getLegacyRulingArcanumFromForm() {
+                const val = document.getElementById('charLegacyRulingArcanum').value;
+                return val ? [val] : [];
             }
             
             // Update active spells list in modal
@@ -4127,6 +4159,9 @@
                 
                 // Additional Rote Skills (from Legacy, etc.)
                 currentCharacter.additionalRoteSkills = getAdditionalRoteSkillsFromForm();
+                
+                // Legacy Ruling Arcanum
+                currentCharacter.additionalRulingArcana = getLegacyRulingArcanumFromForm();
                 
                 // Update derived stats
                 updateDerivedStats(currentCharacter);
@@ -6824,6 +6859,18 @@
                             <div class="skill-input"><label>Subterfuge</label><input type="number" id="skill_subterfuge" min="0" max="5" value="0"></div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Additional Rote Skills -->
+                <div class="modal-section">
+                    <h3>Legacy Ruling Arcanum <span style="font-size: 0.8em; color: var(--text-muted);">(optional)</span></h3>
+                    <div class="info-text" style="margin-bottom: 12px;">
+                        If your Legacy grants an additional Ruling Arcanum, select it here. Path Ruling Arcana are excluded.
+                    </div>
+                    <select id="charLegacyRulingArcanum" style="width: 100%; max-width: 260px;">
+                        <option value="">— None —</option>
+                        <!-- Populated by JavaScript -->
+                    </select>
                 </div>
                 
                 <!-- Additional Rote Skills -->

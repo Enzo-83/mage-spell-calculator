@@ -323,7 +323,9 @@
       // Mana
       const pathData = character?.path ? PATHS[character.path.toLowerCase()] : null;
       const rulingArcana = pathData ? pathData.rulingArcana : [];
-      const isRuling = rulingArcana.includes(d.casterArcanum);
+      const additionalRuling = (character?.additionalRulingArcana || []).map(a => a.charAt(0).toUpperCase() + a.slice(1));
+      const allRuling = [...rulingArcana, ...additionalRuling];
+      const isRuling = allRuling.includes(d.casterArcanum);
       const nonRulingMana  = (d.method === "improvised" && !isRuling) ? 1 : 0;
       const indefiniteMana = durEntry.mana || 0;
       const sympathyMana   = (d.range === "sympathetic" || d.range === "temporal") ? 1 : 0;
@@ -489,12 +491,29 @@
           <Divider/>
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
             <Field label="Caster's Arcanum">
-              <SelectInput value={d.casterArcanum} onChange={v=>set("casterArcanum",v)} options={ARCANA}/>
+              <SelectInput value={d.casterArcanum} onChange={v=>{
+                set("casterArcanum",v);
+                if (character?.arcana) {
+                  const dots = character.arcana[v.toLowerCase()] || 0;
+                  if (dots > 0) set("casterArcanumDots", dots);
+                }
+              }} options={ARCANA}/>
             </Field>
             <Field label="Dots">
               <StepperInput value={d.casterArcanumDots} min={1} max={5} onChange={v=>set("casterArcanumDots",v)}/>
             </Field>
           </div>
+          {character && (() => {
+            const pData = character.path ? PATHS[character.path.toLowerCase()] : null;
+            const pRuling = pData ? pData.rulingArcana : [];
+            const addRuling = (character.additionalRulingArcana || []).map(a => a.charAt(0).toUpperCase() + a.slice(1));
+            const isRul = [...pRuling, ...addRuling].includes(d.casterArcanum);
+            const inferiorMap = {acanthus:"Forces",mastigos:"Matter",moros:"Spirit",obrimos:"Death",thyrsus:"Mind"};
+            const isInf = inferiorMap[character.path?.toLowerCase()] === d.casterArcanum;
+            if (isRul) return <Hint color={C.success}>✓ Ruling Arcanum (no extra Mana)</Hint>;
+            if (isInf) return <Hint color={C.danger}>✗ Inferior Arcanum (+1 Mana if improvised)</Hint>;
+            return <Hint color={C.warning}>Common Arcanum (+1 Mana if improvised)</Hint>;
+          })()}
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:10 }}>
             <Field label="Spell Arcanum Req." hint="Min dots for spell">
               <StepperInput value={d.spellArcanumReq} min={1} max={5} onChange={v=>set("spellArcanumReq",v)}/>
