@@ -27,9 +27,116 @@
 <body>
   <div id="root"></div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+  <!-- Firebase Realtime Database (Scene Tracker) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script>
+    // ─── Firebase Config ─── PASTE YOUR CONFIG VALUES BELOW ───
+    const _fbApp = firebase.initializeApp({
+      apiKey: "AIzaSyDoZ0ZqAEYAVyYZnuf6EoFSCJfC-24F-QE",
+      authDomain: "electronic-grimoire.firebaseapp.com",
+      databaseURL: "https://electronic-grimoire-default-rtdb.firebaseio.com",
+      projectId: "electronic-grimoire",
+      storageBucket: "electronic-grimoire.appspot.com",
+      messagingSenderId: "1032950336095",
+      appId: "1:1032950336095:web:7a8a44130f14db710429ea"
+    });
+    const _fbDb = firebase.database();
+
+    // ─── Scene helper functions (plain JS, available to Babel block) ───
+
+    function sceneGenerateCode() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I/O/0/1 for clarity
+      let code = "";
+      for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      return code;
+    }
+
+    function sceneGetRef(roomCode) {
+      return _fbDb.ref("rooms/" + roomCode);
+    }
+
+    function sceneCreateRoom(roomCode, stName) {
+      return sceneGetRef(roomCode).set({
+        sceneActive: false,
+        sceneNumber: 0,
+        createdBy: stName,
+        createdAt: firebase.database.ServerValue.TIMESTAMP,
+      });
+    }
+
+    function sceneSetActive(roomCode, active) {
+      const updates = { sceneActive: active };
+      if (active) {
+        updates.sceneStartedAt = firebase.database.ServerValue.TIMESTAMP;
+      }
+      return sceneGetRef(roomCode).update(updates);
+    }
+
+    function sceneIncrementNumber(roomCode) {
+      return sceneGetRef(roomCode).child("sceneNumber").transaction(function(n) {
+        return (n || 0) + 1;
+      });
+    }
+
+    function sceneJoinRoom(roomCode, playerId, playerName, playerPath) {
+      const playerRef = sceneGetRef(roomCode).child("players/" + playerId);
+      playerRef.set({
+        name: playerName,
+        path: playerPath || "",
+        paradoxRolls: 0,
+        stAdjustment: 0,
+        stNote: "",
+        joinedAt: firebase.database.ServerValue.TIMESTAMP,
+      });
+      // Auto-remove on disconnect
+      playerRef.onDisconnect().remove();
+      return playerRef;
+    }
+
+    function sceneLeaveRoom(roomCode, playerId) {
+      return sceneGetRef(roomCode).child("players/" + playerId).remove();
+    }
+
+    function sceneResetAllPlayers(roomCode) {
+      return sceneGetRef(roomCode).child("players").once("value").then(function(snap) {
+        const updates = {};
+        snap.forEach(function(child) {
+          updates[child.key + "/paradoxRolls"] = 0;
+          updates[child.key + "/stAdjustment"] = 0;
+          updates[child.key + "/stNote"] = "";
+        });
+        if (Object.keys(updates).length > 0) {
+          return sceneGetRef(roomCode).child("players").update(updates);
+        }
+      });
+    }
+
+    function sceneSetPlayerAdjustment(roomCode, playerId, adj, note) {
+      return sceneGetRef(roomCode).child("players/" + playerId).update({
+        stAdjustment: adj,
+        stNote: note || "",
+      });
+    }
+
+    // Persist room code + role in localStorage
+    function sceneRememberRoom(code, role) {
+      try { localStorage.setItem("mage_scene_room", JSON.stringify({ code: code, role: role })); } catch(e) {}
+    }
+    function sceneForgetRoom() {
+      try { localStorage.removeItem("mage_scene_room"); } catch(e) {}
+    }
+    function sceneRecallRoom() {
+      try {
+        const raw = localStorage.getItem("mage_scene_room");
+        return raw ? JSON.parse(raw) : null;
+      } catch(e) { return null; }
+    }
+  </script>
 
   <script type="text/babel">
     const { useState, useEffect, useCallback, useRef } = React;
@@ -1606,7 +1713,460 @@
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
     }
-// ── Active Spells Drawer ─────────────────────────────────────────────────
+  // ── Scene Tracker Drawer ──────────────────────────────────────────────────
+    function SceneDrawer({ open, onClose, character }) {
+      const [mode, setMode]               = useState(null); // null | 'st' | 'player'
+      const [roomCode, setRoomCode]       = useState("");
+      const [inputCode, setInputCode]     = useState("");
+      const [sceneActive, setSceneActive] = useState(false);
+      const [sceneNumber, setSceneNumber] = useState(0);
+      const [players, setPlayers]         = useState({});
+      const [connected, setConnected]     = useState(false);
+      const [error, setError]             = useState("");
+      const listenerRef = useRef(null);
+
+      // On mount: try to reconnect from localStorage
+      useEffect(() => {
+        if (!open) return;
+        const saved = sceneRecallRoom();
+        if (saved && saved.code) {
+          if (saved.role === "st") {
+            setMode("st");
+            setRoomCode(saved.code);
+            attachListener(saved.code);
+          } else {
+            setMode("player");
+            setRoomCode(saved.code);
+            rejoinAsPlayer(saved.code);
+          }
+        }
+        return () => detachListener();
+      }, [open]);
+
+      function attachListener(code) {
+        detachListener();
+        const ref = sceneGetRef(code);
+        const cb = ref.on("value", snap => {
+          const data = snap.val();
+          if (!data) { setConnected(false); return; }
+          setConnected(true);
+          setSceneActive(!!data.sceneActive);
+          setSceneNumber(data.sceneNumber || 0);
+          setPlayers(data.players || {});
+        });
+        listenerRef.current = { ref, cb };
+      }
+
+      function detachListener() {
+        if (listenerRef.current) {
+          listenerRef.current.ref.off("value", listenerRef.current.cb);
+          listenerRef.current = null;
+        }
+      }
+
+      function getPlayerId() {
+        return (character?.shadowName || character?.name || "player_" + Math.random().toString(36).slice(2,8))
+          .toLowerCase().replace(/[^a-z0-9_]/g, "_");
+      }
+
+      function getPlayerName() {
+        return character?.shadowName || character?.name || "Unknown Mage";
+      }
+
+      function getPlayerPath() {
+        return character?.path || "";
+      }
+
+      // ── ST: Create Room ──
+      function handleCreateRoom() {
+        const code = sceneGenerateCode();
+        setRoomCode(code);
+        setMode("st");
+        sceneCreateRoom(code, getPlayerName()).then(() => {
+          attachListener(code);
+          sceneRememberRoom(code, "st");
+        }).catch(e => setError("Failed to create room: " + e.message));
+      }
+
+      // ── ST: Start / End Scene ──
+      function handleToggleScene() {
+        if (sceneActive) {
+          sceneSetActive(roomCode, false);
+          sceneResetAllPlayers(roomCode);
+        } else {
+          sceneIncrementNumber(roomCode);
+          sceneSetActive(roomCode, true);
+          sceneResetAllPlayers(roomCode);
+        }
+      }
+
+      function handleResetCounters() {
+        sceneResetAllPlayers(roomCode);
+      }
+
+      // ── ST: Adjust player ──
+      function handleAdjust(pid, delta) {
+        const p = players[pid];
+        if (!p) return;
+        const next = (p.stAdjustment || 0) + delta;
+        sceneSetPlayerAdjustment(roomCode, pid, next, p.stNote || "");
+      }
+      function handleNote(pid, note) {
+        const p = players[pid];
+        if (!p) return;
+        sceneSetPlayerAdjustment(roomCode, pid, p.stAdjustment || 0, note);
+      }
+
+      // ── Player: Join ──
+      function handleJoin() {
+        const code = inputCode.trim().toUpperCase();
+        if (code.length < 3) { setError("Enter a valid room code"); return; }
+        setError("");
+        setRoomCode(code);
+        rejoinAsPlayer(code);
+      }
+
+      function rejoinAsPlayer(code) {
+        const pid = getPlayerId();
+        // Check room exists first
+        sceneGetRef(code).once("value").then(snap => {
+          if (!snap.exists()) { setError("Room not found"); setConnected(false); return; }
+          setMode("player");
+          sceneJoinRoom(code, pid, getPlayerName(), getPlayerPath());
+          attachListener(code);
+          sceneRememberRoom(code, "player");
+        }).catch(e => setError("Failed to join: " + e.message));
+      }
+
+      // ── Disconnect ──
+      function handleDisconnect() {
+        if (mode === "player") {
+          sceneLeaveRoom(roomCode, getPlayerId());
+        }
+        detachListener();
+        sceneForgetRoom();
+        setMode(null);
+        setRoomCode("");
+        setInputCode("");
+        setConnected(false);
+        setPlayers({});
+        setSceneActive(false);
+        setError("");
+      }
+
+      if (!open) return null;
+
+      const pid = getPlayerId();
+      const myData = players[pid];
+      const effectiveMod = myData ? Math.max(0, (myData.paradoxRolls||0) + (myData.stAdjustment||0)) : 0;
+      const playerEntries = Object.entries(players);
+
+      return (
+        <div style={{ position:"absolute",inset:0,zIndex:25,background:C.bgDark,
+          display:"flex",flexDirection:"column",overflow:"hidden" }}>
+
+          {/* Header */}
+          <div style={{ padding:"14px 16px",borderBottom:`1px solid ${C.accentBorder}`,
+            display:"flex",alignItems:"center",justifyContent:"space-between",
+            background:`linear-gradient(90deg,${C.bgDeep},${C.bgCard})` }}>
+            <span style={{ fontFamily:"'Rajdhani',sans-serif",fontSize:14,fontWeight:700,
+              letterSpacing:2,textTransform:"uppercase",color:C.accentLight }}>
+              🎭 Scene Tracker
+            </span>
+            <button onClick={onClose} style={{ background:"transparent",border:"none",
+              color:C.textMuted,fontSize:18,cursor:"pointer",padding:"2px 6px" }}>✕</button>
+          </div>
+
+          <div style={{ flex:1,overflowY:"auto",padding:16 }}>
+
+            {error && (
+              <div style={{ padding:"8px 12px",borderRadius:8,marginBottom:12,
+                background:"rgba(199,62,29,0.15)",border:`1px solid ${C.danger}` }}>
+                <span style={{ color:C.danger,fontSize:12 }}>{error}</span>
+              </div>
+            )}
+
+            {/* ── Mode Chooser ── */}
+            {!mode && (
+              <div>
+                <p style={{ color:C.textMuted,fontSize:13,marginBottom:16,textAlign:"center" }}>
+                  Are you the Storyteller or a player?
+                </p>
+                <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
+                  <button onClick={handleCreateRoom} style={{
+                    padding:16,borderRadius:10,cursor:"pointer",textAlign:"left",
+                    background:C.accentFaint,border:`1px solid ${C.accentBorder}`,
+                  }}>
+                    <div style={{ color:C.accentLight,fontSize:14,fontWeight:700 }}>Create Room (Storyteller)</div>
+                    <div style={{ color:C.textMuted,fontSize:11,marginTop:3 }}>
+                      Generate a code and manage scenes for your players
+                    </div>
+                  </button>
+                  <button onClick={()=>setMode("joining")} style={{
+                    padding:16,borderRadius:10,cursor:"pointer",textAlign:"left",
+                    background:"rgba(42,157,143,0.08)",border:`1px solid rgba(42,157,143,0.3)`,
+                  }}>
+                    <div style={{ color:C.success,fontSize:14,fontWeight:700 }}>Join Room (Player)</div>
+                    <div style={{ color:C.textMuted,fontSize:11,marginTop:3 }}>
+                      Enter a room code from your Storyteller
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Player: Enter Code ── */}
+            {mode === "joining" && (
+              <div>
+                <p style={{ color:C.textMuted,fontSize:13,marginBottom:12 }}>
+                  Enter the room code from your Storyteller:
+                </p>
+                <div style={{ display:"flex",gap:8,marginBottom:12 }}>
+                  <input type="text" maxLength={6} value={inputCode}
+                    onChange={e=>setInputCode(e.target.value.toUpperCase())}
+                    placeholder="CODE"
+                    style={{ flex:1,textAlign:"center",fontFamily:"monospace",fontSize:22,
+                      letterSpacing:6,padding:"10px 12px",borderRadius:8,
+                      background:C.bgDeep,border:`1px solid ${C.accentBorder}`,
+                      color:C.text,outline:"none",textTransform:"uppercase" }}/>
+                  <button onClick={handleJoin} style={{
+                    padding:"10px 20px",borderRadius:8,cursor:"pointer",border:"none",
+                    background:C.success,color:"#fff",fontSize:14,fontWeight:700 }}>
+                    Join
+                  </button>
+                </div>
+                <button onClick={()=>{setMode(null);setError("");}} style={{
+                  background:"transparent",border:"none",color:C.textMuted,
+                  fontSize:12,cursor:"pointer",padding:0 }}>
+                  ← Back
+                </button>
+              </div>
+            )}
+
+            {/* ── ST View ── */}
+            {mode === "st" && (
+              <div>
+                {/* Room code display */}
+                <div style={{ background:C.bgDeep,borderRadius:10,padding:16,textAlign:"center",marginBottom:14 }}>
+                  <p style={{ fontSize:9,letterSpacing:2,textTransform:"uppercase",
+                    color:C.textMuted,margin:"0 0 4px" }}>Room Code</p>
+                  <p style={{ fontSize:32,fontWeight:700,letterSpacing:8,margin:0,
+                    fontFamily:"monospace",color:C.accentLight }}>{roomCode}</p>
+                  <p style={{ fontSize:11,color:C.textMuted,margin:"6px 0 0" }}>
+                    Share this code with your players
+                  </p>
+                </div>
+
+                {/* Scene status + controls */}
+                <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12 }}>
+                  <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                    <span style={{ width:8,height:8,borderRadius:"50%",
+                      background:sceneActive?C.success:C.textMuted }}/>
+                    <span style={{ fontSize:13,fontWeight:600,
+                      color:sceneActive?C.success:C.textMuted }}>
+                      {sceneActive ? `Scene ${sceneNumber} active` : "No active scene"}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display:"flex",gap:8,marginBottom:16 }}>
+                  <button onClick={handleToggleScene} style={{
+                    flex:1,padding:11,borderRadius:8,cursor:"pointer",border:"none",
+                    fontSize:13,fontWeight:700,
+                    background:sceneActive?C.danger:C.success,color:"#fff" }}>
+                    {sceneActive ? "End Scene" : "Start Scene"}
+                  </button>
+                  <button onClick={handleResetCounters} disabled={!sceneActive} style={{
+                    flex:1,padding:11,borderRadius:8,cursor:"pointer",
+                    border:`1px solid ${C.border}`,background:"transparent",
+                    fontSize:13,fontWeight:600,color:C.textMuted,
+                    opacity:sceneActive?1:0.4 }}>
+                    Reset Counters
+                  </button>
+                </div>
+
+                {/* Connected players */}
+                <SectionHead>Connected Players</SectionHead>
+                {playerEntries.length === 0 ? (
+                  <div style={{ padding:14,borderRadius:8,background:C.bgDeep,
+                    border:`1px solid ${C.border}`,textAlign:"center" }}>
+                    <p style={{ color:C.textMuted,fontSize:12 }}>No players connected yet</p>
+                  </div>
+                ) : (
+                  <div style={{ borderRadius:8,border:`1px solid ${C.border}`,overflow:"hidden" }}>
+                    {playerEntries.map(([pid, p], i) => {
+                      const eff = Math.max(0, (p.paradoxRolls||0) + (p.stAdjustment||0));
+                      const isLast = i === playerEntries.length - 1;
+                      return (
+                        <div key={pid} style={{ padding:"12px 14px",
+                          borderBottom:isLast?"none":`1px solid ${C.borderLight}` }}>
+                          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+                            <div>
+                              <span style={{ fontSize:13,fontWeight:600,color:C.text }}>{p.name}</span>
+                              {p.path && <span style={{ fontSize:11,color:C.textMuted,marginLeft:6 }}>{p.path}</span>}
+                            </div>
+                            {sceneActive && (
+                              <span style={{ fontSize:12,fontWeight:600,
+                                color:eff>0?C.danger:C.success }}>
+                                {eff>0 ? `${eff} roll${eff!==1?"s":""} (+${eff})` : "0 rolls"}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* ST Adjustment controls */}
+                          {sceneActive && (
+                            <div style={{ marginTop:8,padding:"8px 10px",borderRadius:6,
+                              background:C.bgDeep }}>
+                              <div style={{ display:"flex",alignItems:"center",
+                                justifyContent:"space-between",marginBottom:6 }}>
+                                <span style={{ fontSize:11,color:C.textMuted }}>ST adjustment</span>
+                                <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                                  <button onClick={()=>handleAdjust(pid,-1)} style={{
+                                    width:26,height:26,borderRadius:5,cursor:"pointer",fontSize:14,
+                                    border:`1px solid ${C.border}`,background:C.bgCard,color:C.text,
+                                    display:"flex",alignItems:"center",justifyContent:"center",padding:0
+                                  }}>−</button>
+                                  <span style={{ minWidth:28,textAlign:"center",fontSize:13,
+                                    fontWeight:600,fontFamily:"monospace",
+                                    color:(p.stAdjustment||0)!==0?C.warning:C.textMuted }}>
+                                    {(p.stAdjustment||0)>=0?"+":""}{p.stAdjustment||0}
+                                  </span>
+                                  <button onClick={()=>handleAdjust(pid,1)} style={{
+                                    width:26,height:26,borderRadius:5,cursor:"pointer",fontSize:14,
+                                    border:`1px solid ${C.border}`,background:C.bgCard,color:C.text,
+                                    display:"flex",alignItems:"center",justifyContent:"center",padding:0
+                                  }}>+</button>
+                                </div>
+                              </div>
+                              <input type="text" placeholder="Reason (visible to player)"
+                                value={p.stNote||""} onChange={e=>handleNote(pid,e.target.value)}
+                                style={{ width:"100%",padding:"5px 8px",borderRadius:5,fontSize:11,
+                                  background:C.bgCard,border:`1px solid ${C.borderLight}`,
+                                  color:C.text,outline:"none" }}/>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Disconnect */}
+                <button onClick={handleDisconnect} style={{
+                  marginTop:16,width:"100%",padding:10,borderRadius:8,cursor:"pointer",
+                  background:"transparent",border:`1px solid ${C.danger}`,
+                  color:C.danger,fontSize:12,fontWeight:600 }}>
+                  Close Room
+                </button>
+              </div>
+            )}
+
+            {/* ── Player View ── */}
+            {mode === "player" && (
+              <div>
+                {/* Scene status banner */}
+                <div style={{ display:"flex",alignItems:"center",gap:8,
+                  padding:"10px 14px",borderRadius:8,marginBottom:14,
+                  background:sceneActive?"rgba(42,157,143,0.1)":C.bgDeep,
+                  border:`1px solid ${sceneActive?"rgba(42,157,143,0.3)":C.border}` }}>
+                  <span style={{ width:8,height:8,borderRadius:"50%",flexShrink:0,
+                    background:sceneActive?C.success:C.textMuted }}/>
+                  <span style={{ fontSize:13,fontWeight:600,
+                    color:sceneActive?C.success:C.textMuted }}>
+                    {sceneActive ? `Scene ${sceneNumber} active` : "No active scene"}
+                  </span>
+                  <span style={{ marginLeft:"auto",fontSize:11,color:C.textMuted,
+                    fontFamily:"monospace" }}>{roomCode}</span>
+                </div>
+
+                {/* Paradox tracker */}
+                <div style={{ background:C.bgCard,borderRadius:10,padding:16,marginBottom:14,
+                  border:`1px solid ${C.border}` }}>
+                  <p style={{ fontSize:13,fontWeight:600,color:C.text,margin:"0 0 4px" }}>
+                    Paradox rolls this scene
+                  </p>
+                  <p style={{ fontSize:10,color:C.textMuted,margin:"0 0 14px" }}>
+                    Auto-tracked on Send Dice Pool (Phase 2)
+                  </p>
+
+                  <div style={{ display:"flex",alignItems:"center",gap:16 }}>
+                    <div style={{ background:C.bgDeep,borderRadius:8,padding:"14px 20px",textAlign:"center" }}>
+                      <div style={{ fontSize:32,fontWeight:700,color:C.text }}>
+                        {myData?.paradoxRolls || 0}
+                      </div>
+                      <div style={{ fontSize:9,letterSpacing:1.5,textTransform:"uppercase",
+                        color:C.textMuted,marginTop:2 }}>Rolls</div>
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <p style={{ fontSize:12,color:C.textMuted,margin:"0 0 4px" }}>Next spell modifier</p>
+                      <p style={{ fontSize:20,fontWeight:700,margin:0,
+                        color:effectiveMod>0?C.danger:C.text }}>
+                        +{effectiveMod} dice
+                      </p>
+                      <p style={{ fontSize:11,color:C.textMuted,margin:"3px 0 0" }}>
+                        {effectiveMod > 0 ? "Added to next Paradox roll" : "No penalty yet"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* ST adjustment notice */}
+                  {myData && (myData.stAdjustment||0) !== 0 && (
+                    <div style={{ marginTop:12,padding:"8px 12px",borderRadius:6,
+                      background:"rgba(233,196,106,0.1)",border:`1px solid rgba(233,196,106,0.3)` }}>
+                      <p style={{ margin:0,fontSize:12,fontWeight:600,color:C.warning }}>
+                        ST adjustment: {(myData.stAdjustment>=0?"+":"")}{myData.stAdjustment}
+                      </p>
+                      {myData.stNote && (
+                        <p style={{ margin:"3px 0 0",fontSize:11,color:C.warning,opacity:0.8 }}>
+                          {myData.stNote}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Auto-filled field preview */}
+                <div style={{ background:C.bgCard,borderRadius:10,padding:16,
+                  border:`1px solid ${C.border}` }}>
+                  <p style={{ fontSize:12,fontWeight:600,color:C.text,margin:"0 0 3px" }}>
+                    In the Paradox section
+                  </p>
+                  <p style={{ fontSize:10,color:C.textMuted,margin:"0 0 10px" }}>
+                    "Previous Paradox Rolls" will auto-fill when connected
+                  </p>
+                  <div style={{ display:"flex",alignItems:"center",gap:10,
+                    background:C.bgDeep,borderRadius:6,padding:"10px 12px" }}>
+                    <span style={{ flex:1,fontSize:12,color:C.textMuted }}>
+                      Previous Paradox Rolls (this scene)
+                    </span>
+                    <span style={{ fontSize:14,fontWeight:700,fontFamily:"monospace",
+                      background:C.bgCard,border:`1px solid ${C.borderLight}`,
+                      borderRadius:5,padding:"3px 10px",color:C.text }}>
+                      {effectiveMod}
+                    </span>
+                    <span style={{ fontSize:9,padding:"2px 6px",borderRadius:4,
+                      background:C.accentFaint,color:C.accentLight,fontWeight:600 }}>
+                      auto
+                    </span>
+                  </div>
+                </div>
+
+                {/* Disconnect */}
+                <button onClick={handleDisconnect} style={{
+                  marginTop:16,width:"100%",padding:10,borderRadius:8,cursor:"pointer",
+                  background:"transparent",border:`1px solid ${C.danger}`,
+                  color:C.danger,fontSize:12,fontWeight:600 }}>
+                  Leave Room
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+  
+  // ── Active Spells Drawer ─────────────────────────────────────────────────
     function ActiveSpellsDrawer({ spells, onDismiss, onClose }) {
       const ARCANUM_HEX = {
         death:'#6b7280', fate:'#a78bfa', forces:'#f59e0b', life:'#34d399',
@@ -2107,7 +2667,7 @@
     }
 
     // ── Character header ──────────────────────────────────────────────────────
-    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, activeCount, onSheetToggle }) {
+    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, activeCount, onSheetToggle, onSceneToggle }) {
       const fileRef = useRef(null);
       const [manaOpen, setManaOpen] = useState(false);
       const manaC   = character?.mana?.current ?? 0;
@@ -2168,6 +2728,14 @@
                 background:character?C.accentFaint:"transparent",
                 border:`1px solid ${character?C.accentBorder:C.border}`,
                 color:character?C.accentLight:C.textMuted,opacity:character?1:0.4 }}>Save</button>
+              <button onClick={onSceneToggle}
+                style={{ padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
+                  cursor:"pointer",
+                  background:"rgba(42,157,143,0.15)",
+                  border:`1px solid rgba(42,157,143,0.3)`,
+                  color:C.success }}>
+                🎭 Scene
+              </button>
               <button onClick={character ? onSheetToggle : undefined}
                 style={{ position:"relative", padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
                   cursor: character ? "pointer" : "not-allowed",
@@ -2412,6 +2980,7 @@
       const [clashOpen, setClashOpen]   = useState(false);
       const [activeSpells, setActiveSpells] = useState([]);
       const [sheetOpen,    setSheetOpen]    = useState(false);
+      const [sceneOpen,    setSceneOpen]    = useState(false);
       const [saveLibOpen,  setSaveLibOpen]  = useState(false);
       const [sourceSpellId, setSourceSpellId]       = useState(null);
       const [sourceRoteSkillKey, setSourceRoteKey]  = useState(null);
@@ -2606,7 +3175,13 @@
                 onClose={() => setSaveLibOpen(false)}
               />
             )}
-
+            {sceneOpen && (
+              <SceneDrawer
+                open={sceneOpen}
+                onClose={() => setSceneOpen(false)}
+                character={character}
+              />
+            )}
             {/* Title bar */}
             <div style={{ padding:"11px 16px 9px",
               background:`linear-gradient(90deg,${C.bgDeep},${C.bgCard})`,
@@ -2625,6 +3200,7 @@
               onManaChange={handleManaChange}
               activeCount={activeSpells.length}
               onSheetToggle={() => setSheetOpen(o => !o)}
+              onSceneToggle={() => setSceneOpen(o => !o)}
             />
 
             {/* Step indicator */}
