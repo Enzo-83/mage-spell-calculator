@@ -1748,8 +1748,7 @@
         const ref = sceneGetRef(code);
         const cb = ref.on("value", snap => {
           const data = snap.val();
-          if (!data) {
-            detachListener();
+          if (!data || data.closed) {
             sceneForgetRoom();
             setMode(null);
             setRoomCode("");
@@ -1853,7 +1852,8 @@
         if (mode === "player") {
           sceneLeaveRoom(roomCode, getPlayerId());
         } else if (mode === "st" && roomCode) {
-          sceneGetRef(roomCode).remove();
+          sceneGetRef(roomCode).update({ closed: true, sceneActive: false });
+          setTimeout(() => sceneGetRef(roomCode).remove(), 5000);
         }
         detachListener();
         sceneForgetRoom();
