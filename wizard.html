@@ -1748,7 +1748,17 @@
         const ref = sceneGetRef(code);
         const cb = ref.on("value", snap => {
           const data = snap.val();
-          if (!data) { setConnected(false); return; }
+          if (!data) {
+            detachListener();
+            sceneForgetRoom();
+            setMode(null);
+            setRoomCode("");
+            setConnected(false);
+            setPlayers({});
+            setSceneActive(false);
+            setError("Room was closed by the Storyteller");
+            return;
+          }
           setConnected(true);
           setSceneActive(!!data.sceneActive);
           setSceneNumber(data.sceneNumber || 0);
@@ -1842,6 +1852,8 @@
       function handleDisconnect() {
         if (mode === "player") {
           sceneLeaveRoom(roomCode, getPlayerId());
+        } else if (mode === "st" && roomCode) {
+          sceneGetRef(roomCode).remove();
         }
         detachListener();
         sceneForgetRoom();
