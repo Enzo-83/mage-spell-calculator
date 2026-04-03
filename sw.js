@@ -1,5 +1,5 @@
 // Service Worker for Mage Spell Calculator PWA
-const CACHE_NAME = 'mage-spell-calc-v22';
+const CACHE_NAME = 'mage-spell-calc-v23';
 
 // Files to cache for offline use
 const ASSETS_TO_CACHE = [
@@ -55,6 +55,11 @@ self.addEventListener('fetch', (event) => {
 
   // Skip Discord webhook requests (these should always go to network)
   if (event.request.url.includes('discord.com')) {
+    return;
+  }
+
+  // Skip Firebase requests (real-time sync must not be cached)
+  if (event.request.url.includes('firebaseio.com') || event.request.url.includes('googleapis.com')) {
     return;
   }
 
