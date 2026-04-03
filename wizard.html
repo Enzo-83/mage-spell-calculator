@@ -1318,7 +1318,7 @@
     }
 
     // ── Step 5: Modifiers + Paradox ───────────────────────────────────────────
-    function StepModifiers({ d, set, derived, character }) {
+    function StepModifiers({ d, set, derived, character, sceneConn }) {
       const { hasParadoxRisk, paradoxDice, chanceOnly, totalMana, manaPerTurn } = derived;
       const manaC = character?.mana?.current ?? null;
       const manaAfter = manaC !== null ? manaC - totalMana : null;
@@ -1399,8 +1399,23 @@
                   <span style={{ color:C.danger,fontSize:13 }}>⚠ Paradox risk — {derived.excessReach} excess Reach</span>
                 </div>
               )}
-              <Field label="Previous Paradox Rolls (this scene)" hint="+1 die per previous roll">
-                <StepperInput value={d.prevParadox} min={0} max={10} onChange={v=>set("prevParadox",v)}/>
+              <Field label="Previous Paradox Rolls (this scene)" hint={sceneConn ? "Auto-tracked via Scene Tracker" : "+1 die per previous roll"} hintColor={sceneConn ? C.success : undefined}>
+                {sceneConn ? (
+                  <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+                    <div style={{ display:"flex",alignItems:"center",gap:10,
+                      background:C.bgDeep,borderRadius:6,padding:"8px 14px",flex:1 }}>
+                      <span style={{ fontSize:18,fontWeight:700,color:C.text }}>{d.prevParadox}</span>
+                      <span style={{ fontSize:11,color:C.textMuted }}>
+                        {d.prevParadox === 0 ? "No penalty" : `+${d.prevParadox} to next Paradox roll`}
+                      </span>
+                    </div>
+                    <span style={{ fontSize:9,padding:"3px 8px",borderRadius:4,
+                      background:C.successFaint,color:C.success,fontWeight:700,
+                      border:`1px solid ${C.success}` }}>AUTO</span>
+                  </div>
+                ) : (
+                  <StepperInput value={d.prevParadox} min={0} max={10} onChange={v=>set("prevParadox",v)}/>
+                )}
               </Field>
               <SectionHead>Sleeper Witnesses</SectionHead>
               {WITNESSES_OPTS.map(w=>(
@@ -1714,7 +1729,7 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
     }
   // ── Scene Tracker Drawer ──────────────────────────────────────────────────
-    function SceneDrawer({ open, onClose, character }) {
+    function SceneDrawer({ open, onClose, character, onSceneUpdate }) {
       const [mode, setMode]               = useState(null); // null | 'st' | 'player'
       const [roomCode, setRoomCode]       = useState("");
       const [inputCode, setInputCode]     = useState("");
@@ -1756,12 +1771,25 @@
             setPlayers({});
             setSceneActive(false);
             setError("Room was closed by the Storyteller");
+            if (onSceneUpdate) onSceneUpdate(null);
             return;
           }
           setConnected(true);
           setSceneActive(!!data.sceneActive);
           setSceneNumber(data.sceneNumber || 0);
           setPlayers(data.players || {});
+          // Report to App for cross-component access
+          if (onSceneUpdate) {
+            const pid = getPlayerId();
+            const myP = data.players?.[pid];
+            onSceneUpdate({
+              code: code,
+              playerId: pid,
+              connected: true,
+              myRolls: myP?.paradoxRolls || 0,
+              myStAdj: myP?.stAdjustment || 0,
+            });
+          }
         });
         listenerRef.current = { ref, cb };
       }
@@ -1864,6 +1892,7 @@
         setPlayers({});
         setSceneActive(false);
         setError("");
+        if (onSceneUpdate) onSceneUpdate(null);
       }
 
       if (!open) return null;
@@ -2300,7 +2329,7 @@
         </div>
       );
     }
-    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, onSaveToLibrary }) {
+    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, sceneConn }) {
       const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
               potencyPen, durationPen, scalePen, yantraBonus, basePool,
               durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj,
@@ -2361,6 +2390,13 @@
           // 2. Send dice bot command
           await postDiscord(poolWebhook, { content:formatDiceCommand(), username:casterName });
           deductMana();
+          // 3. Auto-increment Paradox counter in Firebase if connected and spell has Paradox risk
+          if (sceneConn && excessReach > 0) {
+            try {
+              sceneGetRef(sceneConn.code).child("players/" + sceneConn.playerId + "/paradoxRolls")
+                .transaction(function(n) { return (n || 0) + 1; });
+            } catch (e) { console.warn("Scene Paradox increment failed:", e); }
+          }
           setDs(s=>({...s,pool:"ok"}));
           setTimeout(()=>setDs(s=>({...s,pool:null})),3000);
         } catch { setDs(s=>({...s,pool:"error"})); setTimeout(()=>setDs(s=>({...s,pool:null})),4000); }
@@ -2993,6 +3029,7 @@
       const [activeSpells, setActiveSpells] = useState([]);
       const [sheetOpen,    setSheetOpen]    = useState(false);
       const [sceneOpen,    setSceneOpen]    = useState(false);
+      const [sceneConn,    setSceneConn]    = useState(null); // { code, playerId } or null
       const [saveLibOpen,  setSaveLibOpen]  = useState(false);
       const [sourceSpellId, setSourceSpellId]       = useState(null);
       const [sourceRoteSkillKey, setSourceRoteKey]  = useState(null);
@@ -3070,6 +3107,17 @@
         setSourceRoteKey(null);
         setStepIdx(0);
       }
+      function handleSceneUpdate(info) {
+        // info = { code, playerId, connected, myRolls, myStAdj } or null
+        if (!info || !info.connected) {
+          setSceneConn(null);
+          return;
+        }
+        setSceneConn({ code: info.code, playerId: info.playerId });
+        // Auto-sync prevParadox from Firebase when connected
+        const eff = Math.max(0, (info.myRolls || 0) + (info.myStAdj || 0));
+        setD(prev => prev.prevParadox !== eff ? { ...prev, prevParadox: eff } : prev);
+      }
       function handleManaChange(newMana) {
         if (!character) return;
         setChar(prev => ({...prev, mana:{...prev.mana, current:newMana}}));
@@ -3146,8 +3194,8 @@
           case "combined":  return <StepCombined  d={d} set={set} character={character}/>;
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
           case "yantras":   return <StepYantras   d={d} set={set}/>;
-          case "modifiers": return <StepModifiers d={d} set={set} derived={derived} character={character}/>;
-          case 'cast':      return <StepCast d={d} derived={derived} character={character} onManaChange={handleManaChange} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)} onSaveToLibrary={()=>setSaveLibOpen(true)}/>;
+          case "modifiers": return <StepModifiers d={d} set={set} derived={derived} character={character} sceneConn={sceneConn}/>;
+          case 'cast':      return <StepCast d={d} derived={derived} character={character} onManaChange={handleManaChange} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)} sceneConn={sceneConn}/>;
           default:          return null;
         }
       }
@@ -3192,6 +3240,7 @@
                 open={sceneOpen}
                 onClose={() => setSceneOpen(false)}
                 character={character}
+                onSceneUpdate={handleSceneUpdate}
               />
             )}
             {/* Title bar */}
