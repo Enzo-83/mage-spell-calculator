@@ -2204,6 +2204,208 @@
                 gap: 6px;
             }
         }
+
+        /* Scene Tracker */
+        .scene-tracker-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 0;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(42, 157, 143, 0.3);
+            overflow: hidden;
+        }
+        .scene-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            cursor: pointer;
+            background: rgba(42, 157, 143, 0.08);
+        }
+        .scene-header-bar:hover { background: rgba(42, 157, 143, 0.12); }
+        .scene-header-title {
+            font-size: 1em;
+            font-weight: bold;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .scene-header-status {
+            font-size: 0.8em;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+        .scene-body { padding: 20px; display: none; }
+        .scene-body.open { display: block; }
+        .scene-mode-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--bg-dark);
+            color: var(--text);
+        }
+        .scene-mode-btn:hover { border-color: var(--accent); }
+        .scene-mode-btn .label { font-weight: bold; font-size: 1em; }
+        .scene-mode-btn .sub { font-size: 0.85em; color: var(--text-muted); margin-top: 4px; }
+        .scene-room-code {
+            text-align: center;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .scene-room-code .code {
+            font-size: 2em;
+            font-weight: bold;
+            letter-spacing: 8px;
+            font-family: monospace;
+            color: var(--accent-light);
+        }
+        .scene-controls { display: flex; gap: 8px; margin-bottom: 16px; }
+        .scene-controls button { flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9em; }
+        .scene-player-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .scene-player-row:last-child { border-bottom: none; }
+        .scene-player-name { font-weight: bold; font-size: 0.95em; }
+        .scene-player-path { font-size: 0.8em; color: var(--text-muted); margin-left: 6px; }
+        .scene-player-stat { font-size: 0.85em; font-weight: bold; }
+        .scene-adj-row {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: var(--bg-dark);
+            border-radius: 6px;
+        }
+        .scene-adj-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .scene-adj-btn {
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .scene-adj-val {
+            min-width: 32px;
+            text-align: center;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .scene-adj-note {
+            width: 100%;
+            padding: 5px 8px;
+            border-radius: 5px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text);
+            font-size: 0.8em;
+        }
+        .scene-log-chip {
+            display: inline-block;
+            margin: 2px 4px 2px 0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.78em;
+            background: rgba(199, 62, 29, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(199, 62, 29, 0.2);
+        }
+        .scene-status-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+        }
+        .scene-status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .scene-paradox-counter {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .scene-paradox-big {
+            font-size: 2em;
+            font-weight: bold;
+            text-align: center;
+            min-width: 60px;
+        }
+        .scene-st-notice {
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: rgba(233, 196, 106, 0.1);
+            border: 1px solid rgba(233, 196, 106, 0.3);
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: var(--warning);
+        }
+        .scene-auto-badge {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+            font-weight: bold;
+            border: 1px solid var(--success);
+        }
+        #prevParadoxAutoRow {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-dark);
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
+        #prevParadoxAutoRow .value {
+            font-size: 1.2em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        .scene-disconnect-btn {
+            margin-top: 16px;
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+        .scene-connected-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            display: inline-block;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -2251,6 +2453,98 @@
             <span class="mana-adj-info" id="manaAdjInfo">per turn: 1</span>
         </div>
         
+        <!-- Scene Tracker -->
+        <div class="scene-tracker-card" id="sceneTrackerCard">
+            <div class="scene-header-bar" id="sceneToggleBar">
+                <span class="scene-header-title">
+                    🎭 Scene Tracker
+                    <span id="sceneConnDot" class="scene-connected-dot" style="display:none;"></span>
+                </span>
+                <span class="scene-header-status" id="sceneHeaderStatus"
+                    style="background: rgba(255,255,255,0.08); color: var(--text-muted);">
+                    Not connected
+                </span>
+            </div>
+            <div class="scene-body" id="sceneBody">
+                <div id="sceneError" style="display:none; padding:8px 12px; border-radius:8px; margin-bottom:12px;
+                    background:rgba(199,62,29,0.15); border:1px solid var(--danger); color:var(--danger); font-size:0.85em;"></div>
+
+                <!-- Mode Chooser -->
+                <div id="sceneModeChooser">
+                    <button class="scene-mode-btn" id="btnSceneCreateRoom">
+                        <div class="label" style="color:var(--accent-light);">Create Room (Storyteller)</div>
+                        <div class="sub">Generate a code and manage scenes for your players</div>
+                    </button>
+                    <button class="scene-mode-btn" id="btnSceneJoinMode">
+                        <div class="label" style="color:var(--success);">Join Room (Player)</div>
+                        <div class="sub">Enter a room code from your Storyteller</div>
+                    </button>
+                </div>
+
+                <!-- Join Form -->
+                <div id="sceneJoinForm" style="display:none;">
+                    <p style="color:var(--text-muted); font-size:0.9em; margin-bottom:12px;">Enter the room code from your Storyteller:</p>
+                    <div style="display:flex; gap:8px; margin-bottom:12px;">
+                        <input type="text" id="sceneJoinInput" maxlength="6" placeholder="CODE"
+                            style="flex:1; text-align:center; font-family:monospace; font-size:1.4em; letter-spacing:6px;
+                            padding:10px; border-radius:8px; background:var(--bg-dark); border:1px solid var(--accent);
+                            color:var(--text); text-transform:uppercase;">
+                        <button id="btnSceneJoin" style="padding:10px 20px; border-radius:8px; border:none;
+                            background:var(--success); color:#fff; font-weight:bold; cursor:pointer; font-size:1em;">Join</button>
+                    </div>
+                    <button id="btnSceneJoinBack" style="background:none; border:none; color:var(--text-muted);
+                        font-size:0.85em; cursor:pointer;">← Back</button>
+                </div>
+
+                <!-- ST View -->
+                <div id="sceneSTView" style="display:none;">
+                    <div class="scene-room-code">
+                        <div style="font-size:0.7em; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Room Code</div>
+                        <div class="code" id="sceneSTCode"></div>
+                        <div style="font-size:0.8em; color:var(--text-muted); margin-top:6px;">Share this code with your players</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                        <span id="sceneSTDot" class="scene-status-dot" style="background:var(--text-muted);"></span>
+                        <span id="sceneSTStatusText" style="font-size:0.9em; font-weight:bold; color:var(--text-muted);">No active scene</span>
+                    </div>
+                    <div class="scene-controls">
+                        <button id="btnSceneToggle" style="background:var(--success); color:#fff; border:none;">Start Scene</button>
+                        <button id="btnSceneReset" style="background:transparent; color:var(--text-muted); border:1px solid rgba(255,255,255,0.2); opacity:0.4;" disabled>Reset Counters</button>
+                    </div>
+                    <h3 style="color:var(--accent-light); font-size:0.9em; margin-bottom:10px;">Connected Players</h3>
+                    <div id="sceneSTPlayers" style="font-size:0.9em; color:var(--text-muted);">No players connected yet</div>
+                    <button class="scene-disconnect-btn" id="btnSceneSTClose">Close Room</button>
+                </div>
+
+                <!-- Player View -->
+                <div id="scenePlayerView" style="display:none;">
+                    <div class="scene-status-banner" id="scenePlayerBanner"
+                        style="background:var(--bg-dark); border:1px solid rgba(255,255,255,0.1);">
+                        <span class="scene-status-dot" id="scenePlayerDot" style="background:var(--text-muted);"></span>
+                        <span id="scenePlayerStatusText" style="font-size:0.9em; font-weight:bold; color:var(--text-muted);">No active scene</span>
+                        <span id="scenePlayerRoomCode" style="margin-left:auto; font-family:monospace; font-size:0.85em; color:var(--text-muted);"></span>
+                    </div>
+                    <div class="scene-paradox-counter">
+                        <div>
+                            <div class="scene-paradox-big" id="scenePlayerRollCount">0</div>
+                            <div style="font-size:0.7em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; text-align:center;">Rolls</div>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:0.85em; color:var(--text-muted); margin-bottom:4px;">Next spell modifier</div>
+                            <div id="scenePlayerNextMod" style="font-size:1.4em; font-weight:bold;">+0 dice</div>
+                            <div id="scenePlayerNextHint" style="font-size:0.8em; color:var(--text-muted); margin-top:2px;">No penalty yet</div>
+                        </div>
+                    </div>
+                    <div id="scenePlayerSTNotice" class="scene-st-notice" style="display:none;">
+                        <div id="scenePlayerSTAdj" style="font-weight:bold;"></div>
+                        <div id="scenePlayerSTNote" style="font-size:0.85em; opacity:0.8; margin-top:2px;"></div>
+                    </div>
+                    <div id="scenePlayerLog" style="margin-top:12px;"></div>
+                    <button class="scene-disconnect-btn" id="btnScenePlayerLeave">Leave Room</button>
+                </div>
+            </div>
+        </div>
+
         <h1>⟡ Spell Factor Calculator ⟡</h1>
         
         <!-- Caster Info -->
@@ -2719,6 +3013,11 @@
                     <input type="number" id="previousParadoxRolls" min="0" max="10" value="0">
                     <div class="info-text">+1 die per previous roll</div>
                 </div>
+                <div id="prevParadoxAutoRow">
+                    <span id="prevParadoxAutoValue" class="value">0</span>
+                    <span id="prevParadoxAutoHint" style="font-size:0.85em; color:var(--text-muted); flex:1;">No penalty</span>
+                    <span class="scene-auto-badge">AUTO</span>
+                </div>
                 <div class="form-group">
                     <label>Sleeper Witnesses</label>
                     <select id="sleeperWitnesses">
@@ -2950,6 +3249,107 @@
     </div>
     
     <!-- Load spell factor engine, dice pool calculator, and character system -->
+    <!-- Firebase Realtime Database (Scene Tracker) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <script>
+      // ─── Firebase Config ─── MUST MATCH wizard.html values ───
+      if (!window._fbApp) {
+        window._fbApp = firebase.initializeApp({
+          apiKey: "AIzaSyDoZ0ZqAEYAVyYZnuf6EoFSCJfC-24F-QE",
+          authDomain: "electronic-grimoire.firebaseapp.com",
+          databaseURL: "https://electronic-grimoire-default-rtdb.firebaseio.com",
+          projectId: "electronic-grimoire",
+          storageBucket: "electronic-grimoire.appspot.com",
+          messagingSenderId: "1032950336095",
+          appId: "1:1032950336095:web:7a8a44130f14db710429ea"
+        });
+      }
+      if (!window._fbDb) {
+        window._fbDb = firebase.database();
+      }
+
+      function sceneGenerateCode() {
+        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        var code = "";
+        for (var i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+        return code;
+      }
+      function sceneGetRef(roomCode) {
+        return _fbDb.ref("rooms/" + roomCode);
+      }
+      function sceneCreateRoom(roomCode, stName) {
+        return sceneGetRef(roomCode).set({
+          sceneActive: false, sceneNumber: 0,
+          createdBy: stName,
+          createdAt: firebase.database.ServerValue.TIMESTAMP,
+        });
+      }
+      function sceneSetActive(roomCode, active) {
+        var updates = { sceneActive: active };
+        if (active) updates.sceneStartedAt = firebase.database.ServerValue.TIMESTAMP;
+        return sceneGetRef(roomCode).update(updates);
+      }
+      function sceneIncrementNumber(roomCode) {
+        return sceneGetRef(roomCode).child("sceneNumber").transaction(function(n) {
+          return (n || 0) + 1;
+        });
+      }
+      function sceneJoinRoom(roomCode, playerId, playerName, playerPath) {
+        var playerRef = sceneGetRef(roomCode).child("players/" + playerId);
+        playerRef.set({
+          name: playerName, path: playerPath || "",
+          paradoxRolls: 0, stAdjustment: 0, stNote: "", paradoxLog: [],
+          joinedAt: firebase.database.ServerValue.TIMESTAMP,
+        });
+        playerRef.onDisconnect().remove();
+        return playerRef;
+      }
+      function sceneLeaveRoom(roomCode, playerId) {
+        return sceneGetRef(roomCode).child("players/" + playerId).remove();
+      }
+      function sceneResetAllPlayers(roomCode) {
+        return sceneGetRef(roomCode).child("players").once("value").then(function(snap) {
+          var updates = {};
+          snap.forEach(function(child) {
+            updates[child.key + "/paradoxRolls"] = 0;
+            updates[child.key + "/stAdjustment"] = 0;
+            updates[child.key + "/stNote"] = "";
+            updates[child.key + "/paradoxLog"] = [];
+          });
+          if (Object.keys(updates).length > 0) {
+            return sceneGetRef(roomCode).child("players").update(updates);
+          }
+        });
+      }
+      function sceneSetPlayerAdjustment(roomCode, playerId, adj, note) {
+        return sceneGetRef(roomCode).child("players/" + playerId).update({
+          stAdjustment: adj, stNote: note || "",
+        });
+      }
+      function scenePushParadoxLog(roomCode, playerId, entry) {
+        var logRef = sceneGetRef(roomCode).child("players/" + playerId + "/paradoxLog");
+        return logRef.transaction(function(current) {
+          var arr = current || [];
+          arr.push(entry);
+          if (arr.length > 20) arr = arr.slice(arr.length - 20);
+          return arr;
+        });
+      }
+      function sceneRememberRoom(code, role) {
+        try { localStorage.setItem("mage_scene_room", JSON.stringify({ code: code, role: role })); } catch(e) {}
+      }
+      function sceneForgetRoom() {
+        try { localStorage.removeItem("mage_scene_room"); } catch(e) {}
+      }
+      function sceneRecallRoom() {
+        try {
+          var raw = localStorage.getItem("mage_scene_room");
+          return raw ? JSON.parse(raw) : null;
+        } catch(e) { return null; }
+      }
+    </script>
+
     <script src="./js/spellFactors.js"></script>
     <script src="./js/dicePool.js"></script>
     <script src="./js/character.js"></script>
@@ -6148,6 +6548,23 @@
                     });
                     
                     deductMana();
+
+                    // Auto-increment Paradox counter in Firebase if connected and spell has Paradox risk
+                    if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode && spellResult.reach.excess > 0) {
+                        try {
+                            var scenePid = sceneGetPlayerId();
+                            sceneGetRef(sceneRoomCode).child('players/' + scenePid + '/paradoxRolls')
+                                .transaction(function(n) { return (n || 0) + 1; });
+                            var sceneSpellName = document.getElementById('spellName').value.trim() || 'Unnamed Spell';
+                            var sceneParadoxInfo = getCurrentParadoxInfo();
+                            scenePushParadoxLog(sceneRoomCode, scenePid, {
+                                spell: sceneSpellName,
+                                paradoxDice: sceneParadoxInfo && sceneParadoxInfo.isChanceDie ? 'Chance' : (sceneParadoxInfo ? sceneParadoxInfo.finalDice : 0),
+                                ts: Date.now(),
+                            });
+                        } catch(e) { console.warn('Scene Paradox increment failed:', e); }
+                    }
+
                     showDiscordStatus('✓ Sent!', 'success');
                     
                 } catch (error) {
@@ -6240,6 +6657,400 @@
             // Initialize character system
             initCharacterSystem();
             
+            // =================================================================
+            // SCENE TRACKER
+            // =================================================================
+
+            var sceneMode = null;       // null | 'st' | 'player' | 'joining'
+            var sceneRoomCode = '';
+            var sceneActive = false;
+            var sceneNumber = 0;
+            var scenePlayers = {};
+            var sceneListener = null;
+
+            function sceneGetPlayerId() {
+                var name = (currentCharacter?.shadowName || currentCharacter?.name || 'player_' + Math.random().toString(36).slice(2,8));
+                return name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+            }
+            function sceneGetPlayerName() {
+                return currentCharacter?.shadowName || currentCharacter?.name || 'Unknown Mage';
+            }
+            function sceneGetPlayerPath() {
+                var pathData = currentCharacter?.path ? (typeof PATHS !== 'undefined' && PATHS[currentCharacter.path] ? PATHS[currentCharacter.path].label : currentCharacter.path) : '';
+                return pathData;
+            }
+
+            function sceneAttachListener(code) {
+                sceneDetachListener();
+                var ref = sceneGetRef(code);
+                sceneListener = { ref: ref, cb: ref.on('value', function(snap) {
+                    var data = snap.val();
+                    if (!data || data.closed) {
+                        sceneForgetRoom();
+                        sceneMode = null;
+                        sceneRoomCode = '';
+                        sceneActive = false;
+                        scenePlayers = {};
+                        sceneShowError('Room was closed by the Storyteller');
+                        sceneRenderUI();
+                        return;
+                    }
+                    sceneActive = !!data.sceneActive;
+                    sceneNumber = data.sceneNumber || 0;
+                    scenePlayers = data.players || {};
+                    sceneRenderUI();
+                    sceneUpdatePrevParadox();
+                }) };
+            }
+
+            function sceneDetachListener() {
+                if (sceneListener) {
+                    sceneListener.ref.off('value', sceneListener.cb);
+                    sceneListener = null;
+                }
+            }
+
+            function sceneShowError(msg) {
+                var el = document.getElementById('sceneError');
+                if (msg) { el.textContent = msg; el.style.display = 'block'; }
+                else { el.style.display = 'none'; }
+            }
+
+            // ── ST Actions ──
+            function sceneCreateRoomAction() {
+                var code = sceneGenerateCode();
+                sceneRoomCode = code;
+                sceneMode = 'st';
+                sceneShowError('');
+                sceneCreateRoom(code, sceneGetPlayerName()).then(function() {
+                    sceneAttachListener(code);
+                    sceneRememberRoom(code, 'st');
+                    sceneRenderUI();
+                }).catch(function(e) { sceneShowError('Failed to create room: ' + e.message); });
+            }
+
+            function sceneToggleAction() {
+                if (sceneActive) {
+                    sceneSetActive(sceneRoomCode, false);
+                    sceneResetAllPlayers(sceneRoomCode);
+                } else {
+                    sceneIncrementNumber(sceneRoomCode);
+                    sceneSetActive(sceneRoomCode, true);
+                    sceneResetAllPlayers(sceneRoomCode);
+                }
+            }
+
+            function sceneResetAction() {
+                sceneResetAllPlayers(sceneRoomCode);
+            }
+
+            window.sceneSTAdjust = function(pid, delta) {
+                var p = scenePlayers[pid];
+                if (!p) return;
+                sceneSetPlayerAdjustment(sceneRoomCode, pid, (p.stAdjustment || 0) + delta, p.stNote || '');
+            };
+
+            window.sceneSTSetNote = function(pid, note) {
+                var p = scenePlayers[pid];
+                if (!p) return;
+                sceneSetPlayerAdjustment(sceneRoomCode, pid, p.stAdjustment || 0, note);
+            };
+
+            // ── Player Actions ──
+            function sceneJoinAction() {
+                var code = document.getElementById('sceneJoinInput').value.trim().toUpperCase();
+                if (code.length < 3) { sceneShowError('Enter a valid room code'); return; }
+                sceneShowError('');
+                sceneRoomCode = code;
+                sceneGetRef(code).once('value').then(function(snap) {
+                    if (!snap.exists()) { sceneShowError('Room not found'); return; }
+                    sceneMode = 'player';
+                    sceneJoinRoom(code, sceneGetPlayerId(), sceneGetPlayerName(), sceneGetPlayerPath());
+                    sceneAttachListener(code);
+                    sceneRememberRoom(code, 'player');
+                    sceneRenderUI();
+                }).catch(function(e) { sceneShowError('Failed to join: ' + e.message); });
+            }
+
+            // ── Disconnect ──
+            function sceneDisconnectAction() {
+                if (sceneMode === 'player') {
+                    sceneLeaveRoom(sceneRoomCode, sceneGetPlayerId());
+                } else if (sceneMode === 'st' && sceneRoomCode) {
+                    sceneGetRef(sceneRoomCode).update({ closed: true, sceneActive: false });
+                    setTimeout(function() { sceneGetRef(sceneRoomCode).remove(); }, 5000);
+                }
+                sceneDetachListener();
+                sceneForgetRoom();
+                sceneMode = null;
+                sceneRoomCode = '';
+                sceneActive = false;
+                scenePlayers = {};
+                sceneShowError('');
+                sceneRenderUI();
+                sceneUpdatePrevParadox();
+            }
+
+            // ── Auto-fill prevParadox ──
+            function sceneUpdatePrevParadox() {
+                var input = document.getElementById('previousParadoxRolls');
+                var autoRow = document.getElementById('prevParadoxAutoRow');
+                var manualRow = input.closest('.form-group');
+
+                if (sceneMode === 'player' || sceneMode === 'st') {
+                    var pid = sceneGetPlayerId();
+                    var myData = scenePlayers[pid];
+                    var eff = myData ? Math.max(0, (myData.paradoxRolls || 0) + (myData.stAdjustment || 0)) : 0;
+                    input.value = eff;
+                    input.disabled = true;
+                    if (manualRow) manualRow.style.display = 'none';
+                    autoRow.style.display = 'flex';
+                    document.getElementById('prevParadoxAutoValue').textContent = eff;
+                    document.getElementById('prevParadoxAutoHint').textContent =
+                        eff > 0 ? '+' + eff + ' to next Paradox roll' : 'No penalty';
+                    updateParadoxDisplay();
+                } else {
+                    input.disabled = false;
+                    if (manualRow) manualRow.style.display = '';
+                    autoRow.style.display = 'none';
+                }
+            }
+
+            // ── Connection badge ──
+            function sceneUpdateBadge() {
+                var dot = document.getElementById('sceneConnDot');
+                var headerStatus = document.getElementById('sceneHeaderStatus');
+                var connected = sceneMode === 'st' || sceneMode === 'player';
+                dot.style.display = connected ? 'inline-block' : 'none';
+                if (connected) {
+                    if (sceneActive) {
+                        headerStatus.textContent = 'Scene ' + sceneNumber + ' active';
+                        headerStatus.style.background = 'rgba(42,157,143,0.2)';
+                        headerStatus.style.color = 'var(--success)';
+                    } else {
+                        headerStatus.textContent = sceneMode === 'st' ? 'Room open' : 'Connected';
+                        headerStatus.style.background = 'rgba(42,157,143,0.1)';
+                        headerStatus.style.color = 'var(--success)';
+                    }
+                } else {
+                    headerStatus.textContent = 'Not connected';
+                    headerStatus.style.background = 'rgba(255,255,255,0.08)';
+                    headerStatus.style.color = 'var(--text-muted)';
+                }
+            }
+
+            // ── Render UI ──
+            function sceneRenderUI() {
+                var chooser    = document.getElementById('sceneModeChooser');
+                var joinForm   = document.getElementById('sceneJoinForm');
+                var stView     = document.getElementById('sceneSTView');
+                var playerView = document.getElementById('scenePlayerView');
+
+                chooser.style.display    = 'none';
+                joinForm.style.display   = 'none';
+                stView.style.display     = 'none';
+                playerView.style.display = 'none';
+
+                if (!sceneMode) {
+                    chooser.style.display = 'block';
+                } else if (sceneMode === 'joining') {
+                    joinForm.style.display = 'block';
+                } else if (sceneMode === 'st') {
+                    stView.style.display = 'block';
+                    sceneRenderSTView();
+                } else if (sceneMode === 'player') {
+                    playerView.style.display = 'block';
+                    sceneRenderPlayerView();
+                }
+
+                sceneUpdateBadge();
+            }
+
+            function sceneRenderSTView() {
+                document.getElementById('sceneSTCode').textContent = sceneRoomCode;
+
+                var dot = document.getElementById('sceneSTDot');
+                var text = document.getElementById('sceneSTStatusText');
+                var toggleBtn = document.getElementById('btnSceneToggle');
+                var resetBtn = document.getElementById('btnSceneReset');
+
+                if (sceneActive) {
+                    dot.style.background = 'var(--success)';
+                    text.style.color = 'var(--success)';
+                    text.textContent = 'Scene ' + sceneNumber + ' active';
+                    toggleBtn.textContent = 'End Scene';
+                    toggleBtn.style.background = 'var(--danger)';
+                    resetBtn.disabled = false;
+                    resetBtn.style.opacity = '1';
+                } else {
+                    dot.style.background = 'var(--text-muted)';
+                    text.style.color = 'var(--text-muted)';
+                    text.textContent = 'No active scene';
+                    toggleBtn.textContent = 'Start Scene';
+                    toggleBtn.style.background = 'var(--success)';
+                    resetBtn.disabled = true;
+                    resetBtn.style.opacity = '0.4';
+                }
+
+                var container = document.getElementById('sceneSTPlayers');
+                var entries = Object.entries(scenePlayers);
+                if (entries.length === 0) {
+                    container.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-muted);">No players connected yet</div>';
+                    return;
+                }
+                var html = '';
+                entries.forEach(function(pair) {
+                    var pid = pair[0], p = pair[1];
+                    var eff = Math.max(0, (p.paradoxRolls || 0) + (p.stAdjustment || 0));
+                    var statColor = sceneActive ? (eff > 0 ? 'var(--danger)' : 'var(--success)') : 'var(--text-muted)';
+                    var statText = sceneActive ? (eff > 0 ? eff + ' roll' + (eff !== 1 ? 's' : '') + ' (+' + eff + ')' : '0 rolls') : '—';
+
+                    html += '<div class="scene-player-row"><div>';
+                    html += '<span class="scene-player-name">' + (p.name || pid) + '</span>';
+                    if (p.path) html += '<span class="scene-player-path">' + p.path + '</span>';
+                    html += '</div>';
+                    html += '<span class="scene-player-stat" style="color:' + statColor + ';">' + statText + '</span></div>';
+
+                    // Paradox log chips
+                    if (sceneActive && p.paradoxLog && p.paradoxLog.length > 0) {
+                        html += '<div style="padding:0 0 6px;">';
+                        p.paradoxLog.forEach(function(entry, li) {
+                            html += '<span class="scene-log-chip">' + entry.spell + (li > 0 ? ' (+' + li + ')' : '') + '</span>';
+                        });
+                        html += '</div>';
+                    }
+
+                    // ST Adjustment
+                    if (sceneActive) {
+                        var adj = p.stAdjustment || 0;
+                        html += '<div class="scene-adj-row">';
+                        html += '<div class="scene-adj-controls">';
+                        html += '<span style="font-size:0.8em; color:var(--text-muted);">ST adjustment</span>';
+                        html += '<div style="display:flex; align-items:center; gap:6px;">';
+                        html += '<button class="scene-adj-btn" onclick="sceneSTAdjust(\'' + pid + '\',-1)">−</button>';
+                        html += '<span class="scene-adj-val" style="color:' + (adj !== 0 ? 'var(--warning)' : 'var(--text-muted)') + ';">' + (adj >= 0 ? '+' : '') + adj + '</span>';
+                        html += '<button class="scene-adj-btn" onclick="sceneSTAdjust(\'' + pid + '\',1)">+</button>';
+                        html += '</div></div>';
+                        html += '<input class="scene-adj-note" type="text" placeholder="Reason (visible to player)" value="' + (p.stNote || '').replace(/"/g, '&quot;') + '" onchange="sceneSTSetNote(\'' + pid + '\',this.value)">';
+                        html += '</div>';
+                    }
+                });
+                container.innerHTML = html;
+            }
+
+            function sceneRenderPlayerView() {
+                var pid = sceneGetPlayerId();
+                var myData = scenePlayers[pid];
+                var rolls = myData?.paradoxRolls || 0;
+                var adj = myData?.stAdjustment || 0;
+                var eff = Math.max(0, rolls + adj);
+
+                // Status banner
+                var banner = document.getElementById('scenePlayerBanner');
+                var dot = document.getElementById('scenePlayerDot');
+                var text = document.getElementById('scenePlayerStatusText');
+                document.getElementById('scenePlayerRoomCode').textContent = sceneRoomCode;
+
+                if (sceneActive) {
+                    banner.style.background = 'rgba(42,157,143,0.1)';
+                    banner.style.border = '1px solid rgba(42,157,143,0.3)';
+                    dot.style.background = 'var(--success)';
+                    text.style.color = 'var(--success)';
+                    text.textContent = 'Scene ' + sceneNumber + ' active';
+                } else {
+                    banner.style.background = 'var(--bg-dark)';
+                    banner.style.border = '1px solid rgba(255,255,255,0.1)';
+                    dot.style.background = 'var(--text-muted)';
+                    text.style.color = 'var(--text-muted)';
+                    text.textContent = 'No active scene';
+                }
+
+                // Paradox counter
+                document.getElementById('scenePlayerRollCount').textContent = rolls;
+                var modEl = document.getElementById('scenePlayerNextMod');
+                var hintEl = document.getElementById('scenePlayerNextHint');
+                modEl.textContent = '+' + eff + ' dice';
+                modEl.style.color = eff > 0 ? 'var(--danger)' : 'var(--text)';
+                hintEl.textContent = eff > 0 ? 'Added to next Paradox roll' : 'No penalty yet';
+
+                // ST adjustment notice
+                var noticeEl = document.getElementById('scenePlayerSTNotice');
+                if (adj !== 0) {
+                    noticeEl.style.display = 'block';
+                    document.getElementById('scenePlayerSTAdj').textContent = 'ST adjustment: ' + (adj >= 0 ? '+' : '') + adj;
+                    document.getElementById('scenePlayerSTNote').textContent = myData?.stNote || '';
+                    document.getElementById('scenePlayerSTNote').style.display = myData?.stNote ? 'block' : 'none';
+                } else {
+                    noticeEl.style.display = 'none';
+                }
+
+                // Paradox log
+                var logEl = document.getElementById('scenePlayerLog');
+                var log = myData?.paradoxLog || [];
+                if (log.length > 0) {
+                    var logHtml = '<div style="font-size:0.7em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Paradox log</div>';
+                    log.forEach(function(entry, i) {
+                        logHtml += '<div style="display:flex; align-items:center; justify-content:space-between; padding:4px 0; border-bottom:' + (i < log.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none') + ';">';
+                        logHtml += '<span style="font-size:0.85em;">' + entry.spell + ' <span style="color:var(--text-muted); font-size:0.9em;">' + (entry.paradoxDice === 'Chance' ? 'Chance die' : entry.paradoxDice + ' dice') + '</span></span>';
+                        if (i > 0) logHtml += '<span style="font-size:0.8em; color:var(--danger); font-weight:bold;">+' + i + '</span>';
+                        logHtml += '</div>';
+                    });
+                    logEl.innerHTML = logHtml;
+                } else {
+                    logEl.innerHTML = '';
+                }
+            }
+
+            // ── Event Listeners ──
+            document.getElementById('sceneToggleBar').addEventListener('click', function() {
+                document.getElementById('sceneBody').classList.toggle('open');
+            });
+            document.getElementById('btnSceneCreateRoom').addEventListener('click', sceneCreateRoomAction);
+            document.getElementById('btnSceneJoinMode').addEventListener('click', function() {
+                sceneMode = 'joining';
+                sceneShowError('');
+                sceneRenderUI();
+            });
+            document.getElementById('btnSceneJoinBack').addEventListener('click', function() {
+                sceneMode = null;
+                sceneShowError('');
+                sceneRenderUI();
+            });
+            document.getElementById('btnSceneJoin').addEventListener('click', sceneJoinAction);
+            document.getElementById('sceneJoinInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') sceneJoinAction();
+            });
+            document.getElementById('btnSceneToggle').addEventListener('click', sceneToggleAction);
+            document.getElementById('btnSceneReset').addEventListener('click', sceneResetAction);
+            document.getElementById('btnSceneSTClose').addEventListener('click', sceneDisconnectAction);
+            document.getElementById('btnScenePlayerLeave').addEventListener('click', sceneDisconnectAction);
+
+            // ── Auto-reconnect on load ──
+            (function() {
+                var saved = sceneRecallRoom();
+                if (saved && saved.code) {
+                    if (saved.role === 'st') {
+                        sceneMode = 'st';
+                        sceneRoomCode = saved.code;
+                        sceneAttachListener(saved.code);
+                    } else {
+                        sceneRoomCode = saved.code;
+                        sceneGetRef(saved.code).once('value').then(function(snap) {
+                            if (!snap.exists() || snap.val().closed) {
+                                sceneForgetRoom();
+                                sceneRenderUI();
+                                return;
+                            }
+                            sceneMode = 'player';
+                            sceneJoinRoom(saved.code, sceneGetPlayerId(), sceneGetPlayerName(), sceneGetPlayerPath());
+                            sceneAttachListener(saved.code);
+                            sceneRenderUI();
+                        });
+                    }
+                }
+                sceneRenderUI();
+            })();
+
             // Run initial calculation
             calculate();
         });
