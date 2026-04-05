@@ -3252,7 +3252,7 @@
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
           case "yantras":   return <StepYantras   d={d} set={set}/>;
           case "modifiers": return <StepModifiers d={d} set={set} derived={derived} character={character} sceneConn={sceneConn}/>;
-          case 'cast':      return <StepCast d={d} derived={derived} character={character} onManaChange={handleManaChange} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)} sceneConn={sceneConn}/>;
+          case 'cast':      return <StepCast d={d} derived={derived} character={character} onManaChange={handleManaChange} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)} sceneConn={sceneConn} onSaveToLibrary={()=>setSaveLibOpen(true)}/>;
           default:          return null;
         }
       }
