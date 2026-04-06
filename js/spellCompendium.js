@@ -846,6 +846,264 @@
         } catch (e) { alert('Error granting role: ' + e.message); }
     }
 
+    // ── Bulk JSON import ──────────────────────────────────────────────────
+
+    var VALID_ARCANA   = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
+    var VALID_PRACTICE = ['compelling','knowing','unveiling','ruling','shielding','veiling',
+                          'fraying','perfecting','weaving','patterning','unraveling','making','unmaking'];
+    var VALID_BOOKS    = Object.keys(BOOKS);
+
+    function _downloadTemplate() {
+        var template = [
+            {
+                "_note": "DELETE this entry — it is for reference only. Fields marked (required) must be present.",
+                "name":                 "Spell Name (required)",
+                "sourceBook":           "core  (required) — core | signs-of-sorcery | night-horrors | tome-of-pentacle",
+                "sourcePage":           123,
+                "primaryArcanum":       "death  (required) — death|fate|forces|life|matter|mind|prime|space|spirit|time",
+                "primaryArcanumLevel":  1,
+                "secondaryArcanum":     "null or one of the arcana above",
+                "secondaryArcanumLevel":null,
+                "practice":             "compelling  (required) — compelling|knowing|unveiling|ruling|shielding|veiling|fraying|perfecting|weaving|patterning|unraveling|making|unmaking",
+                "primaryFactor":        "potency  (required) — potency | duration",
+                "withstand":            "Composure (leave blank if none)",
+                "description":          "Full spell description from the book.",
+                "reachOptions": [
+                    { "cost": 1, "effect": "Description of what this Reach option does." },
+                    { "cost": 2, "effect": "Another Reach option." }
+                ],
+                "optionalArcana": [
+                    { "arcanum": "space", "level": 1, "effect": "What the optional arcanum enables." }
+                ],
+                "defaults": {
+                    "potency": 1,
+                    "range":   "touch  — self | touch | aimed | sensory"
+                }
+            }
+        ];
+        var blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'compendium-import-template.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function _triggerImport() {
+        document.getElementById('adminImportFileInput').click();
+    }
+
+    function _handleImportFile(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        // Reset input so same file can be re-selected after a fix
+        event.target.value = '';
+
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var raw;
+            try {
+                raw = JSON.parse(e.target.result);
+            } catch (err) {
+                _setImportStatus('Invalid JSON — ' + err.message, 'err');
+                return;
+            }
+            if (!Array.isArray(raw)) {
+                _setImportStatus('JSON must be an array [ { ... }, { ... } ]', 'err');
+                return;
+            }
+            var overwrite = document.getElementById('adminImportOverwrite').checked;
+            _doImport(raw, overwrite);
+        };
+        reader.readAsText(file);
+    }
+
+    async function _doImport(raw, overwrite) {
+        // Filter out reference/comment entries
+        var entries = raw.filter(function (s) { return s && !s._note && s.name && !s.name.startsWith('Spell Name'); });
+
+        if (!entries.length) {
+            _setImportStatus('No valid entries found. Make sure you removed the reference entry.', 'warn');
+            return;
+        }
+
+        // Validate and sanitise each entry
+        var valid   = [];
+        var invalid = [];
+        entries.forEach(function (s, idx) {
+            var errs = _validateSpell(s);
+            if (errs.length) {
+                invalid.push({ idx: idx + 1, name: s.name || '(unnamed)', errs: errs });
+            } else {
+                valid.push(_sanitiseSpell(s));
+            }
+        });
+
+        if (invalid.length) {
+            var msgs = invalid.map(function (e) {
+                return '#' + e.idx + ' "' + e.name + '": ' + e.errs.join(', ');
+            }).join('\n');
+            _setImportStatus('⚠️ ' + invalid.length + ' entries have errors and were skipped:\n' + msgs, 'warn');
+        }
+
+        if (!valid.length) {
+            _setImportStatus('No valid spells to import after validation.', 'err');
+            return;
+        }
+
+        // Build lookup of existing spells for duplicate detection
+        var existingKeys = {};
+        _spells.forEach(function (s) {
+            existingKeys[(s.name || '').toLowerCase() + '|' + s.sourceBook] = s.id;
+        });
+
+        // Split into new and duplicate
+        var toAdd     = [];
+        var toUpdate  = [];
+        var skipped   = 0;
+
+        valid.forEach(function (s) {
+            var key = s.name.toLowerCase() + '|' + s.sourceBook;
+            if (existingKeys[key]) {
+                if (overwrite) {
+                    toUpdate.push({ id: existingKeys[key], data: s });
+                } else {
+                    skipped++;
+                }
+            } else {
+                toAdd.push(s);
+            }
+        });
+
+        var total = toAdd.length + toUpdate.length;
+        if (!total) {
+            _setImportStatus('All ' + skipped + ' spells already exist — nothing to import. Enable "Overwrite" to update them.', 'warn');
+            return;
+        }
+
+        // Show progress bar
+        _setImportProgress(0, total);
+
+        var done   = 0;
+        var errors = 0;
+
+        // Batch writes (max 499 per batch)
+        var CHUNK = 499;
+        var allOps = [];
+        toAdd.forEach(function (s)    { allOps.push({ type: 'add',    data: s }); });
+        toUpdate.forEach(function (u) { allOps.push({ type: 'update', id: u.id, data: u.data }); });
+
+        for (var i = 0; i < allOps.length; i += CHUNK) {
+            var chunk = allOps.slice(i, i + CHUNK);
+            var batch = _db.batch();
+            var now   = _ts();
+
+            chunk.forEach(function (op) {
+                op.data.updatedBy = _user ? _user.uid : 'import';
+                op.data.updatedAt = now;
+                if (op.type === 'add') {
+                    op.data.createdBy = _user ? _user.uid : 'import';
+                    op.data.createdAt = now;
+                    batch.set(_db.collection('compendium').doc(), op.data);
+                } else {
+                    batch.update(_db.collection('compendium').doc(op.id), op.data);
+                }
+            });
+
+            try {
+                await batch.commit();
+                done += chunk.length;
+            } catch (e) {
+                errors += chunk.length;
+                console.error('Import batch error:', e);
+            }
+            _setImportProgress(done + errors, total);
+        }
+
+        // Final status
+        var parts = [];
+        if (toAdd.length)    parts.push(toAdd.length + ' added');
+        if (toUpdate.length) parts.push(toUpdate.length + ' updated');
+        if (skipped)         parts.push(skipped + ' skipped (already exist)');
+        if (invalid.length)  parts.push(invalid.length + ' invalid (see above)');
+        if (errors)          parts.push(errors + ' batch errors');
+
+        _setImportStatus('✓ Import complete — ' + parts.join(', ') + '.', errors ? 'warn' : 'ok');
+        _setImportProgress(total, total);
+    }
+
+    function _validateSpell(s) {
+        var errs = [];
+        if (!s.name || typeof s.name !== 'string' || !s.name.trim()) errs.push('name required');
+        if (!s.sourceBook || VALID_BOOKS.indexOf(s.sourceBook) === -1)
+            errs.push('sourceBook must be one of: ' + VALID_BOOKS.join(', '));
+        if (!s.primaryArcanum || VALID_ARCANA.indexOf(s.primaryArcanum) === -1)
+            errs.push('primaryArcanum invalid');
+        if (!s.practice || VALID_PRACTICE.indexOf(s.practice) === -1)
+            errs.push('practice invalid');
+        if (!s.primaryFactor || ['potency','duration'].indexOf(s.primaryFactor) === -1)
+            errs.push('primaryFactor must be potency or duration');
+        return errs;
+    }
+
+    function _sanitiseSpell(s) {
+        return {
+            name:                 String(s.name).trim(),
+            sourceBook:           s.sourceBook,
+            sourcePage:           parseInt(s.sourcePage) || null,
+            primaryArcanum:       s.primaryArcanum,
+            primaryArcanumLevel:  parseInt(s.primaryArcanumLevel) || 1,
+            secondaryArcanum:     (s.secondaryArcanum && VALID_ARCANA.indexOf(s.secondaryArcanum) !== -1) ? s.secondaryArcanum : null,
+            secondaryArcanumLevel:s.secondaryArcanum ? (parseInt(s.secondaryArcanumLevel) || 1) : null,
+            practice:             s.practice,
+            primaryFactor:        s.primaryFactor,
+            withstand:            String(s.withstand || '').trim(),
+            description:          String(s.description || '').trim(),
+            reachOptions:         Array.isArray(s.reachOptions)
+                                    ? s.reachOptions.filter(function (o) { return o && o.effect; })
+                                                    .map(function (o) { return { cost: parseInt(o.cost)||1, effect: String(o.effect).trim() }; })
+                                    : [],
+            optionalArcana:       Array.isArray(s.optionalArcana)
+                                    ? s.optionalArcana.filter(function (o) { return o && o.arcanum && VALID_ARCANA.indexOf(o.arcanum) !== -1; })
+                                                      .map(function (o) { return { arcanum: o.arcanum, level: parseInt(o.level)||1, effect: String(o.effect||'').trim() }; })
+                                    : [],
+            defaults: {
+                potency:             parseInt((s.defaults||{}).potency)  || 1,
+                useAdvancedPotency:  false,
+                yantraDice:          0,
+                durationIndex:       0,
+                useAdvancedDuration: false,
+                scaleIndex:          0,
+                useAdvancedScale:    false,
+                scaleType:           'subjects',
+                range:               (['self','touch','aimed','sensory'].indexOf((s.defaults||{}).range) !== -1)
+                                        ? s.defaults.range : 'touch',
+                castingTime:         'ritual'
+            }
+        };
+    }
+
+    function _setImportStatus(msg, type) {
+        var el = document.getElementById('adminImportStatus');
+        if (!el) return;
+        el.textContent  = msg;
+        el.className    = 'import-status ' + (type || 'ok');
+        el.style.display = 'block';
+        el.style.whiteSpace = 'pre-wrap';
+    }
+
+    function _setImportProgress(done, total) {
+        var wrap = document.getElementById('adminImportProgress');
+        var fill = document.getElementById('adminImportFill');
+        var txt  = document.getElementById('adminImportProgressText');
+        if (!wrap) return;
+        wrap.style.display = 'block';
+        var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+        if (fill) fill.style.width = pct + '%';
+        if (txt)  txt.textContent  = done + ' / ' + total + ' spells processed (' + pct + '%)';
+    }
+
     // ── Static event wiring (runs once on init) ───────────────────────────
     function _wireStaticEvents() {
         _on('addLibModalClose',   'click', _closeAddModal);
@@ -866,9 +1124,13 @@
         _on('suggestionsModalClose','click', _closeSuggestions);
         _on('btnCloseSuggestions',  'click', _closeSuggestions);
 
-        _on('adminPanelClose',     'click', _closeAdminPanel);
-        _on('btnAdminClose',       'click', _closeAdminPanel);
-        _on('btnAdminGrant',       'click', _grantRole);
+        _on('adminPanelClose',          'click', _closeAdminPanel);
+        _on('btnAdminClose',            'click', _closeAdminPanel);
+        _on('btnAdminGrant',            'click', _grantRole);
+        _on('btnAdminDownloadTemplate', 'click', _downloadTemplate);
+        _on('btnAdminImport',           'click', _triggerImport);
+        var fileInput = document.getElementById('adminImportFileInput');
+        if (fileInput) fileInput.addEventListener('change', _handleImportFile);
     }
 
     function _on(id, evt, fn) {

@@ -1286,6 +1286,30 @@
             border-bottom: 1px solid rgba(255,255,255,0.06);
         }
         .admin-role-row:last-child { border-bottom: none; }
+
+        /* ── Import progress ─────────────────────────────────────── */
+        .import-status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+        .import-status.ok   { background: rgba(42,157,143,0.15); color: var(--success); }
+        .import-status.warn { background: rgba(233,196,106,0.15); color: var(--warning); }
+        .import-status.err  { background: rgba(199,62,29,0.15);  color: var(--danger);  }
+        .import-progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .import-progress-fill {
+            height: 100%;
+            background: var(--accent-light);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
         
         /* Spell Editor Modal Additions */
         .reach-options-editor {
@@ -8422,6 +8446,27 @@
                     <h3>Current Roles</h3>
                     <div id="adminRoleList">
                         <div style="color:var(--text-muted);font-size:0.85em;padding:8px">Loading…</div>
+                    </div>
+                </div>
+                <!-- Bulk Import -->
+                <div class="modal-section">
+                    <h3>📥 Bulk Import Spells</h3>
+                    <div class="info-text" style="margin-bottom:12px">
+                        Import spells from a JSON file. Duplicates (same name + book) are skipped by default.
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                        <button class="btn-small" id="btnAdminDownloadTemplate">📄 Download Template</button>
+                        <button class="btn-small btn-primary" id="btnAdminImport">📥 Import JSON File</button>
+                        <input type="file" id="adminImportFileInput" accept=".json" style="display:none">
+                    </div>
+                    <label style="display:flex;align-items:center;gap:8px;font-size:0.85em;color:var(--text-muted);margin-bottom:10px;cursor:pointer;">
+                        <input type="checkbox" id="adminImportOverwrite">
+                        Overwrite existing spells with same name &amp; book
+                    </label>
+                    <div id="adminImportStatus" style="display:none;" class="import-status"></div>
+                    <div id="adminImportProgress" style="display:none;">
+                        <div class="import-progress-bar"><div class="import-progress-fill" id="adminImportFill"></div></div>
+                        <div id="adminImportProgressText" style="font-size:0.8em;color:var(--text-muted);margin-top:4px;text-align:center;"></div>
                     </div>
                 </div>
             </div>
