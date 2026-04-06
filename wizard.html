@@ -31,9 +31,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
-  <!-- Firebase Realtime Database (Scene Tracker) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script>
     // ─── Firebase Config ─── PASTE YOUR CONFIG VALUES BELOW ───
     const _fbApp = firebase.initializeApp({
@@ -45,7 +47,9 @@
       messagingSenderId: "1032950336095",
       appId: "1:1032950336095:web:7a8a44130f14db710429ea"
     });
-    const _fbDb = firebase.database();
+    const _fbDb  = firebase.database();
+    const _fsDb  = firebase.firestore();
+    const _fsAuth = firebase.auth();
 
     // ─── Scene helper functions (plain JS, available to Babel block) ───
 
@@ -190,6 +194,14 @@
       border:       "rgba(255,255,255,0.1)",
       borderLight:  "rgba(255,255,255,0.06)",
       discord:      "#5865F2",
+    };
+
+    // ── Compendium source books ───────────────────────────────────────────────
+    const COMP_BOOKS = {
+      'core':             { label: 'Core Rulebook',        color: '#e9c46a', short: 'Core' },
+      'signs-of-sorcery': { label: 'Signs of Sorcery',     color: '#2a9d8f', short: 'SoS'  },
+      'night-horrors':    { label: 'Night Horrors',         color: '#c73e1d', short: 'NH'   },
+      'tome-of-pentacle': { label: 'Tome of the Pentacle', color: '#9d4edd', short: 'ToP'  },
     };
 
     // ── Game data ─────────────────────────────────────────────────────────────
@@ -2830,7 +2842,7 @@
     }
 
     // ── Character header ──────────────────────────────────────────────────────
-    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, onHealthChange, activeCount, onSheetToggle, onSceneToggle, sceneConnected }) {
+    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, onHealthChange, activeCount, onSheetToggle, onSceneToggle, sceneConnected, onCompendiumToggle, compUser }) {
       const fileRef = useRef(null);
       const [manaOpen, setManaOpen] = useState(false);
       const [healthOpen, setHealthOpen] = useState(false);
@@ -2928,6 +2940,19 @@
                     fontSize:9, fontWeight:700, width:16, height:16,
                     display:"flex", alignItems:"center", justifyContent:"center",
                     lineHeight:1, pointerEvents:"none" }}>{activeCount}</span>
+                )}
+              </button>
+              <button onClick={onCompendiumToggle}
+                style={{ position:"relative", padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
+                  cursor:"pointer",
+                  background: compUser ? "rgba(233,196,106,0.15)" : "transparent",
+                  border:`1px solid ${compUser ? "rgba(233,196,106,0.4)" : C.border}`,
+                  color: compUser ? C.warning : C.textMuted }}>
+                📖
+                {compUser && (
+                  <span style={{ position:"absolute", top:-3, right:-3,
+                    width:7, height:7, borderRadius:"50%",
+                    background:C.success, border:`2px solid ${C.bgCard}` }}/>
                 )}
               </button>
             </div>
@@ -3201,6 +3226,345 @@
       prevParadox:0, witnesses:"none", inured:false, mitigateMana:0, paradoxChoice:"contain",
     };
 
+    // ── Compendium Overlay (read-only browse + add to library) ───────────────
+    function CompendiumOverlay({ character, compUser, compRole, onAddSpell, onClose }) {
+      const [spells, setSpells]           = useState([]);
+      const [loading, setLoading]         = useState(true);
+      const [search, setSearch]           = useState('');
+      const [filterBook, setFilterBook]   = useState('all');
+      const [filterArc, setFilterArc]     = useState('all');
+      const [expandedId, setExpandedId]   = useState(null);
+      const [addingSpell, setAddingSpell] = useState(null);
+      const [addType, setAddType]         = useState('praxis');
+      const [roteSkill, setRoteSkill]     = useState('occult');
+      const [roteCreator, setRoteCreator] = useState('');
+      const [signBusy, setSignBusy]       = useState(false);
+      const [addFeedback, setAddFeedback] = useState({}); // spellId -> 'rote'|'praxis'|'favorite'
+
+      useEffect(() => {
+        setLoading(true);
+        const unsubscribe = _fsDb.collection('compendium')
+          .where('approved', '==', true)
+          .onSnapshot(snap => {
+            const items = [];
+            snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+            items.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            setSpells(items);
+            setLoading(false);
+          }, err => {
+            console.error('Compendium fetch error:', err);
+            setLoading(false);
+          });
+        return () => unsubscribe();
+      }, []);
+
+      function handleSignIn() {
+        setSignBusy(true);
+        const provider = new firebase.auth.GoogleAuthProvider();
+        _fsAuth.signInWithPopup(provider).catch(e => console.error(e)).finally(() => setSignBusy(false));
+      }
+      function handleSignOut() { _fsAuth.signOut(); }
+
+      function isAdded(spell, type) {
+        if (!character) return false;
+        const arr = type === 'rote' ? (character.rotes || [])
+                  : type === 'praxis' ? (character.praxes || [])
+                  : (character.improvisedFavorites || []);
+        return arr.some(s => s.compendiumId === spell.id);
+      }
+      function anyAdded(spell) {
+        return isAdded(spell,'rote') || isAdded(spell,'praxis') || isAdded(spell,'favorite');
+      }
+
+      function openAdd(spell) {
+        setAddType('praxis');
+        setRoteSkill('occult');
+        setRoteCreator('');
+        setAddingSpell(spell);
+      }
+      function confirmAdd() {
+        if (!addingSpell || !character) return;
+        const spellId = addingSpell.id;
+        const spellType = addType;
+        onAddSpell(addingSpell, spellType, spellType === 'rote' ? roteSkill : null, spellType === 'rote' ? roteCreator : null);
+        setAddFeedback(prev => ({ ...prev, [spellId]: spellType }));
+        setAddingSpell(null);
+        setTimeout(() => setAddFeedback(prev => { const n = {...prev}; delete n[spellId]; return n; }), 3000);
+      }
+
+      const filtered = spells.filter(s => {
+        if (filterBook !== 'all' && s.sourceBook !== filterBook) return false;
+        if (filterArc  !== 'all' && (s.primaryArcanum||'').toLowerCase() !== filterArc.toLowerCase()) return false;
+        if (search) {
+          const q = search.toLowerCase();
+          if (!(s.name||'').toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
+        }
+        return true;
+      });
+
+      const roleBadgeColor = { admin:'#c73e1d', editor:'#2a9d8f', 'sub-editor':'#e9c46a', suggester:'#9d4edd' };
+
+      return (
+        <div style={{ position:"absolute", inset:0, zIndex:200, background:C.bgDark,
+          display:"flex", flexDirection:"column", borderRadius:20, overflow:"hidden" }}>
+
+          {/* Header */}
+          <div style={{ padding:"10px 14px 9px", background:`linear-gradient(90deg,${C.bgDeep},${C.bgCard})`,
+            borderBottom:`1px solid ${C.accentBorder}`, display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
+            <span style={{ fontSize:16 }}>📖</span>
+            <span style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:15, fontWeight:700,
+              letterSpacing:2, textTransform:"uppercase", color:C.accentLight, flex:1 }}>
+              Spell Compendium
+            </span>
+            {/* Auth */}
+            {compUser ? (
+              <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                {compRole && compRole !== 'player' && (
+                  <span style={{ fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:.8,
+                    padding:"2px 6px", borderRadius:4,
+                    background: roleBadgeColor[compRole] ? roleBadgeColor[compRole]+'33' : C.accentFaint,
+                    color: roleBadgeColor[compRole] || C.accentLight, border:`1px solid ${roleBadgeColor[compRole]||C.accentBorder}44` }}>
+                    {compRole}
+                  </span>
+                )}
+                <button onClick={handleSignOut} style={{ padding:"3px 8px", borderRadius:5, fontSize:10,
+                  cursor:"pointer", background:"transparent", border:`1px solid ${C.border}`, color:C.textMuted }}>
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button onClick={handleSignIn} disabled={signBusy} style={{ padding:"4px 10px", borderRadius:5,
+                fontSize:11, fontWeight:600, cursor:signBusy?"not-allowed":"pointer",
+                background:"rgba(66,133,244,0.15)", border:"1px solid rgba(66,133,244,0.4)",
+                color:"#4285F4", opacity:signBusy?0.6:1 }}>
+                {signBusy ? "…" : "🔑 Sign In"}
+              </button>
+            )}
+            <button onClick={onClose} style={{ padding:"4px 8px", borderRadius:5, fontSize:14,
+              cursor:"pointer", background:"transparent", border:`1px solid ${C.border}`, color:C.textMuted,
+              lineHeight:1, marginLeft:2 }}>✕</button>
+          </div>
+
+          {/* Search + Filters */}
+          <div style={{ padding:"8px 12px", background:C.bgCard, borderBottom:`1px solid ${C.border}`,
+            display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
+            <input value={search} onChange={e=>setSearch(e.target.value)}
+              placeholder="Search spells…"
+              style={{ width:"100%", padding:"7px 10px", borderRadius:6, fontSize:12,
+                background:C.bgDeep, border:`1px solid ${C.accentBorder}`, color:C.text,
+                outline:"none" }}/>
+            <div style={{ display:"flex", gap:6 }}>
+              <select value={filterBook} onChange={e=>setFilterBook(e.target.value)}
+                style={{ flex:1, padding:"5px 6px", borderRadius:5, fontSize:11,
+                  background:C.bgDeep, border:`1px solid ${C.border}`, color:C.text }}>
+                <option value="all">All Books</option>
+                {Object.entries(COMP_BOOKS).map(([k,v]) => (
+                  <option key={k} value={k}>{v.short}</option>
+                ))}
+              </select>
+              <select value={filterArc} onChange={e=>setFilterArc(e.target.value)}
+                style={{ flex:1, padding:"5px 6px", borderRadius:5, fontSize:11,
+                  background:C.bgDeep, border:`1px solid ${C.border}`, color:C.text }}>
+                <option value="all">All Arcana</option>
+                {ARCANA.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Spell count */}
+          <div style={{ padding:"4px 14px", fontSize:10, color:C.textMuted, background:C.bgCard,
+            borderBottom:`1px solid ${C.borderLight}`, flexShrink:0 }}>
+            {loading ? "Loading…" : `${filtered.length} spell${filtered.length!==1?'s':''} found`}
+          </div>
+
+          {/* Spell list */}
+          <div style={{ flex:1, overflowY:"auto", padding:"8px 10px" }}>
+            {loading && (
+              <div style={{ textAlign:"center", color:C.textMuted, padding:40, fontSize:13 }}>
+                Loading compendium…
+              </div>
+            )}
+            {!loading && filtered.length === 0 && (
+              <div style={{ textAlign:"center", color:C.textMuted, padding:40, fontSize:13 }}>
+                No spells match your filters.
+              </div>
+            )}
+            {!loading && filtered.map(spell => {
+              const book = COMP_BOOKS[spell.sourceBook];
+              const isExpanded = expandedId === spell.id;
+              const added = anyAdded(spell);
+              const justAdded = addFeedback[spell.id];
+              return (
+                <div key={spell.id} style={{ marginBottom:8, borderRadius:8,
+                  background:C.bgCard, border:`1px solid ${isExpanded ? C.accentBorder : C.border}`,
+                  overflow:"hidden", transition:"border-color .2s" }}>
+
+                  {/* Card header — tap to expand */}
+                  <div onClick={() => setExpandedId(isExpanded ? null : spell.id)}
+                    style={{ padding:"9px 11px", display:"flex", alignItems:"center", gap:8, cursor:"pointer" }}>
+                    {/* Source badge */}
+                    {book && (
+                      <span style={{ fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:3,
+                        background: book.color+'22', color:book.color, border:`1px solid ${book.color}44`,
+                        textTransform:"uppercase", letterSpacing:.6, flexShrink:0 }}>
+                        {book.short}
+                      </span>
+                    )}
+                    <span style={{ fontWeight:600, fontSize:13, color: added ? C.accentLight : C.text, flex:1 }}>
+                      {spell.name}
+                    </span>
+                    <span style={{ fontSize:10, color:C.textMuted, flexShrink:0 }}>
+                      {spell.primaryArcanum} {spell.primaryArcanumLevel ? '●'.repeat(spell.primaryArcanumLevel) : ''}
+                    </span>
+                    <span style={{ fontSize:11, color:C.textMuted, flexShrink:0, marginLeft:4 }}>
+                      {isExpanded ? '▲' : '▼'}
+                    </span>
+                  </div>
+
+                  {/* Expanded details */}
+                  {isExpanded && (
+                    <div style={{ padding:"0 11px 11px", borderTop:`1px solid ${C.borderLight}` }}>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:4, margin:"8px 0 6px" }}>
+                        {spell.practice && (
+                          <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
+                            background:C.accentFaint, color:C.accentLight, border:`1px solid ${C.accentBorder}` }}>
+                            {spell.practice}
+                          </span>
+                        )}
+                        {spell.primaryFactor && (
+                          <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
+                            background:"rgba(42,157,143,0.15)", color:C.success, border:"1px solid rgba(42,157,143,0.3)" }}>
+                            Factor: {spell.primaryFactor}
+                          </span>
+                        )}
+                        {spell.withstand && (
+                          <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
+                            background:"rgba(199,62,29,0.12)", color:C.danger, border:"1px solid rgba(199,62,29,0.25)" }}>
+                            Withstand: {spell.withstand}
+                          </span>
+                        )}
+                      </div>
+                      {spell.description && (
+                        <p style={{ fontSize:11, color:C.textMuted, lineHeight:1.55, marginBottom:8 }}>
+                          {spell.description}
+                        </p>
+                      )}
+                      {spell.reachOptions && spell.reachOptions.length > 0 && (
+                        <div style={{ marginBottom:8 }}>
+                          <div style={{ fontSize:10, color:C.accentLight, fontWeight:600, marginBottom:3 }}>
+                            Reach Options
+                          </div>
+                          {spell.reachOptions.map((r, i) => (
+                            <div key={i} style={{ fontSize:10, color:C.textMuted, paddingLeft:8,
+                              borderLeft:`2px solid ${C.accentBorder}`, marginBottom:2 }}>
+                              {r}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {spell.optionalArcana && spell.optionalArcana.length > 0 && (
+                        <div style={{ marginBottom:8 }}>
+                          <div style={{ fontSize:10, color:C.warning, fontWeight:600, marginBottom:3 }}>
+                            Optional Arcana
+                          </div>
+                          {spell.optionalArcana.map((oa, i) => (
+                            <div key={i} style={{ fontSize:10, color:C.textMuted, paddingLeft:8,
+                              borderLeft:`2px solid rgba(233,196,106,0.4)`, marginBottom:2 }}>
+                              {oa.arcanum} {oa.level ? '●'.repeat(oa.level) : ''}{oa.effect ? ` — ${oa.effect}` : ''}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {/* Add to Library button */}
+                      {character ? (
+                        justAdded ? (
+                          <div style={{ textAlign:"center", fontSize:11, color:C.success, padding:"6px 0" }}>
+                            ✓ Added as {justAdded}!
+                          </div>
+                        ) : (
+                          <button onClick={() => openAdd(spell)}
+                            style={{ width:"100%", padding:"8px 0", borderRadius:6, fontSize:12, fontWeight:600,
+                              cursor:"pointer", border:"none",
+                              background:`linear-gradient(135deg,${C.accent},${C.accentLight})`,
+                              color:"#fff", boxShadow:`0 3px 10px rgba(123,44,191,0.35)` }}>
+                            {added ? "✚ Add Again" : "✚ Add to Library"}
+                          </button>
+                        )
+                      ) : (
+                        <div style={{ textAlign:"center", fontSize:11, color:C.textMuted, padding:"6px 0",
+                          fontStyle:"italic" }}>
+                          Load a character to add spells
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <div style={{ height:20 }}/>
+          </div>
+
+          {/* Add to Library drawer */}
+          {addingSpell && (
+            <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:210,
+              background:C.bgCard, borderTop:`2px solid ${C.accentBorder}`,
+              borderRadius:"0 0 20px 20px", padding:"14px 16px 20px" }}>
+              <div style={{ fontWeight:700, fontSize:14, color:C.text, marginBottom:10 }}>
+                Add "{addingSpell.name}"
+              </div>
+              {/* Type selector */}
+              <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+                {['rote','praxis','favorite'].map(t => {
+                  const already = isAdded(addingSpell, t);
+                  return (
+                    <button key={t} onClick={() => !already && setAddType(t)}
+                      style={{ flex:1, padding:"7px 0", borderRadius:6, fontSize:11, fontWeight:600,
+                        cursor: already ? "not-allowed" : "pointer",
+                        border:`1px solid ${addType===t ? C.accentBorder : C.border}`,
+                        background: already ? C.accentFaint : addType===t ? C.accentFaint : "transparent",
+                        color: already ? C.accentLight : addType===t ? C.accentLight : C.textMuted,
+                        opacity: already ? 0.6 : 1 }}>
+                      {already ? "✓" : ""} {t.charAt(0).toUpperCase()+t.slice(1)}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Rote extras */}
+              {addType === 'rote' && (
+                <div style={{ marginBottom:10 }}>
+                  <select value={roteSkill} onChange={e=>setRoteSkill(e.target.value)}
+                    style={{ width:"100%", padding:"6px 8px", borderRadius:5, fontSize:11, marginBottom:6,
+                      background:C.bgDeep, border:`1px solid ${C.border}`, color:C.text }}>
+                    {ROTE_SKILLS.map(sk => (
+                      <option key={sk} value={LABEL_TO_SKILL_KEY[sk]||sk.toLowerCase()}>{sk}</option>
+                    ))}
+                  </select>
+                  <input value={roteCreator} onChange={e=>setRoteCreator(e.target.value)}
+                    placeholder="Creator / Order (optional)"
+                    style={{ width:"100%", padding:"6px 8px", borderRadius:5, fontSize:11,
+                      background:C.bgDeep, border:`1px solid ${C.border}`, color:C.text, outline:"none" }}/>
+                </div>
+              )}
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={() => setAddingSpell(null)}
+                  style={{ flex:1, padding:"9px 0", borderRadius:6, fontSize:12, fontWeight:600,
+                    cursor:"pointer", background:"transparent", border:`1px solid ${C.border}`, color:C.textMuted }}>
+                  Cancel
+                </button>
+                <button onClick={confirmAdd}
+                  style={{ flex:2, padding:"9px 0", borderRadius:6, fontSize:12, fontWeight:600,
+                    cursor:"pointer", border:"none",
+                    background:`linear-gradient(135deg,${C.accent},${C.accentLight})`,
+                    color:"#fff", boxShadow:`0 3px 10px rgba(123,44,191,0.35)` }}>
+                  ✓ Confirm
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // ── App root ──────────────────────────────────────────────────────────────
     function App() {
       const [d, setD]               = useState(INITIAL);
@@ -3215,8 +3579,27 @@
       const [saveLibOpen,  setSaveLibOpen]  = useState(false);
       const [sourceSpellId, setSourceSpellId]       = useState(null);
       const [sourceRoteSkillKey, setSourceRoteKey]  = useState(null);
+      const [compOpen, setCompOpen]   = useState(false);
+      const [compUser, setCompUser]   = useState(null);
+      const [compRole, setCompRole]   = useState('player');
 
       const set = useCallback((key, val) => setD(prev => ({...prev, [key]:val})), []);
+
+      // ── Firebase Auth state listener ──────────────────────────────────────
+      useEffect(() => {
+        const unsubscribe = _fsAuth.onAuthStateChanged(async (user) => {
+          setCompUser(user);
+          if (user) {
+            try {
+              const doc = await _fsDb.collection('userRoles').doc(user.uid).get();
+              setCompRole(doc.exists ? (doc.data().role || 'player') : 'player');
+            } catch(e) { setCompRole('player'); }
+          } else {
+            setCompRole('player');
+          }
+        });
+        return () => unsubscribe();
+      }, []);
 
       function handleLoad(char) {
         setChar(char);
@@ -3374,6 +3757,44 @@
         try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
       }
 
+      function handleCompendiumAddSpell(compSpell, type, roteSkill, roteCreator) {
+        if (!character) return;
+        const genId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+        const fullSpell = {
+          id: genId(),
+          compendiumId: compSpell.id,
+          type,
+          name: compSpell.name,
+          primaryArcanum: compSpell.primaryArcanum || '',
+          primaryArcanumLevel: compSpell.primaryArcanumLevel || 1,
+          secondaryArcanum: compSpell.secondaryArcanum || '',
+          secondaryArcanumLevel: compSpell.secondaryArcanumLevel || 0,
+          practice: compSpell.practice || '',
+          primaryFactor: compSpell.primaryFactor || 'potency',
+          withstand: compSpell.withstand || '',
+          description: compSpell.description || '',
+          reachOptions: compSpell.reachOptions || [],
+          defaults: compSpell.defaults || {},
+        };
+        if (type === 'rote') {
+          fullSpell.roteSkill = roteSkill || 'occult';
+          fullSpell.roteCreator = roteCreator || '';
+        }
+        const updated = { ...character };
+        if (type === 'rote') {
+          if (!updated.rotes) updated.rotes = [];
+          updated.rotes.push(fullSpell);
+        } else if (type === 'praxis') {
+          if (!updated.praxes) updated.praxes = [];
+          updated.praxes.push(fullSpell);
+        } else {
+          if (!updated.improvisedFavorites) updated.improvisedFavorites = [];
+          updated.improvisedFavorites.push(fullSpell);
+        }
+        setChar(updated);
+        try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e) {}
+      }
+
       const steps = d.combined
         ? [BASE_STEPS[0], BASE_STEPS[1], {id:"combined",label:"Combined",icon:"⊞"}, ...BASE_STEPS.slice(2)]
         : BASE_STEPS;
@@ -3412,6 +3833,15 @@
             display:"flex",flexDirection:"column",minHeight:750,overflow:"hidden",position:"relative" }}>
 
         {clashOpen && <ClashOfWills character={character} gnosis={d.gnosis} onClose={()=>setClashOpen(false)}/>}
+            {compOpen && (
+              <CompendiumOverlay
+                character={character}
+                compUser={compUser}
+                compRole={compRole}
+                onAddSpell={handleCompendiumAddSpell}
+                onClose={() => setCompOpen(false)}
+              />
+            )}
             {sheetOpen && (
               <ActiveSpellsDrawer
                 spells={activeSpells}
@@ -3456,6 +3886,8 @@
               onSheetToggle={() => setSheetOpen(o => !o)}
               onSceneToggle={() => setSceneOpen(o => !o)}
               sceneConnected={!!sceneConn}
+              onCompendiumToggle={() => setCompOpen(o => !o)}
+              compUser={compUser}
             />
 
             {/* Step indicator */}

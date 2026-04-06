@@ -718,10 +718,15 @@
         try {
             var snap = await _db.collection('suggestions')
                 .where('status', '==', 'pending')
-                .orderBy('submittedAt')
                 .get();
             var list = [];
             snap.forEach(function (d) { var v = d.data(); v.id = d.id; list.push(v); });
+            // Sort oldest-first client-side (avoids needing a composite Firestore index)
+            list.sort(function (a, b) {
+                var ta = a.submittedAt ? (a.submittedAt.toMillis ? a.submittedAt.toMillis() : a.submittedAt) : 0;
+                var tb = b.submittedAt ? (b.submittedAt.toMillis ? b.submittedAt.toMillis() : b.submittedAt) : 0;
+                return ta - tb;
+            });
             _renderSuggestionsContent(list);
         } catch (e) {
             c.innerHTML = '<div class="spell-library-empty" style="color:var(--danger)">Error: ' + _esc(e.message) + '</div>';
