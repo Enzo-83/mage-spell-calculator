@@ -1118,6 +1118,174 @@
         #spellLibraryExport .spell-cards-grid {
             grid-template-columns: repeat(2, 1fr);
         }
+
+        /* ── Compendium Tab ──────────────────────────────────────── */
+        .compendium-auth-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .compendium-auth-info {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            flex: 1;
+            min-width: 100px;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .role-badge.role-admin      { background: rgba(233,196,106,0.25); color: var(--warning); }
+        .role-badge.role-editor     { background: rgba(42,157,143,0.25);  color: var(--success); }
+        .role-badge.role-sub-editor { background: rgba(123,44,191,0.25);  color: var(--accent-light); }
+        .role-badge.role-suggester  { background: rgba(255,255,255,0.1);  color: var(--text-muted); }
+
+        .compendium-filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .compendium-search {
+            flex: 1;
+            min-width: 140px;
+        }
+        .compendium-filter-select {
+            flex: 0 0 auto;
+            min-width: 120px;
+        }
+
+        /* Compendium spell card — distinct header colour */
+        .compendium-card-header {
+            background: linear-gradient(135deg, rgba(180,140,40,0.25), rgba(180,140,40,0.08)) !important;
+        }
+        .source-badge {
+            font-size: 0.72em;
+            padding: 2px 7px;
+            border-radius: 4px;
+            white-space: nowrap;
+            font-weight: bold;
+            letter-spacing: 0.3px;
+            align-self: flex-start;
+        }
+
+        /* Collapsible description */
+        .compendium-description { margin-top: 8px; font-size: 0.85em; }
+        .compendium-desc-toggle {
+            color: var(--accent-light);
+            cursor: pointer;
+            user-select: none;
+            padding: 2px 0;
+        }
+        .compendium-desc-toggle:hover { text-decoration: underline; }
+        .compendium-desc-text {
+            color: var(--text-muted);
+            margin-top: 6px;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        /* Optional Arcana block */
+        .spell-optional-arcana {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* ── Add to Library modal ────────────────────────────────── */
+        .add-to-lib-type-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .add-to-lib-type-btn {
+            flex: 1;
+            padding: 10px 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9em;
+            text-align: center;
+            min-width: 80px;
+        }
+        .add-to-lib-type-btn:hover:not(:disabled) {
+            border-color: var(--accent-light);
+            background: rgba(123,44,191,0.15);
+        }
+        .add-to-lib-type-btn.selected {
+            border-color: var(--accent-light);
+            background: rgba(123,44,191,0.25);
+            color: var(--accent-light);
+            font-weight: bold;
+        }
+        .add-to-lib-type-btn.already-added {
+            opacity: 0.45;
+            cursor: not-allowed;
+            border-color: rgba(42,157,143,0.4);
+            color: var(--success);
+            background: rgba(42,157,143,0.1);
+        }
+        .already-check { color: var(--success); margin-left: 4px; }
+        .add-to-lib-note {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            min-height: 20px;
+            margin-bottom: 8px;
+        }
+
+        /* ── Opt-arc row in compendium editor ────────────────────── */
+        .opt-arc-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .opt-arc-row select            { width: 110px; flex-shrink: 0; }
+        .opt-arc-row input[type="number"] { width: 55px; flex-shrink: 0; }
+        .opt-arc-row input[type="text"]{ flex: 1; }
+
+        /* ── Suggestions inbox ───────────────────────────────────── */
+        .suggestion-item {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .suggestion-header { margin-bottom: 4px; }
+        .suggestion-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* ── Admin panel ─────────────────────────────────────────── */
+        .admin-role-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .admin-role-row:last-child { border-bottom: none; }
         
         /* Spell Editor Modal Additions */
         .reach-options-editor {
@@ -3247,6 +3415,9 @@
                 <button class="spell-tab" data-tab="improvised">
                     Favorites <span class="spell-tab-count" id="improvisedCount">0</span>
                 </button>
+                <button class="spell-tab" data-tab="compendium">
+                    📖 Compendium <span class="spell-tab-count" id="compendiumCount">0</span>
+                </button>
             </div>
             
             <div id="spellLibraryContent">
@@ -3264,6 +3435,9 @@
     <!-- Firebase Realtime Database (Scene Tracker) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+    <!-- Firebase Firestore (Spell Compendium) + Auth (Role-based editing) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script>
       // ─── Firebase Config ─── MUST MATCH wizard.html values ───
       if (!window._fbApp) {
@@ -3378,6 +3552,7 @@
     <script src="./js/spellFactors.js"></script>
     <script src="./js/dicePool.js"></script>
     <script src="./js/character.js"></script>
+    <script src="./js/spellCompendium.js"></script>
     
     <!-- Application logic -->
     <script>
@@ -4932,17 +5107,22 @@
                         document.querySelectorAll('.spell-tab').forEach(t => t.classList.remove('active'));
                         tab.classList.add('active');
                         currentSpellTab = tab.dataset.tab;
+                        // Show/hide personal-library controls when switching tabs
+                        const isCompendium = currentSpellTab === 'compendium';
+                        document.getElementById('btnAddSpell').style.display      = isCompendium ? 'none' : '';
+                        document.getElementById('btnExportLibrary').style.display = isCompendium ? 'none' : '';
                         renderSpellLibrary();
                     });
                 });
                 
-                // Add spell button
+                // Add spell button (personal library only; compendium has its own inline button)
                 document.getElementById('btnAddSpell').addEventListener('click', () => {
+                    if (currentSpellTab === 'compendium') return;
                     if (!currentCharacter) {
                         alert('Please load or create a character first.');
                         return;
                     }
-                    openSpellEditor(null, currentSpellTab === 'improvised' ? 'improvised' : 
+                    openSpellEditor(null, currentSpellTab === 'improvised' ? 'improvised' :
                                          currentSpellTab === 'praxes' ? 'praxis' : 'rote');
                 });
                 
@@ -4969,9 +5149,15 @@
             
             // Render spell library based on current tab
             function renderSpellLibrary() {
+                // Delegate to compendium module when on that tab
+                if (currentSpellTab === 'compendium') {
+                    if (window.renderCompendiumTab) window.renderCompendiumTab();
+                    return;
+                }
+
                 const content = document.getElementById('spellLibraryContent');
                 const emptyMsg = document.getElementById('libraryEmpty');
-                
+
                 if (!currentCharacter) {
                     content.innerHTML = '';
                     content.appendChild(emptyMsg);
@@ -7206,6 +7392,21 @@
                 sceneRenderUI();
             })();
 
+            // ── Compendium bridge API ─────────────────────────────────────────
+            // Exposes controlled access to index.html internals for spellCompendium.js
+            window.spellLibraryAPI = {
+                getCharacter:   function () { return currentCharacter; },
+                getCurrentTab:  function () { return currentSpellTab; },
+                switchTab: function (tabName) {
+                    var tab = document.querySelector('.spell-tab[data-tab="' + tabName + '"]');
+                    if (tab) tab.click();
+                },
+                save: saveCharacterToLocalStorage
+            };
+
+            // Initialise the compendium module now that all DOM + state is ready
+            if (window.initCompendium) window.initCompendium();
+
             // Run initial calculation
             calculate();
         });
@@ -7908,6 +8109,320 @@
             </div>
         </div>
     </div>
+    <!-- ═══════════════════════════════════════════════════════════════
+         COMPENDIUM MODALS
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Add to Library Modal -->
+    <div class="modal-overlay" id="addToLibraryModal">
+        <div class="modal" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2 id="addLibModalTitle">Add Spell to Library</h2>
+                <button class="modal-close" id="addLibModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-section">
+                    <h3>Add As</h3>
+                    <div class="add-to-lib-type-row">
+                        <button class="add-to-lib-type-btn" id="addLibBtn-rote"      data-type="rote"      data-label="Rote">Rote</button>
+                        <button class="add-to-lib-type-btn" id="addLibBtn-praxis"    data-type="praxis"    data-label="Praxis">Praxis</button>
+                        <button class="add-to-lib-type-btn" id="addLibBtn-improvised"data-type="improvised"data-label="Improv. Favourite">Improv. Favourite</button>
+                    </div>
+                    <div class="add-to-lib-note" id="addLibTypeNote"></div>
+                </div>
+                <div class="modal-section" id="addLibRoteSection" style="display:none;">
+                    <h3>Rote Details</h3>
+                    <div class="modal-grid">
+                        <div class="form-group">
+                            <label>Rote Skill (Mudra)</label>
+                            <select id="addLibRoteSkill">
+                                <optgroup label="Mental">
+                                    <option value="academics">Academics</option>
+                                    <option value="computer">Computer</option>
+                                    <option value="crafts">Crafts</option>
+                                    <option value="investigation">Investigation</option>
+                                    <option value="medicine">Medicine</option>
+                                    <option value="occult" selected>Occult</option>
+                                    <option value="politics">Politics</option>
+                                    <option value="science">Science</option>
+                                </optgroup>
+                                <optgroup label="Physical">
+                                    <option value="athletics">Athletics</option>
+                                    <option value="brawl">Brawl</option>
+                                    <option value="drive">Drive</option>
+                                    <option value="firearms">Firearms</option>
+                                    <option value="larceny">Larceny</option>
+                                    <option value="stealth">Stealth</option>
+                                    <option value="survival">Survival</option>
+                                    <option value="weaponry">Weaponry</option>
+                                </optgroup>
+                                <optgroup label="Social">
+                                    <option value="animalKen">Animal Ken</option>
+                                    <option value="empathy">Empathy</option>
+                                    <option value="expression">Expression</option>
+                                    <option value="intimidation">Intimidation</option>
+                                    <option value="persuasion">Persuasion</option>
+                                    <option value="socialize">Socialize</option>
+                                    <option value="streetwise">Streetwise</option>
+                                    <option value="subterfuge">Subterfuge</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Rote Source</label>
+                            <select id="addLibRoteCreator">
+                                <option value="order">Order Rote (Mudra only)</option>
+                                <option value="self">Your Design (Rote Quality + Mudra)</option>
+                                <option value="grimoire">Grimoire (Rote Quality, 2× time)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small" id="addLibCancelBtn">Cancel</button>
+                <button class="btn-small btn-primary" id="addLibConfirmBtn">Add to Library</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compendium Spell Editor Modal -->
+    <div class="modal-overlay" id="compendiumEditorModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 id="compEditorTitle">Add Compendium Spell</h2>
+                <button class="modal-close" id="compEdModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Source -->
+                <div class="modal-section">
+                    <h3>Source</h3>
+                    <div class="modal-grid">
+                        <div class="form-group">
+                            <label>Spell Name</label>
+                            <input type="text" id="compEdName" placeholder="Enter spell name">
+                        </div>
+                        <div class="form-group">
+                            <label>Source Book</label>
+                            <select id="compEdSourceBook">
+                                <option value="core">Core Rulebook</option>
+                                <option value="signs-of-sorcery">Signs of Sorcery</option>
+                                <option value="night-horrors">Night Horrors</option>
+                                <option value="tome-of-pentacle">Tome of the Pentacle</option>
+                                <option value="fallen-world">The Fallen World</option>
+                                <option value="tome-mysteries">Tome of the Mysteries</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Page Number</label>
+                            <input type="number" id="compEdSourcePage" min="1" placeholder="e.g. 183">
+                        </div>
+                    </div>
+                </div>
+                <!-- Arcanum -->
+                <div class="modal-section">
+                    <h3>Arcanum Requirements</h3>
+                    <div class="modal-grid">
+                        <div class="form-group">
+                            <label>Primary Arcanum</label>
+                            <select id="compEdPrimaryArcanum">
+                                <option value="death">Death</option>
+                                <option value="fate">Fate</option>
+                                <option value="forces">Forces</option>
+                                <option value="life">Life</option>
+                                <option value="matter">Matter</option>
+                                <option value="mind">Mind</option>
+                                <option value="prime" selected>Prime</option>
+                                <option value="space">Space</option>
+                                <option value="spirit">Spirit</option>
+                                <option value="time">Time</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Primary Level</label>
+                            <input type="number" id="compEdPrimaryLevel" min="1" max="5" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Secondary Arcanum (optional)</label>
+                            <select id="compEdSecondaryArcanum">
+                                <option value="">None</option>
+                                <option value="death">Death</option>
+                                <option value="fate">Fate</option>
+                                <option value="forces">Forces</option>
+                                <option value="life">Life</option>
+                                <option value="matter">Matter</option>
+                                <option value="mind">Mind</option>
+                                <option value="prime">Prime</option>
+                                <option value="space">Space</option>
+                                <option value="spirit">Spirit</option>
+                                <option value="time">Time</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Secondary Level</label>
+                            <input type="number" id="compEdSecondaryLevel" min="1" max="5" value="1">
+                        </div>
+                    </div>
+                </div>
+                <!-- Practice & Factor -->
+                <div class="modal-section">
+                    <h3>Practice & Primary Factor</h3>
+                    <div class="modal-grid">
+                        <div class="form-group">
+                            <label>Practice</label>
+                            <select id="compEdPractice">
+                                <optgroup label="1-dot (Initiate)">
+                                    <option value="compelling">Compelling</option>
+                                    <option value="knowing">Knowing</option>
+                                    <option value="unveiling">Unveiling</option>
+                                </optgroup>
+                                <optgroup label="2-dot (Apprentice)">
+                                    <option value="ruling">Ruling</option>
+                                    <option value="shielding">Shielding</option>
+                                    <option value="veiling">Veiling</option>
+                                </optgroup>
+                                <optgroup label="3-dot (Disciple)">
+                                    <option value="fraying">Fraying</option>
+                                    <option value="perfecting">Perfecting</option>
+                                    <option value="weaving">Weaving</option>
+                                </optgroup>
+                                <optgroup label="4-dot (Adept)">
+                                    <option value="patterning">Patterning</option>
+                                    <option value="unraveling">Unraveling</option>
+                                </optgroup>
+                                <optgroup label="5-dot (Master)">
+                                    <option value="making">Making</option>
+                                    <option value="unmaking">Unmaking</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Primary Factor</label>
+                            <select id="compEdPrimaryFactor">
+                                <option value="potency">Potency</option>
+                                <option value="duration">Duration</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Withstand (optional)</label>
+                            <input type="text" id="compEdWithstand" placeholder="e.g. Composure, Resolve">
+                        </div>
+                    </div>
+                </div>
+                <!-- Default Casting Settings -->
+                <div class="modal-section">
+                    <h3>Default Casting Settings</h3>
+                    <div class="modal-grid">
+                        <div class="form-group">
+                            <label>Potency</label>
+                            <input type="number" id="compEdDefaultPotency" min="1" max="10" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Range</label>
+                            <select id="compEdDefaultRange">
+                                <option value="self">Self</option>
+                                <option value="touch" selected>Touch</option>
+                                <option value="aimed">Aimed</option>
+                                <option value="sensory">Sensory (+1 Reach)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <!-- Reach Options -->
+                <div class="modal-section">
+                    <h3>Reach Options</h3>
+                    <div class="info-text" style="margin-bottom:12px">Additional effects available by spending extra Reach</div>
+                    <div id="compEdReachContainer"></div>
+                    <button class="btn-small" id="btnCompEdAddReach">+ Add Reach Option</button>
+                </div>
+                <!-- Optional Arcana -->
+                <div class="modal-section">
+                    <h3>Optional Arcana</h3>
+                    <div class="info-text" style="margin-bottom:12px">Extra Arcana that unlock additional spell effects</div>
+                    <div id="compEdOptArcContainer"></div>
+                    <button class="btn-small" id="btnCompEdAddOptArc">+ Add Optional Arcanum</button>
+                </div>
+                <!-- Description -->
+                <div class="modal-section">
+                    <h3>Description</h3>
+                    <textarea id="compEdDescription" rows="4" placeholder="Spell description from the book"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small" id="btnCompEditorDelete" style="background:rgba(199,62,29,0.3);color:var(--danger);margin-right:auto;display:none;">Delete</button>
+                <button class="btn-small" id="btnCompEditorCancel">Cancel</button>
+                <button class="btn-small btn-primary" id="btnCompEditorSave">Save Spell</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions Inbox Modal -->
+    <div class="modal-overlay" id="suggestionsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>📬 Suggestions Inbox</h2>
+                <button class="modal-close" id="suggestionsModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="suggestionsContent">
+                    <div class="spell-library-empty">Loading…</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small btn-primary" id="btnCloseSuggestions">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div class="modal-overlay" id="adminPanelModal">
+        <div class="modal" style="max-width:560px;">
+            <div class="modal-header">
+                <h2>⚙️ Role Management</h2>
+                <button class="modal-close" id="adminPanelClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Grant role -->
+                <div class="modal-section">
+                    <h3>Grant Role</h3>
+                    <div class="info-text" style="margin-bottom:12px">
+                        Find a user's UID in <strong>Firebase Console → Authentication → Users</strong>.
+                    </div>
+                    <div class="modal-grid">
+                        <div class="form-group">
+                            <label>Firebase UID</label>
+                            <input type="text" id="adminGrantUID" placeholder="Paste UID here">
+                        </div>
+                        <div class="form-group">
+                            <label>Email (for reference)</label>
+                            <input type="text" id="adminGrantEmail" placeholder="user@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Role</label>
+                            <select id="adminGrantRole">
+                                <option value="editor">Editor</option>
+                                <option value="sub-editor">Sub-Editor</option>
+                                <option value="suggester">Suggester</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn-small btn-primary" id="btnAdminGrant" style="margin-top:8px;">Grant Role</button>
+                </div>
+                <!-- Current roles -->
+                <div class="modal-section">
+                    <h3>Current Roles</h3>
+                    <div id="adminRoleList">
+                        <div style="color:var(--text-muted);font-size:0.85em;padding:8px">Loading…</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small btn-primary" id="btnAdminClose">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Service Worker Registration -->
     <script>
         // Register Service Worker for PWA functionality

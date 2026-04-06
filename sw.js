@@ -1,5 +1,5 @@
 // Service Worker for Mage Spell Calculator PWA
-const CACHE_NAME = 'mage-spell-calc-v34';
+const CACHE_NAME = 'mage-spell-calc-v35';
 
 // Files to cache for offline use
 const ASSETS_TO_CACHE = [
@@ -9,7 +9,8 @@ const ASSETS_TO_CACHE = [
   './manifest.json',
   './js/spellFactors.js',
   './js/dicePool.js',
-  './js/character.js'
+  './js/character.js',
+  './js/spellCompendium.js'
 ];
 
 // Install event - cache assets
@@ -58,8 +59,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip Firebase requests (real-time sync must not be cached)
-  if (event.request.url.includes('firebaseio.com') || event.request.url.includes('googleapis.com')) {
+  // Skip Firebase requests (real-time sync and Firestore must not be cached)
+  if (event.request.url.includes('firebaseio.com') ||
+      event.request.url.includes('firestore.googleapis.com') ||
+      event.request.url.includes('googleapis.com') ||
+      event.request.url.includes('identitytoolkit')) {
     return;
   }
 
