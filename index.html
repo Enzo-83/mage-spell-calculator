@@ -5229,7 +5229,15 @@
                         if (spell) openSpellEditor(spell);
                     });
                 });
-                
+                content.querySelectorAll('.btn-suggest-to-comp').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const spell = findSpellById(btn.dataset.spellId);
+                        if (spell && window.compendiumModule?.suggestFromSpell) {
+                            window.compendiumModule.suggestFromSpell(spell);
+                        }
+                    });
+                });
+
                 updateSpellCounts();
             }
             
@@ -5322,6 +5330,7 @@
                         <div class="spell-card-actions">
                             <button class="btn-small btn-cast-spell" data-spell-id="${spell.id}">Cast</button>
                             <button class="btn-small btn-edit-spell" data-spell-id="${spell.id}">Edit</button>
+                            ${window.compendiumModule?.isSignedIn() ? `<button class="btn-small btn-suggest-to-comp" data-spell-id="${spell.id}" title="Suggest this spell to the Compendium">💡</button>` : ''}
                         </div>
                     </div>
                 `;
@@ -7401,7 +7410,8 @@
                     var tab = document.querySelector('.spell-tab[data-tab="' + tabName + '"]');
                     if (tab) tab.click();
                 },
-                save: saveCharacterToLocalStorage
+                renderLibrary:  function () { renderSpellLibrary(); },
+                save:           saveCharacterToLocalStorage
             };
 
             // Initialise the compendium module now that all DOM + state is ready
@@ -8209,8 +8219,6 @@
                                 <option value="signs-of-sorcery">Signs of Sorcery</option>
                                 <option value="night-horrors">Night Horrors</option>
                                 <option value="tome-of-pentacle">Tome of the Pentacle</option>
-                                <option value="fallen-world">The Fallen World</option>
-                                <option value="tome-mysteries">Tome of the Mysteries</option>
                             </select>
                         </div>
                         <div class="form-group">

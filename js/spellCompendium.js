@@ -31,12 +31,10 @@
 
     // ── Source book registry ──────────────────────────────────────────────
     var BOOKS = {
-        'core':             { label: 'Core Rulebook',         color: '#e9c46a', short: 'Core' },
-        'signs-of-sorcery': { label: 'Signs of Sorcery',      color: '#2a9d8f', short: 'SoS'  },
-        'night-horrors':    { label: 'Night Horrors',          color: '#c73e1d', short: 'NH'   },
-        'tome-of-pentacle': { label: 'Tome of the Pentacle',  color: '#9d4edd', short: 'ToP'  },
-        'fallen-world':     { label: 'The Fallen World',      color: '#457b9d', short: 'FW'   },
-        'tome-mysteries':   { label: 'Tome of the Mysteries', color: '#a8dadc', short: 'ToM'  }
+        'core':             { label: 'Core Rulebook',        color: '#e9c46a', short: 'Core' },
+        'signs-of-sorcery': { label: 'Signs of Sorcery',     color: '#2a9d8f', short: 'SoS'  },
+        'night-horrors':    { label: 'Night Horrors',         color: '#c73e1d', short: 'NH'   },
+        'tome-of-pentacle': { label: 'Tome of the Pentacle', color: '#9d4edd', short: 'ToP'  }
     };
 
     var PRACTICE_DOT = {
@@ -552,15 +550,21 @@
     }
 
     function _openEditorAsSuggestion(spellId) {
+        var spell = _spells.find(function (s) { return s.id === spellId; }) || null;
+        _openEditorWithData(spell);
+    }
+
+    // Open the compendium editor pre-filled from a personal library spell.
+    // Used by the 💡 button on personal library cards.
+    function _openEditorWithData(spellData) {
         _editingId      = null;
         _suggestionMode = true;
-        var spell = _spells.find(function (s) { return s.id === spellId; }) || null;
 
-        document.getElementById('compEditorTitle').textContent    = 'Suggest an Edit';
+        document.getElementById('compEditorTitle').textContent    = 'Suggest to Compendium';
         document.getElementById('btnCompEditorSave').textContent  = 'Submit Suggestion';
         document.getElementById('btnCompEditorDelete').style.display = 'none';
 
-        _populateEditorForm(spell);
+        _populateEditorForm(spellData || null);
         document.getElementById('compendiumEditorModal').classList.add('active');
     }
 
@@ -884,13 +888,25 @@
     }
     function _refreshIfActive() {
         var api = window.spellLibraryAPI;
-        if (api && api.getCurrentTab && api.getCurrentTab() === 'compendium') {
+        if (!api) return;
+        var tab = api.getCurrentTab ? api.getCurrentTab() : '';
+        if (tab === 'compendium') {
             renderTab();
+        } else if (api.renderLibrary) {
+            // Re-render personal library so the 💡 suggest button appears/disappears
+            // when sign-in state changes
+            api.renderLibrary();
         }
     }
 
     // ── Public API ────────────────────────────────────────────────────────
     window.initCompendium      = init;
     window.renderCompendiumTab = renderTab;
+
+    // Thin interface for index.html to call back into the compendium module
+    window.compendiumModule = {
+        isSignedIn:      function () { return !!_user; },
+        suggestFromSpell: _openEditorWithData
+    };
 
 })();
