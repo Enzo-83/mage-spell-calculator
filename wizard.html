@@ -91,6 +91,7 @@
         paradoxRolls: 0,
         stAdjustment: 0,
         stNote: "",
+        paradoxLog: [],
         joinedAt: firebase.database.ServerValue.TIMESTAMP,
       });
       // Auto-remove on disconnect
@@ -132,6 +133,19 @@
         arr.push(entry);
         if (arr.length > 20) arr = arr.slice(arr.length - 20);
         return arr;
+      });
+    }
+
+    function scenePushStats(roomCode, playerId, character) {
+      if (!roomCode || !playerId || !character) return;
+      var h = character.health || { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+      sceneGetRef(roomCode).child("players/" + playerId + "/stats").update({
+        gnosis: character.gnosis || 1,
+        wisdom: character.wisdom || 7,
+        mana: { current: character.mana?.current ?? 0, max: character.mana?.max ?? 10 },
+        health: { max: h.max || 7, bashing: h.bashing || 0, lethal: h.lethal || 0, aggravated: h.aggravated || 0 },
+        activeSpells: (character.activeSpells || []).length,
+        maxActiveSpells: character.gnosis || 1,
       });
     }
 
@@ -1880,11 +1894,11 @@
 
       function rejoinAsPlayer(code) {
         const pid = getPlayerId();
-        // Check room exists first
         sceneGetRef(code).once("value").then(snap => {
           if (!snap.exists()) { setError("Room not found"); setConnected(false); return; }
           setMode("player");
           sceneJoinRoom(code, pid, getPlayerName(), getPlayerPath());
+          if (character) scenePushStats(code, pid, character);
           attachListener(code);
           sceneRememberRoom(code, "player");
         }).catch(e => setError("Failed to join: " + e.message));
@@ -2053,6 +2067,13 @@
                     {playerEntries.map(([pid, p], i) => {
                       const eff = Math.max(0, (p.paradoxRolls||0) + (p.stAdjustment||0));
                       const isLast = i === playerEntries.length - 1;
+                      const s = p.stats || {};
+                      const sh = s.health || {};
+                      const shFilled = (sh.bashing||0)+(sh.lethal||0)+(sh.aggravated||0);
+                      const shMax = sh.max || 7;
+                      const shEmpty = Math.max(0, shMax - shFilled);
+                      const shWound = shFilled >= shMax ? -3 : shFilled >= shMax-1 ? -2 : shFilled >= shMax-2 ? -1 : 0;
+                      const hasStats = s.gnosis !== undefined;
                       return (
                         <div key={pid} style={{ padding:"12px 14px",
                           borderBottom:isLast?"none":`1px solid ${C.borderLight}` }}>
@@ -2062,13 +2083,55 @@
                               {p.path && <span style={{ fontSize:11,color:C.textMuted,marginLeft:6 }}>{p.path}</span>}
                             </div>
                             {sceneActive && (
-                              <span style={{ fontSize:12,fontWeight:600,
+                              <span style={{ fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:4,
+                                background:eff>0?C.dangerFaint:C.successFaint,
                                 color:eff>0?C.danger:C.success }}>
-                                {eff>0 ? `${eff} roll${eff!==1?"s":""} (+${eff})` : "0 rolls"}
+                                {eff>0 ? `${eff} paradox (+${eff})` : "0 paradox"}
                               </span>
                             )}
                           </div>
-                          {/* Paradox log for this player */}
+
+                          {/* Stats grid */}
+                          {hasStats && (
+                            <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:4,marginTop:8 }}>
+                              {[
+                                ["Gnosis", s.gnosis, null],
+                                ["Wisdom", s.wisdom, s.wisdom<=4?C.warning:null],
+                                ["Mana", `${s.mana?.current ?? 0}/${s.mana?.max ?? 10}`, (s.mana?.current??0)<3?C.danger:(s.mana?.current??0)<(s.mana?.max??10)/2?C.warning:null],
+                                ["Spells", `${s.activeSpells||0}/${s.maxActiveSpells||1}`, (s.activeSpells||0)>=(s.maxActiveSpells||1)?C.warning:null],
+                              ].map(([label,val,clr])=>(
+                                <div key={label} style={{ textAlign:"center",padding:"5px 2px",background:C.bgDeep,borderRadius:4 }}>
+                                  <div style={{ fontSize:13,fontWeight:700,color:clr||C.text }}>{val}</div>
+                                  <div style={{ fontSize:8,color:C.textMuted,letterSpacing:1,textTransform:"uppercase",marginTop:1 }}>{label}</div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Health track */}
+                          {hasStats && (
+                            <div style={{ marginTop:6 }}>
+                              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:3 }}>
+                                <span style={{ fontSize:9,color:C.textMuted }}>Health</span>
+                                <span style={{ fontSize:9,color:shWound<0?C.danger:C.success }}>
+                                  {shWound<0?`Wound: ${shWound}`:"No wound penalty"}
+                                  {shFilled>=shMax&&(sh.lethal||0)>0?" · Bleeding out!":""}
+                                </span>
+                              </div>
+                              <div style={{ display:"flex",gap:2 }}>
+                                {Array.from({length:shMax}).map((_,bi)=>{
+                                  let sym="",bg=C.bgDeep,fg=C.textMuted,bd=C.border;
+                                  if(bi<(sh.aggravated||0)){sym="*";bg="rgba(199,62,29,0.2)";fg=C.danger;bd=C.danger;}
+                                  else if(bi<(sh.aggravated||0)+(sh.lethal||0)){sym="X";bg="rgba(233,196,106,0.15)";fg=C.warning;bd=C.warning;}
+                                  else if(bi<shFilled){sym="/";bg=C.bgCard;fg=C.text;bd=C.borderLight;}
+                                  return <div key={bi} style={{ flex:1,textAlign:"center",padding:"3px 0",borderRadius:2,
+                                    background:bg,border:`1px solid ${bd}`,fontSize:10,fontWeight:700,color:fg,minWidth:0 }}>{sym||"\u00A0"}</div>;
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Paradox log chips */}
                           {sceneActive && p.paradoxLog && p.paradoxLog.length > 0 && (
                             <div style={{ marginTop:6 }}>
                               {p.paradoxLog.map((entry, li) => (
@@ -2376,7 +2439,7 @@
         </div>
       );
     }
-    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, sceneConn, onSaveToLibrary }) {
+    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, sceneConn }) {
       const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
               potencyPen, durationPen, scalePen, yantraBonus, basePool,
               durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj,
@@ -2767,12 +2830,17 @@
     }
 
     // ── Character header ──────────────────────────────────────────────────────
-    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, activeCount, onSheetToggle, onSceneToggle, sceneConnected }) {
+    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, onHealthChange, activeCount, onSheetToggle, onSceneToggle, sceneConnected }) {
       const fileRef = useRef(null);
       const [manaOpen, setManaOpen] = useState(false);
+      const [healthOpen, setHealthOpen] = useState(false);
       const manaC   = character?.mana?.current ?? 0;
       const manaM   = character?.mana?.max     ?? 10;
       const manaPerTurn = MANA_PER_TURN[character?.gnosis] || 1;
+      const hp = character?.health || { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+      const hpFilled = hp.bashing + hp.lethal + hp.aggravated;
+      const hpEmpty = Math.max(0, hp.max - hpFilled);
+      const woundPen = hpFilled >= hp.max ? -3 : hpFilled >= hp.max - 1 ? -2 : hpFilled >= hp.max - 2 ? -1 : 0;
 
       function handleFileChange(e) {
         const file = e.target.files[0];
@@ -2811,6 +2879,11 @@
                       style={{ color:manaC<3?C.danger:C.warning,marginLeft:8,cursor:"pointer",
                         borderBottom:manaOpen?`1px solid ${C.accentLight}`:"1px solid transparent" }}>
                       ⬡ {manaC}/{manaM} Mana
+                    </span>
+                    <span onClick={()=>setHealthOpen(o=>!o)}
+                      style={{ color:hpFilled>0?(woundPen<=-2?C.danger:C.warning):C.success,marginLeft:8,cursor:"pointer",
+                        borderBottom:healthOpen?`1px solid ${C.accentLight}`:"1px solid transparent" }}>
+                      ♥ {hpEmpty}/{hp.max} HP{woundPen<0?` (${woundPen})`:""}
                     </span>
                   </div>
                 </>
@@ -2872,6 +2945,58 @@
                   cursor:"pointer",background:"transparent",border:`1px solid ${C.border}`,color:C.text,
                   display:"flex",alignItems:"center",justifyContent:"center",padding:0 }}>+</button>
                 <span style={{ color:C.textMuted,fontSize:10,marginLeft:4 }}>/ {manaM} · per turn: {manaPerTurn}</span>
+              </div>
+            </div>
+          )}
+          {character && healthOpen && (
+            <div style={{ padding:"6px 16px 10px",borderTop:`1px solid ${C.borderLight}` }}>
+              <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8 }}>
+                <span style={{ color:C.textMuted,fontSize:11 }}>Health track</span>
+                <span style={{ color:C.textMuted,fontSize:10 }}>
+                  {hp.aggravated>0?`${hp.aggravated}*  `:""}{hp.lethal>0?`${hp.lethal}X  `:""}{hp.bashing>0?`${hp.bashing}/  `:""}{hpEmpty>0?`${hpEmpty} empty`:"FULL"}
+                  {woundPen<0?`  ·  Wound: ${woundPen}`:""}
+                </span>
+              </div>
+              <div style={{ display:"flex",gap:2,marginBottom:8 }}>
+                {Array.from({length:hp.max}).map((_,i) => {
+                  let sym="", bg=C.bgDeep, fg=C.textMuted, bd=C.border;
+                  if (i<hp.aggravated) { sym="*"; bg="rgba(199,62,29,0.2)"; fg=C.danger; bd=C.danger; }
+                  else if (i<hp.aggravated+hp.lethal) { sym="X"; bg="rgba(233,196,106,0.15)"; fg=C.warning; bd=C.warning; }
+                  else if (i<hpFilled) { sym="/"; bg=C.bgCard; fg=C.text; bd=C.borderLight; }
+                  return (
+                    <div key={i} style={{ flex:1,textAlign:"center",padding:"4px 0",borderRadius:3,
+                      background:bg,border:`1px solid ${bd}`,fontSize:12,fontWeight:700,color:fg,minWidth:0 }}>
+                      {sym||"\u00A0"}
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display:"flex",gap:6,flexWrap:"wrap" }}>
+                <span style={{ color:C.textMuted,fontSize:10,lineHeight:"26px" }}>Deal:</span>
+                {[["Bashing","/","bashing"],["Lethal","X","lethal"],["Agg","*","aggravated"]].map(([label,sym,key])=>(
+                  <button key={key} onClick={()=>{
+                    const h={...hp};
+                    if(hpFilled>=h.max){
+                      if(key==="bashing"||key==="lethal"){if(h.bashing>0){h.bashing--;h.lethal++;}else if(h.lethal>0){h.lethal--;h.aggravated++;}}
+                      else{if(h.lethal>0){h.lethal--;h.aggravated++;}else if(h.bashing>0){h.bashing--;h.aggravated++;}}
+                    } else { h[key]++; }
+                    onHealthChange(h);
+                  }} style={{ padding:"3px 10px",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer",
+                    background:"transparent",border:`1px solid ${key==="aggravated"?C.danger:key==="lethal"?C.warning:C.borderLight}`,
+                    color:key==="aggravated"?C.danger:key==="lethal"?C.warning:C.text }}>
+                    +{sym} {label}
+                  </button>
+                ))}
+                <button onClick={()=>{
+                  const h={...hp};
+                  if(h.bashing>0) h.bashing--;
+                  else if(h.lethal>0) h.lethal--;
+                  else if(h.aggravated>0) h.aggravated--;
+                  onHealthChange(h);
+                }} style={{ padding:"3px 10px",borderRadius:5,fontSize:10,fontWeight:700,cursor:"pointer",
+                  background:"transparent",border:`1px solid ${C.success}`,color:C.success,marginLeft:"auto" }}>
+                  Heal →
+                </button>
               </div>
             </div>
           )}
@@ -3119,6 +3244,7 @@
         if (character) {
           character.activeSpells = next;
           try { localStorage.setItem('mage_current_character', JSON.stringify(character)); } catch(e){}
+          if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, character);
         }
       }
 
@@ -3129,6 +3255,7 @@
         if (character) {
           character.activeSpells = next;
           try { localStorage.setItem('mage_current_character', JSON.stringify(character)); } catch(e){}
+          if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, character);
         }
       }
       
@@ -3146,6 +3273,7 @@
         const blank = {
           name:"New Mage", shadowName:"", path:"", order:"", gnosis:1, wisdom:7,
           mana:{current:10,max:10}, willpower:{current:5,max:5},
+          health:{max:7,bashing:0,lethal:0,aggravated:0},
           arcana:{death:0,fate:0,forces:0,life:0,matter:0,mind:0,prime:0,space:0,spirit:0,time:0},
           skills:{}, rotes:[], praxes:[], improvisedFavorites:[], activeSpells:[],
           discord:{spellPreviewWebhook:"",dicePoolWebhook:""},
@@ -3177,7 +3305,16 @@
       }
       function handleManaChange(newMana) {
         if (!character) return;
-        setChar(prev => ({...prev, mana:{...prev.mana, current:newMana}}));
+        const updated = {...character, mana:{...character.mana, current:newMana}};
+        setChar(updated);
+        if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, updated);
+      }
+      function handleHealthChange(newHealth) {
+        if (!character) return;
+        const updated = {...character, health: newHealth};
+        setChar(updated);
+        try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
+        if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, updated);
       }
       function handleQuickCast(spell) {
         loadSpellData(spell, character, set);
@@ -3315,6 +3452,7 @@
               onSave={handleSave}
               onNew={handleNew}
               onManaChange={handleManaChange}
+              onHealthChange={handleHealthChange}
               activeCount={activeSpells.length}
               onSheetToggle={() => setSheetOpen(o => !o)}
               onSceneToggle={() => setSceneOpen(o => !o)}
