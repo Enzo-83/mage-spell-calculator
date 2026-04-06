@@ -562,7 +562,7 @@
           background:selected?C.accentFaint:"rgba(255,255,255,0.02)",
           cursor:"pointer",textAlign:"left",transition:"all .15s",
         }}>
-          <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+          {{ display:"flex",alignItems:"center",gap:10 }}>
             <div style={{ width:13,height:13,borderRadius:"50%",flexShrink:0,
               border:`2px solid ${selected?C.accentLight:C.textMuted}`,
               background:selected?C.accentLight:"transparent" }}/>
@@ -3435,7 +3435,6 @@
                 character={character}
                 onSceneUpdate={handleSceneUpdate}
               />
-            )
             {/* Title bar */}
             <div style={{ padding:"11px 16px 9px",
               background:`linear-gradient(90deg,${C.bgDeep},${C.bgCard})`,
