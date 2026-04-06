@@ -2452,6 +2452,18 @@
             <button class="mana-adj-btn" id="btnManaUp" title="Increase mana">+</button>
             <span class="mana-adj-info" id="manaAdjInfo">per turn: 1</span>
         </div>
+        <div class="mana-adjuster" id="healthAdjuster" style="display: none; flex-wrap: wrap;">
+            <span class="mana-adj-label">♥ Health</span>
+            <span class="mana-adj-value" id="healthDisplay">7/7</span>
+            <span id="healthWoundPen" style="color: var(--success); font-size: 0.8em; margin-left: 4px;"></span>
+            <span style="flex-basis:100%;height:0;"></span>
+            <div id="healthTrackDisplay" style="display:flex; gap:2px; flex:1; margin:4px 0;"></div>
+            <span style="flex-basis:100%;height:0;"></span>
+            <button class="mana-adj-btn" id="btnHealthBashing" title="Deal bashing" style="font-size:0.7em; width:auto; padding:2px 8px;">+/</button>
+            <button class="mana-adj-btn" id="btnHealthLethal" title="Deal lethal" style="font-size:0.7em; width:auto; padding:2px 8px;">+X</button>
+            <button class="mana-adj-btn" id="btnHealthAgg" title="Deal aggravated" style="font-size:0.7em; width:auto; padding:2px 8px;">+*</button>
+            <button class="mana-adj-btn" id="btnHealthHeal" title="Heal rightmost" style="font-size:0.7em; width:auto; padding:2px 8px; color:var(--success); border-color:var(--success);">Heal</button>
+        </div>
         
         <!-- Scene Tracker -->
         <div class="scene-tracker-card" id="sceneTrackerCard">
@@ -3334,6 +3346,19 @@
           arr.push(entry);
           if (arr.length > 20) arr = arr.slice(arr.length - 20);
           return arr;
+        });
+      }
+
+      function scenePushStats(roomCode, playerId, character) {
+        if (!roomCode || !playerId || !character) return;
+        var h = character.health || { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+        sceneGetRef(roomCode).child("players/" + playerId + "/stats").update({
+          gnosis: character.gnosis || 1,
+          wisdom: character.wisdom || 7,
+          mana: { current: character.mana?.current ?? 0, max: character.mana?.max ?? 10 },
+          health: { max: h.max || 7, bashing: h.bashing || 0, lethal: h.lethal || 0, aggravated: h.aggravated || 0 },
+          activeSpells: (character.activeSpells || []).length,
+          maxActiveSpells: character.gnosis || 1,
         });
       }
       function sceneRememberRoom(code, role) {
@@ -4308,6 +4333,7 @@
                 const nameEl = document.getElementById('headerCharacterName');
                 const pathEl = document.getElementById('headerCharacterPath');
                 const manaAdj = document.getElementById('manaAdjuster');
+                const healthAdj = document.getElementById('healthAdjuster');
                 
                 if (currentCharacter) {
                     nameEl.textContent = currentCharacter.name || 'Unnamed Mage';
@@ -4315,13 +4341,16 @@
                     const orderData = ORDERS[currentCharacter.order];
                     pathEl.textContent = `${pathData ? pathData.label : ''} ${orderData ? orderData.label : ''}`.trim();
                     
-                    // Show mana adjuster
+                    // Show mana + health adjusters
                     manaAdj.style.display = 'flex';
+                    healthAdj.style.display = 'flex';
                     updateManaAdjusterDisplay();
+                    updateHealthAdjusterDisplay();
                 } else {
                     nameEl.textContent = 'No Character Loaded';
                     pathEl.textContent = 'Click "New" or "Load" to begin';
                     manaAdj.style.display = 'none';
+                    healthAdj.style.display = 'none';
                 }
                 
                 // Also refresh spell library
@@ -4352,6 +4381,68 @@
                 currentCharacter.mana.current = newVal;
                 updateManaAdjusterDisplay();
                 updateManaSummary();
+                if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                }
+            }
+
+            function updateHealthAdjusterDisplay() {
+                if (!currentCharacter) return;
+                if (!currentCharacter.health) currentCharacter.health = { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+                var h = currentCharacter.health;
+                var filled = h.bashing + h.lethal + h.aggravated;
+                var empty = Math.max(0, h.max - filled);
+                var wp = filled >= h.max ? -3 : filled >= h.max - 1 ? -2 : filled >= h.max - 2 ? -1 : 0;
+                document.getElementById('healthDisplay').textContent = empty + '/' + h.max;
+                var wpEl = document.getElementById('healthWoundPen');
+                wpEl.textContent = wp < 0 ? 'Wound: ' + wp : '';
+                wpEl.style.color = wp < 0 ? 'var(--danger)' : 'var(--success)';
+                // Render track
+                var trackEl = document.getElementById('healthTrackDisplay');
+                var html = '';
+                for (var i = 0; i < h.max; i++) {
+                    var sym = '', bg = 'var(--bg-dark)', fg = 'var(--text-muted)', bd = 'rgba(255,255,255,0.1)';
+                    if (i < h.aggravated) { sym = '*'; bg = 'rgba(199,62,29,0.2)'; fg = 'var(--danger)'; bd = 'var(--danger)'; }
+                    else if (i < h.aggravated + h.lethal) { sym = 'X'; bg = 'rgba(233,196,106,0.15)'; fg = 'var(--warning)'; bd = 'var(--warning)'; }
+                    else if (i < filled) { sym = '/'; bg = 'var(--bg-card)'; fg = 'var(--text)'; bd = 'rgba(255,255,255,0.2)'; }
+                    html += '<div style="flex:1;text-align:center;padding:3px 0;border-radius:3px;background:' + bg + ';border:1px solid ' + bd + ';font-size:11px;font-weight:bold;color:' + fg + ';min-width:0;">' + (sym || '&nbsp;') + '</div>';
+                }
+                trackEl.innerHTML = html;
+            }
+
+            function dealHealthDamage(type) {
+                if (!currentCharacter) return;
+                if (!currentCharacter.health) currentCharacter.health = { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+                var h = currentCharacter.health;
+                var filled = h.bashing + h.lethal + h.aggravated;
+                if (filled >= h.max) {
+                    // Upgrade damage
+                    if (type === 'bashing' || type === 'lethal') {
+                        if (h.bashing > 0) { h.bashing--; h.lethal++; }
+                        else if (h.lethal > 0) { h.lethal--; h.aggravated++; }
+                    } else {
+                        if (h.lethal > 0) { h.lethal--; h.aggravated++; }
+                        else if (h.bashing > 0) { h.bashing--; h.aggravated++; }
+                    }
+                } else {
+                    h[type]++;
+                }
+                updateHealthAdjusterDisplay();
+                if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                }
+            }
+
+            function healHealth() {
+                if (!currentCharacter || !currentCharacter.health) return;
+                var h = currentCharacter.health;
+                if (h.bashing > 0) h.bashing--;
+                else if (h.lethal > 0) h.lethal--;
+                else if (h.aggravated > 0) h.aggravated--;
+                updateHealthAdjusterDisplay();
+                if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                }
             }
             
             // Open character editor modal
@@ -4379,6 +4470,7 @@
                 document.getElementById('charOrder').value = char.order || 'mysterium';
                 document.getElementById('charGnosis').value = char.gnosis || 1;
                 document.getElementById('charWisdom').value = char.wisdom || 7;
+                document.getElementById('charHealthMax').value = char.health?.max || 7;
                 document.getElementById('charManaCurrent').value = char.mana.current || 0;
                 document.getElementById('charManaMax').value = char.mana.max || 10;
                 document.getElementById('charWillpowerCurrent').value = char.willpower.current || 0;
@@ -4547,6 +4639,9 @@
                 currentCharacter.order = document.getElementById('charOrder').value;
                 currentCharacter.gnosis = parseInt(document.getElementById('charGnosis').value) || 1;
                 currentCharacter.wisdom = parseInt(document.getElementById('charWisdom').value) || 7;
+                var newHealthMax = parseInt(document.getElementById('charHealthMax').value) || 7;
+                if (!currentCharacter.health) currentCharacter.health = { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+                currentCharacter.health.max = newHealthMax;
                 currentCharacter.mana.current = parseInt(document.getElementById('charManaCurrent').value) || 0;
                 currentCharacter.mana.max = parseInt(document.getElementById('charManaMax').value) || 10;
                 currentCharacter.willpower.current = parseInt(document.getElementById('charWillpowerCurrent').value) || 0;
@@ -4685,6 +4780,9 @@
                 saveCharacterToLocalStorage();
                 syncActiveSpellCount();
                 renderActiveSpellsList();
+                if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                }
 
                 // Brief visual feedback on button
                 const btn = document.getElementById('btnSetActive');
@@ -4704,6 +4802,9 @@
                 saveCharacterToLocalStorage();
                 syncActiveSpellCount();
                 renderActiveSpellsList();
+                if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                }
             }
 
             function syncActiveSpellCount() {
@@ -6459,6 +6560,9 @@
                 const notice = document.getElementById('manaDeductedNotice');
                 notice.textContent = `✓ Mana deducted — ${newMana} remaining`;
                 notice.style.display = 'block';
+                if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                }
             }
             
             function resetManaDeductedFlag() {
@@ -6643,6 +6747,10 @@
             // Mana adjuster buttons
             document.getElementById('btnManaUp').addEventListener('click', function() { adjustCharacterMana(1); });
             document.getElementById('btnManaDown').addEventListener('click', function() { adjustCharacterMana(-1); });
+            document.getElementById('btnHealthBashing').addEventListener('click', function() { dealHealthDamage('bashing'); });
+            document.getElementById('btnHealthLethal').addEventListener('click', function() { dealHealthDamage('lethal'); });
+            document.getElementById('btnHealthAgg').addEventListener('click', function() { dealHealthDamage('aggravated'); });
+            document.getElementById('btnHealthHeal').addEventListener('click', function() { healHealth(); });
             
             // Reset mana deducted flag when spell parameters change
             ['castingMethod','arcanumDots','spellRequirement','gnosis','potency','advancedPotency',
@@ -6766,6 +6874,7 @@
                     if (!snap.exists()) { sceneShowError('Room not found'); return; }
                     sceneMode = 'player';
                     sceneJoinRoom(code, sceneGetPlayerId(), sceneGetPlayerName(), sceneGetPlayerPath());
+                    if (currentCharacter) scenePushStats(code, sceneGetPlayerId(), currentCharacter);
                     sceneAttachListener(code);
                     sceneRememberRoom(code, 'player');
                     sceneRenderUI();
@@ -6902,14 +7011,57 @@
                 entries.forEach(function(pair) {
                     var pid = pair[0], p = pair[1];
                     var eff = Math.max(0, (p.paradoxRolls || 0) + (p.stAdjustment || 0));
-                    var statColor = sceneActive ? (eff > 0 ? 'var(--danger)' : 'var(--success)') : 'var(--text-muted)';
-                    var statText = sceneActive ? (eff > 0 ? eff + ' roll' + (eff !== 1 ? 's' : '') + ' (+' + eff + ')' : '0 rolls') : '—';
+                    var s = p.stats || {};
+                    var sh = s.health || {};
+                    var shFilled = (sh.bashing||0)+(sh.lethal||0)+(sh.aggravated||0);
+                    var shMax = sh.max || 7;
+                    var shWound = shFilled >= shMax ? -3 : shFilled >= shMax-1 ? -2 : shFilled >= shMax-2 ? -1 : 0;
+                    var hasStats = s.gnosis !== undefined;
 
-                    html += '<div class="scene-player-row"><div>';
-                    html += '<span class="scene-player-name">' + (p.name || pid) + '</span>';
+                    html += '<div style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.06);">';
+
+                    // Name row with paradox badge
+                    html += '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">';
+                    html += '<div><span class="scene-player-name">' + (p.name || pid) + '</span>';
                     if (p.path) html += '<span class="scene-player-path">' + p.path + '</span>';
                     html += '</div>';
-                    html += '<span class="scene-player-stat" style="color:' + statColor + ';">' + statText + '</span></div>';
+                    if (sceneActive) {
+                        var pdxBg = eff > 0 ? 'rgba(199,62,29,0.15)' : 'rgba(42,157,143,0.15)';
+                        var pdxClr = eff > 0 ? 'var(--danger)' : 'var(--success)';
+                        html += '<span style="font-size:0.75em; font-weight:bold; padding:2px 8px; border-radius:4px; background:' + pdxBg + '; color:' + pdxClr + ';">' + (eff > 0 ? eff + ' paradox (+' + eff + ')' : '0 paradox') + '</span>';
+                    }
+                    html += '</div>';
+
+                    // Stats grid
+                    if (hasStats) {
+                        var manaClr = (s.mana?.current??0) < 3 ? 'var(--danger)' : (s.mana?.current??0) < (s.mana?.max??10)/2 ? 'var(--warning)' : 'var(--text)';
+                        var spellClr = (s.activeSpells||0) >= (s.maxActiveSpells||1) ? 'var(--warning)' : 'var(--text)';
+                        var wisClr = (s.wisdom||7) <= 4 ? 'var(--warning)' : 'var(--text)';
+                        html += '<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin-bottom:6px;">';
+                        html += '<div style="text-align:center; padding:6px 2px; background:var(--bg-dark); border-radius:4px;"><div style="font-size:1em; font-weight:bold;">' + (s.gnosis||1) + '</div><div style="font-size:0.65em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Gnosis</div></div>';
+                        html += '<div style="text-align:center; padding:6px 2px; background:var(--bg-dark); border-radius:4px;"><div style="font-size:1em; font-weight:bold; color:' + wisClr + ';">' + (s.wisdom||7) + '</div><div style="font-size:0.65em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Wisdom</div></div>';
+                        html += '<div style="text-align:center; padding:6px 2px; background:var(--bg-dark); border-radius:4px;"><div style="font-size:1em; font-weight:bold; color:' + manaClr + ';">' + (s.mana?.current??0) + '<span style="font-size:0.7em; color:var(--text-muted);">/' + (s.mana?.max??10) + '</span></div><div style="font-size:0.65em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Mana</div></div>';
+                        html += '<div style="text-align:center; padding:6px 2px; background:var(--bg-dark); border-radius:4px;"><div style="font-size:1em; font-weight:bold; color:' + spellClr + ';">' + (s.activeSpells||0) + '<span style="font-size:0.7em; color:var(--text-muted);">/' + (s.maxActiveSpells||1) + '</span></div><div style="font-size:0.65em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Spells</div></div>';
+                        html += '</div>';
+
+                        // Health track
+                        html += '<div style="margin-bottom:6px;">';
+                        html += '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:3px;">';
+                        html += '<span style="font-size:0.7em; color:var(--text-muted);">Health</span>';
+                        html += '<span style="font-size:0.7em; color:' + (shWound < 0 ? 'var(--danger)' : 'var(--success)') + ';">';
+                        html += shWound < 0 ? 'Wound: ' + shWound : 'No wound penalty';
+                        if (shFilled >= shMax && (sh.lethal||0) > 0) html += ' · Bleeding out!';
+                        html += '</span></div>';
+                        html += '<div style="display:flex; gap:2px;">';
+                        for (var bi = 0; bi < shMax; bi++) {
+                            var sym = '', bg = 'var(--bg-dark)', fg = 'var(--text-muted)', bd = 'rgba(255,255,255,0.1)';
+                            if (bi < (sh.aggravated||0)) { sym = '*'; bg = 'rgba(199,62,29,0.2)'; fg = 'var(--danger)'; bd = 'var(--danger)'; }
+                            else if (bi < (sh.aggravated||0)+(sh.lethal||0)) { sym = 'X'; bg = 'rgba(233,196,106,0.15)'; fg = 'var(--warning)'; bd = 'var(--warning)'; }
+                            else if (bi < shFilled) { sym = '/'; bg = 'var(--bg-card)'; fg = 'var(--text)'; bd = 'rgba(255,255,255,0.2)'; }
+                            html += '<div style="flex:1;text-align:center;padding:3px 0;border-radius:2px;background:' + bg + ';border:1px solid ' + bd + ';font-size:0.75em;font-weight:bold;color:' + fg + ';min-width:0;">' + (sym || '&nbsp;') + '</div>';
+                        }
+                        html += '</div></div>';
+                    }
 
                     // Paradox log chips
                     if (sceneActive && p.paradoxLog && p.paradoxLog.length > 0) {
@@ -6934,6 +7086,8 @@
                         html += '<input class="scene-adj-note" type="text" placeholder="Reason (visible to player)" value="' + (p.stNote || '').replace(/"/g, '&quot;') + '" onchange="sceneSTSetNote(\'' + pid + '\',this.value)">';
                         html += '</div>';
                     }
+
+                    html += '</div>';
                 });
                 container.innerHTML = html;
             }
@@ -7043,6 +7197,7 @@
                             }
                             sceneMode = 'player';
                             sceneJoinRoom(saved.code, sceneGetPlayerId(), sceneGetPlayerName(), sceneGetPlayerPath());
+                            if (currentCharacter) scenePushStats(saved.code, sceneGetPlayerId(), currentCharacter);
                             sceneAttachListener(saved.code);
                             sceneRenderUI();
                         });
@@ -7589,6 +7744,11 @@
                                 <span style="line-height: 36px;">/</span>
                                 <input type="number" id="charWillpowerMax" min="1" max="10" value="5" style="width: 60px;">
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Health (Max)</label>
+                            <input type="number" id="charHealthMax" min="1" max="20" value="7">
+                            <div class="info-text">Stamina + Size (typically 7)</div>
                         </div>
                     </div>
                 </div>
