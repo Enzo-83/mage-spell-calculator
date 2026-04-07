@@ -8452,12 +8452,13 @@
                 <div class="modal-section">
                     <h3>📥 Bulk Import Spells</h3>
                     <div class="info-text" style="margin-bottom:12px">
-                        Import spells from a JSON file. Duplicates (same name + book) are skipped by default.
+                        Import spells from a <strong>CSV</strong> (Excel / Google Sheets) or <strong>JSON</strong> file. Duplicates (same name + book) are skipped by default.
                     </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                        <button class="btn-small" id="btnAdminDownloadTemplate">📄 Download Template</button>
-                        <button class="btn-small btn-primary" id="btnAdminImport">📥 Import JSON File</button>
-                        <input type="file" id="adminImportFileInput" accept=".json" style="display:none">
+                        <button class="btn-small" id="btnAdminDownloadCsvTemplate">📊 Download CSV Template</button>
+                        <button class="btn-small" id="btnAdminDownloadTemplate">📄 Download JSON Template</button>
+                        <button class="btn-small btn-primary" id="btnAdminImport">📥 Import File (CSV or JSON)</button>
+                        <input type="file" id="adminImportFileInput" accept=".csv,.json" style="display:none">
                     </div>
                     <label style="display:flex;align-items:center;gap:8px;font-size:0.85em;color:var(--text-muted);margin-bottom:10px;cursor:pointer;">
                         <input type="checkbox" id="adminImportOverwrite">

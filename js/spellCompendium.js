@@ -895,6 +895,178 @@
         URL.revokeObjectURL(url);
     }
 
+    // CSV column order (must match _downloadCsvTemplate header row)
+    var CSV_COLUMNS = [
+        'name','sourceBook','sourcePage',
+        'primaryArcanum','primaryArcanumLevel',
+        'secondaryArcanum','secondaryArcanumLevel',
+        'practice','primaryFactor','withstand',
+        'description',
+        'reach1','reach2','reach3','reach4','reach5',
+        'optArcana',          // pipe-separated: "death 1: effect|fate 2: other"
+        'defaultPotency','defaultRange'
+    ];
+
+    function _downloadCsvTemplate() {
+        var header = CSV_COLUMNS.join(',');
+        // One sample row — wrap cells with commas in quotes
+        var sample = [
+            'Speak with the Dead',          // name
+            'core',                         // sourceBook
+            '132',                          // sourcePage
+            'death',                        // primaryArcanum
+            '2',                            // primaryArcanumLevel
+            '',                             // secondaryArcanum
+            '',                             // secondaryArcanumLevel
+            'knowing',                      // practice
+            'potency',                      // primaryFactor
+            'Composure',                    // withstand
+            '"Full spell description here. Use double-quotes to include commas."',
+            'First reach option text.',     // reach1
+            '2: Second reach (costs 2 Reach) — prefix with 2: for a 2-Reach option.',  // reach2
+            '',                             // reach3
+            '',                             // reach4
+            '',                             // reach5
+            '"fate 1: Allows fate bonus|space 2: Expands range"',  // optArcana
+            '1',                            // defaultPotency
+            'touch',                        // defaultRange (self|touch|aimed|sensory)
+        ].join(',');
+        var note = [
+            '# DELETE these comment rows before importing.',
+            '# sourceBook values: core | signs-of-sorcery | night-horrors | tome-of-pentacle',
+            '# primaryArcanum values: death|fate|forces|life|matter|mind|prime|space|spirit|time',
+            '# practice values: knowing|compelling|unveiling|ruling|shielding|veiling|fraying|perfecting|weaving|patterning|unraveling|making|unmaking',
+            '# primaryFactor values: potency | duration',
+            '# reach cost: prefix with "2: " for a 2-Reach option (e.g.  2: Affect an extra target)',
+            '# optArcana: pipe-separated list  arcanum level: effect  e.g.  "space 1: widen range|death 2: affect ghosts"',
+            '# defaultRange values: self | touch | aimed | sensory',
+        ].join('\n');
+        var csv = note + '\n' + header + '\n' + sample;
+        var blob = new Blob([csv], { type: 'text/csv' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'compendium-import-template.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // Robust CSV row parser — handles quoted fields with embedded commas/newlines
+    function _parseCsvRow(line) {
+        var result = [];
+        var cur    = '';
+        var inQ    = false;
+        for (var i = 0; i < line.length; i++) {
+            var ch = line[i];
+            if (inQ) {
+                if (ch === '"') {
+                    if (line[i + 1] === '"') { cur += '"'; i++; }   // escaped quote ""
+                    else { inQ = false; }
+                } else {
+                    cur += ch;
+                }
+            } else {
+                if (ch === '"')       { inQ = true; }
+                else if (ch === ',')  { result.push(cur.trim()); cur = ''; }
+                else                  { cur += ch; }
+            }
+        }
+        result.push(cur.trim());
+        return result;
+    }
+
+    function _csvToSpellArray(text) {
+        // Split into lines, strip BOM if present
+        var lines = text.replace(/^\uFEFF/, '').split(/\r?\n/);
+        var spells = [];
+        var headerIdx = -1;
+
+        // Find the header row (first non-comment line)
+        for (var i = 0; i < lines.length; i++) {
+            var l = lines[i].trim();
+            if (!l || l.startsWith('#')) continue;
+            // First non-comment line must be the header
+            headerIdx = i;
+            break;
+        }
+        if (headerIdx < 0) return spells;
+
+        var headers = _parseCsvRow(lines[headerIdx]).map(function(h){ return h.toLowerCase().trim(); });
+
+        for (var i = headerIdx + 1; i < lines.length; i++) {
+            var line = lines[i].trim();
+            if (!line || line.startsWith('#')) continue;
+            var cols = _parseCsvRow(lines[i]);
+
+            // Map columns by header name
+            var row = {};
+            headers.forEach(function(h, idx) {
+                row[h] = (cols[idx] || '').trim();
+            });
+
+            if (!row.name) continue;   // skip empty rows
+
+            // Build reachOptions array from reach1..reach5
+            var reachOptions = [];
+            ['reach1','reach2','reach3','reach4','reach5'].forEach(function(k) {
+                var val = row[k] || '';
+                if (!val) return;
+                // Detect cost prefix: "2: ..." → cost 2, otherwise cost 1
+                var cost = 1;
+                var effect = val;
+                var m = val.match(/^(\d+)\s*:\s*([\s\S]+)/);
+                if (m) { cost = parseInt(m[1], 10) || 1; effect = m[2].trim(); }
+                reachOptions.push({ cost: cost, effect: effect });
+            });
+
+            // Parse optArcana: "death 1: effect|fate 2: other"
+            var optionalArcana = [];
+            if (row.optarcana) {
+                row.optarcana.split('|').forEach(function(part) {
+                    part = part.trim();
+                    if (!part) return;
+                    // Format: "arcanum level: effect"
+                    var m2 = part.match(/^([a-z]+)\s+(\d+)\s*(?::|–|-)\s*([\s\S]*)/i);
+                    if (m2) {
+                        optionalArcana.push({
+                            arcanum: m2[1].toLowerCase(),
+                            level:   parseInt(m2[2], 10) || 1,
+                            effect:  m2[3].trim()
+                        });
+                    }
+                });
+            }
+
+            // Build defaults object
+            var defaults = {};
+            if (row.defaultpotency) defaults.potency = parseInt(row.defaultpotency, 10) || 1;
+            if (row.defaultrange)   defaults.range    = row.defaultrange.toLowerCase();
+
+            var spell = {
+                name:                 row.name,
+                sourceBook:           row.sourcebook    || '',
+                sourcePage:           row.sourcepage ? parseInt(row.sourcepage, 10) : null,
+                primaryArcanum:       row.primaryarcanum || '',
+                primaryArcanumLevel:  row.primaryarcanumLevel ? parseInt(row.primaryarcanumLevel, 10)
+                                      : (row.primaryarcanumlevel ? parseInt(row.primaryarcanumlevel, 10) : 1),
+                secondaryArcanum:     row.secondaryarcanum     || null,
+                secondaryArcanumLevel:row.secondaryarcanumLevel ? parseInt(row.secondaryarcanumLevel, 10)
+                                      : (row.secondaryarcanumlevel ? parseInt(row.secondaryarcanumlevel, 10) : null),
+                practice:             row.practice      || '',
+                primaryFactor:        row.primaryfactor || 'potency',
+                withstand:            row.withstand     || '',
+                description:          row.description   || '',
+                reachOptions:         reachOptions,
+                optionalArcana:       optionalArcana,
+                defaults:             defaults,
+            };
+            // Drop null-ish secondaryArcanum
+            if (!spell.secondaryArcanum) { spell.secondaryArcanum = null; spell.secondaryArcanumLevel = null; }
+            spells.push(spell);
+        }
+        return spells;
+    }
+
     function _triggerImport() {
         document.getElementById('adminImportFileInput').click();
     }
@@ -905,18 +1077,32 @@
         // Reset input so same file can be re-selected after a fix
         event.target.value = '';
 
+        var isCsv = file.name.toLowerCase().endsWith('.csv');
         var reader = new FileReader();
         reader.onload = function (e) {
             var raw;
-            try {
-                raw = JSON.parse(e.target.result);
-            } catch (err) {
-                _setImportStatus('Invalid JSON — ' + err.message, 'err');
-                return;
-            }
-            if (!Array.isArray(raw)) {
-                _setImportStatus('JSON must be an array [ { ... }, { ... } ]', 'err');
-                return;
+            if (isCsv) {
+                try {
+                    raw = _csvToSpellArray(e.target.result);
+                } catch (err) {
+                    _setImportStatus('CSV parse error — ' + err.message, 'err');
+                    return;
+                }
+                if (!raw.length) {
+                    _setImportStatus('No data rows found in CSV. Check the file has a header row and at least one spell row.', 'warn');
+                    return;
+                }
+            } else {
+                try {
+                    raw = JSON.parse(e.target.result);
+                } catch (err) {
+                    _setImportStatus('Invalid JSON — ' + err.message, 'err');
+                    return;
+                }
+                if (!Array.isArray(raw)) {
+                    _setImportStatus('JSON must be an array [ { ... }, { ... } ]', 'err');
+                    return;
+                }
             }
             var overwrite = document.getElementById('adminImportOverwrite').checked;
             _doImport(raw, overwrite);
@@ -1132,8 +1318,9 @@
         _on('adminPanelClose',          'click', _closeAdminPanel);
         _on('btnAdminClose',            'click', _closeAdminPanel);
         _on('btnAdminGrant',            'click', _grantRole);
-        _on('btnAdminDownloadTemplate', 'click', _downloadTemplate);
-        _on('btnAdminImport',           'click', _triggerImport);
+        _on('btnAdminDownloadCsvTemplate', 'click', _downloadCsvTemplate);
+        _on('btnAdminDownloadTemplate',    'click', _downloadTemplate);
+        _on('btnAdminImport',              'click', _triggerImport);
         var fileInput = document.getElementById('adminImportFileInput');
         if (fileInput) fileInput.addEventListener('change', _handleImportFile);
     }
