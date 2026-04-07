@@ -616,13 +616,9 @@
     }
 
     // ── Step 1: Caster ────────────────────────────────────────────────────────
-    function StepCaster({ d, set, character, onQuickCast, onClash }) {
+    function StepCaster({ d, set, character, onClash }) {
       const atLimit   = d.activeSpells >= d.gnosis;
       const spellsOver = Math.max(0, d.activeSpells - d.gnosis);
-      const rotes     = character?.rotes              || [];
-      const praxes    = character?.praxes             || [];
-      const favorites = character?.improvisedFavorites || [];
-      const allSpells = [...rotes, ...praxes, ...favorites];
       return (
         <div>
           {character && (
@@ -703,37 +699,6 @@
           <CheckboxRow label="Order Skill" sub="+1 Mudra die when casting Order Rotes"
             checked={d.orderSkill} onChange={v=>set("orderSkill",v)}/>
 
-          {allSpells.length > 0 && (
-            <>
-              <Divider/>
-              <SectionHead>⚡ Quick Cast</SectionHead>
-              <Hint style={{ marginBottom:8 }}>Tap a spell to load it and jump straight to Factors.</Hint>
-              <div style={{ borderRadius:8,border:`1px solid ${C.border}`,overflow:"hidden" }}>
-                {allSpells.map((spell,i)=>{
-                  const isRote = spell.type === "rote";
-                  const isPraxis = spell.type === "praxis";
-                  const tagLabel = isRote ? "Rote" : isPraxis ? "Praxis" : "Fav";
-                  const tagColor = isRote ? undefined : isPraxis ? "warning" : "danger";
-                  return (
-                    <div key={spell.id} onClick={()=>onQuickCast(spell)} style={{
-                      padding:"9px 12px",cursor:"pointer",transition:"background .15s",
-                      borderBottom:i<allSpells.length-1?`1px solid ${C.borderLight}`:"none",
-                      display:"flex",justifyContent:"space-between",alignItems:"center",
-                    }}>
-                      <div style={{ flex:1,minWidth:0 }}>
-                        <div style={{ color:C.text,fontSize:13 }}>{spell.name}</div>
-                        <div style={{ color:C.textMuted,fontSize:10 }}>
-                          {arcKey(spell.primaryArcanum)} {"●".repeat(spell.primaryArcanumLevel||1)}
-                          {" · "}{spell.practice}
-                        </div>
-                      </div>
-                      <Tag color={tagColor}>{tagLabel}</Tag>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
         </div>
       );
     }
@@ -757,63 +722,115 @@
       const favorites  = character?.improvisedFavorites || [];
       const hasAnySpells = rotes.length + praxes.length + favorites.length > 0;
 
+      const [libOpen,   setLibOpen]  = useState(false);
+      const [carArcanum, setCarArc]  = useState(null);
+      const [carIdx,    setCarIdx]   = useState(0);
+      const wrapperRef               = useRef(null);
+      const trackRef                 = useRef(null);
+
+      const ARCANUM_HEX = {
+        death:'#6b7280', fate:'#a78bfa', forces:'#f59e0b', life:'#34d399',
+        matter:'#9ca3af', mind:'#60a5fa', prime:'#f472b6', space:'#818cf8',
+        spirit:'#a3e635', time:'#fbbf24',
+      };
+      const ARCANA_ORDER = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
+
+      // Group all spells by arcanum
+      const allSpells = [...rotes, ...praxes, ...favorites];
+      const grouped = {};
+      allSpells.forEach(spell => {
+        const arc = spell.primaryArcanum?.toLowerCase() || 'prime';
+        if (!grouped[arc]) grouped[arc] = [];
+        grouped[arc].push(spell);
+      });
+      const availableArcana = ARCANA_ORDER.filter(a => grouped[a]?.length);
+      const activeArc  = (carArcanum && grouped[carArcanum]?.length) ? carArcanum : availableArcana[0];
+      const arcSpells  = grouped[activeArc] || [];
+      const safeIdx    = Math.max(0, Math.min(carIdx, arcSpells.length - 1));
+
+      // Position carousel track after render
+      useEffect(() => {
+        if (!libOpen || !wrapperRef.current || !trackRef.current) return;
+        const ww      = wrapperRef.current.offsetWidth;
+        const slideW  = ww - 56;
+        const gap     = 12;
+        const offset  = 28;
+        trackRef.current.querySelectorAll('.wiz-slide').forEach(s => { s.style.width = slideW + 'px'; });
+        trackRef.current.style.transition = 'transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)';
+        trackRef.current.style.transform  = `translateX(${offset - safeIdx * (slideW + gap)}px)`;
+      }, [safeIdx, activeArc, libOpen]);
+
+      // Touch swipe on carousel
+      useEffect(() => {
+        if (!libOpen || !wrapperRef.current) return;
+        const el = wrapperRef.current;
+        let startX = 0, startY = 0, swiping = false;
+        const onStart = e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; swiping = false; };
+        const onMove  = e => { if (!swiping) { const dx=Math.abs(e.touches[0].clientX-startX),dy=Math.abs(e.touches[0].clientY-startY); if(dx>dy&&dx>8) swiping=true; } };
+        const onEnd   = e => {
+          if (!swiping) return;
+          const dx = e.changedTouches[0].clientX - startX;
+          if (dx < -50) setCarIdx(i => Math.min(i+1, arcSpells.length-1));
+          else if (dx > 50) setCarIdx(i => Math.max(i-1, 0));
+        };
+        el.addEventListener('touchstart', onStart, {passive:true});
+        el.addEventListener('touchmove',  onMove,  {passive:true});
+        el.addEventListener('touchend',   onEnd,   {passive:true});
+        return () => { el.removeEventListener('touchstart',onStart); el.removeEventListener('touchmove',onMove); el.removeEventListener('touchend',onEnd); };
+      }, [libOpen, safeIdx, arcSpells.length]);
+
       function loadSpell(spell) {
         loadSpellData(spell, character, set);
         if (onSpellLoaded) onSpellLoaded(spell);
+        setLibOpen(false);
       }
 
-      function SpellRow({ spell, last }) {
-        const selected = d.spellName === spell.name;
-        const isRoteEntry  = spell.type === "rote";
-        const isPraxisEntry = spell.type === "praxis";
-        const tagColor = isRoteEntry ? undefined : isPraxisEntry ? "warning" : "danger";
-        const tagLabel = isRoteEntry ? `Rote (${spell.roteCreator})` : isPraxisEntry ? "Praxis" : "Favorite";
+      function WizSpellCard({ spell }) {
+        const isRote   = spell.type === "rote";
+        const isPraxis = spell.type === "praxis";
+        const tagLabel = isRote ? "Rote" : isPraxis ? "Praxis" : "Favorite";
+        const tagColor = isRote ? C.success : isPraxis ? C.warning : C.danger;
+        const arcColor = ARCANUM_HEX[spell.primaryArcanum?.toLowerCase()] || '#a78bfa';
+        let arcanumStr = `${arcKey(spell.primaryArcanum)} ${"●".repeat(spell.primaryArcanumLevel||1)}`;
+        if (spell.secondaryArcanum) arcanumStr += ` · ${arcKey(spell.secondaryArcanum)} ${"●".repeat(spell.secondaryArcanumLevel||1)}`;
         return (
-          <div style={{
-            padding:"10px 14px", transition:"background .15s",
-            background:selected?C.accentFaint:"transparent",
-            borderBottom:last?"none":`1px solid ${C.borderLight}`,
-          }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6 }}>
-              <div style={{ flex:1,minWidth:0 }} onClick={()=>loadSpell(spell)} >
-                <div style={{ color:C.text,fontSize:13,fontWeight:selected?700:400,cursor:"pointer" }}>{spell.name}</div>
-                <div style={{ color:C.textMuted,fontSize:11,marginTop:1 }}>
-                  {arcKey(spell.primaryArcanum)} {"●".repeat(spell.primaryArcanumLevel||1)}
-                  {spell.secondaryArcanum&&` · ${arcKey(spell.secondaryArcanum)} ${"●".repeat(spell.secondaryArcanumLevel||1)}`}
-                  {" · "}{spell.practice}
+          <div style={{ background:C.bgDeep, border:`1px solid ${C.border}`, borderRadius:10,
+            overflow:"hidden", display:"flex", flexDirection:"column", height:"100%" }}>
+            <div style={{ padding:"10px 14px 8px", borderBottom:`3px solid ${arcColor}`,
+              background:`${arcColor}22` }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:6 }}>
+                <div style={{ color:C.text, fontSize:15, fontWeight:700, lineHeight:1.2 }}>{spell.name}</div>
+                <span style={{ background:`${tagColor}22`, border:`1px solid ${tagColor}44`, color:tagColor,
+                  borderRadius:4, padding:"2px 6px", fontSize:10, whiteSpace:"nowrap", flexShrink:0 }}>{tagLabel}</span>
+              </div>
+              <div style={{ color:arcColor, fontSize:12, marginTop:4 }}>{arcanumStr}</div>
+            </div>
+            <div style={{ padding:"10px 14px", flex:1 }}>
+              <div style={{ color:C.textMuted, fontSize:11, marginBottom:6 }}>
+                {arcKey(spell.practice)} · Primary: {arcKey(spell.primaryFactor || "potency")}
+              </div>
+              {spell.description && (
+                <div style={{ color:C.textMuted, fontSize:11, fontStyle:"italic",
+                  display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                  {spell.description}
                 </div>
-              </div>
-              <div style={{ display:"flex",alignItems:"center",gap:5,flexShrink:0 }}>
-                {compUser && (
-                  <button onClick={e=>{ e.stopPropagation(); onSuggest && onSuggest(spell); }}
-                    title="Suggest to Compendium"
-                    style={{ padding:"2px 6px",borderRadius:4,fontSize:12,cursor:"pointer",
-                      background:"rgba(233,196,106,0.12)",border:"1px solid rgba(233,196,106,0.3)",
-                      color:C.warning,lineHeight:1 }}>
-                    💡
-                  </button>
-                )}
-                <Tag color={tagColor}>{tagLabel}</Tag>
-              </div>
+              )}
+              {compUser && (
+                <button onClick={e=>{ e.stopPropagation(); onSuggest && onSuggest(spell); }}
+                  title="Suggest to Compendium"
+                  style={{ marginTop:8, padding:"2px 8px", borderRadius:4, fontSize:11, cursor:"pointer",
+                    background:"rgba(233,196,106,0.12)", border:"1px solid rgba(233,196,106,0.3)",
+                    color:C.warning }}>💡 Suggest</button>
+              )}
             </div>
-            {spell.description&&(
-              <div onClick={()=>loadSpell(spell)} style={{ color:C.textMuted,fontSize:10,marginTop:3,fontStyle:"italic",
-                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer" }}>{spell.description}</div>
-            )}
+            <div style={{ padding:"8px 14px", borderTop:`1px solid ${C.borderLight}` }}>
+              <button onClick={()=>loadSpell(spell)} style={{ width:"100%", padding:"9px 14px",
+                borderRadius:6, cursor:"pointer", background:C.accentFaint,
+                border:`1px solid ${C.accentBorder}`, color:C.accentLight, fontSize:13, fontWeight:700 }}>
+                Load Spell
+              </button>
+            </div>
           </div>
-        );
-      }
-
-      function LibrarySection({ title, spells }) {
-        if (!spells.length) return null;
-        return (
-          <>
-            <p style={{ margin:"10px 0 4px",fontSize:9,letterSpacing:2,textTransform:"uppercase",
-              color:C.accentLight,paddingLeft:2 }}>{title}</p>
-            <div style={{ borderRadius:8,border:`1px solid ${C.border}`,overflow:"hidden",marginBottom:6 }}>
-              {spells.map((s,i)=><SpellRow key={s.id} spell={s} last={i===spells.length-1}/>)}
-            </div>
-          </>
         );
       }
 
@@ -823,23 +840,94 @@
             <TextInput value={d.spellName} onChange={v=>set("spellName",v)} placeholder="e.g. Temporal Stutter"/>
           </Field>
           <Divider/>
-          <SectionHead>Load from Library</SectionHead>
-          {!character ? (
-            <div style={{ padding:14,borderRadius:8,background:C.warningFaint,border:`1px solid ${C.warning}`,marginBottom:12,textAlign:"center" }}>
-              <p style={{ color:C.warning,fontSize:12 }}>No character loaded.</p>
-              <p style={{ color:C.textMuted,fontSize:11,marginTop:4 }}>
+          {/* ── Collapsible Library Carousel ─────────────────────────────── */}
+          <div onClick={()=>hasAnySpells && setLibOpen(o=>!o)}
+            style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+              margin:"14px 0 8px", cursor: hasAnySpells ? "pointer" : "default",
+              userSelect:"none" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ flex:1, height:1, width:24,
+                background:`linear-gradient(90deg,${C.accentBorder},transparent)`,
+                display:"inline-block" }}/>
+              <span style={{ fontSize:10, letterSpacing:2.5, textTransform:"uppercase",
+                color: hasAnySpells ? C.accentLight : C.textMuted, fontWeight:700 }}>
+                📖 Load from Library
+              </span>
+            </div>
+            <span style={{ color:C.accentLight, fontSize:13, display:"inline-block",
+              transition:"transform 0.2s",
+              transform: libOpen ? "rotate(0deg)" : "rotate(-90deg)" }}>
+              {hasAnySpells ? "▾" : ""}
+            </span>
+          </div>
+
+          {libOpen && (
+            <div style={{ marginBottom:12 }}>
+              {/* Arcana strip */}
+              <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:10,
+                scrollbarWidth:"none", msOverflowStyle:"none" }}>
+                {availableArcana.map(arc => {
+                  const color = ARCANUM_HEX[arc] || '#a78bfa';
+                  const isActive = arc === activeArc;
+                  return (
+                    <button key={arc} onClick={()=>{ setCarArc(arc); setCarIdx(0); }}
+                      style={{ display:"flex", alignItems:"center", gap:5, padding:"5px 12px",
+                        borderRadius:20, border:`1px solid ${isActive?"rgba(255,255,255,0.4)":"rgba(255,255,255,0.15)"}`,
+                        background: isActive ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.04)",
+                        cursor:"pointer", whiteSpace:"nowrap", flexShrink:0, color:C.text, fontSize:12 }}>
+                      <span style={{ width:9, height:9, borderRadius:"50%", background:color,
+                        flexShrink:0, display:"inline-block" }}/>
+                      {arcKey(arc)}
+                      <span style={{ opacity:0.55, fontSize:10 }}>{grouped[arc].length}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Carousel */}
+              <div ref={wrapperRef} style={{ overflow:"hidden", position:"relative" }}>
+                <div ref={trackRef} style={{ display:"flex", alignItems:"flex-start" }}>
+                  {arcSpells.map((spell, i) => (
+                    <div key={spell.id} className="wiz-slide"
+                      style={{ flexShrink:0, padding:"0 6px", boxSizing:"border-box",
+                        transition:"opacity 0.3s, transform 0.3s",
+                        opacity: i===safeIdx ? 1 : 0.4,
+                        transform: i===safeIdx ? "scale(1)" : "scale(0.96)",
+                        pointerEvents: i===safeIdx ? "auto" : "none" }}>
+                      <WizSpellCard spell={spell}/>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nav */}
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"center",
+                gap:20, padding:"10px 0 4px" }}>
+                <button onClick={()=>setCarIdx(i=>Math.max(i-1,0))} disabled={safeIdx===0}
+                  style={{ width:38, height:38, borderRadius:"50%", border:`1px solid ${C.border}`,
+                    background:"rgba(255,255,255,0.07)", color:C.text, fontSize:16, cursor:"pointer",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    opacity: safeIdx===0 ? 0.25 : 1 }}>←</button>
+                <span style={{ color:C.textMuted, fontSize:12, minWidth:48, textAlign:"center" }}>
+                  {safeIdx+1} / {arcSpells.length}
+                </span>
+                <button onClick={()=>setCarIdx(i=>Math.min(i+1,arcSpells.length-1))}
+                  disabled={safeIdx===arcSpells.length-1}
+                  style={{ width:38, height:38, borderRadius:"50%", border:`1px solid ${C.border}`,
+                    background:"rgba(255,255,255,0.07)", color:C.text, fontSize:16, cursor:"pointer",
+                    display:"flex", alignItems:"center", justifyContent:"center",
+                    opacity: safeIdx===arcSpells.length-1 ? 0.25 : 1 }}>→</button>
+              </div>
+            </div>
+          )}
+
+          {!character && (
+            <div style={{ padding:14, borderRadius:8, background:C.warningFaint,
+              border:`1px solid ${C.warning}`, marginBottom:12, textAlign:"center" }}>
+              <p style={{ color:C.warning, fontSize:12 }}>No character loaded.</p>
+              <p style={{ color:C.textMuted, fontSize:11, marginTop:4 }}>
                 Use the <strong style={{color:C.text}}>Load</strong> button above to import a character JSON.
               </p>
-            </div>
-          ) : !hasAnySpells ? (
-            <div style={{ padding:14,borderRadius:8,background:C.bgDeep,border:`1px solid ${C.border}`,marginBottom:12,textAlign:"center" }}>
-              <p style={{ color:C.textMuted,fontSize:12 }}>No spells in library.</p>
-            </div>
-          ) : (
-            <div style={{ marginBottom:12 }}>
-              <LibrarySection title="Rotes"     spells={rotes}/>
-              <LibrarySection title="Praxes"    spells={praxes}/>
-              <LibrarySection title="Favorites" spells={favorites}/>
             </div>
           )}
           <Divider/>
@@ -3843,15 +3931,6 @@
         try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
         if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, updated);
       }
-      function handleQuickCast(spell) {
-        loadSpellData(spell, character, set);
-        setSourceSpellId(spell.id || null);
-        setSourceRoteKey(spell.roteSkill || null);
-        // Jump to Factors step (index 2 normally, 3 if combined is active)
-        const factorsIdx = d.combined ? 3 : 2;
-        setStepIdx(factorsIdx);
-      }
-
       function onSpellLoaded(spell) {
         setSourceSpellId(spell.id || null);
         setSourceRoteKey(spell.roteSkill || null);
@@ -3948,7 +4027,7 @@
 
       function renderStep() {
         switch(currentStep.id) {
-          case "caster":    return <StepCaster    d={d} set={set} character={character} onQuickCast={handleQuickCast} onClash={()=>setClashOpen(true)}/>;
+          case "caster":    return <StepCaster    d={d} set={set} character={character} onClash={()=>setClashOpen(true)}/>;
           case "spell":     return <StepSpell     d={d} set={set} character={character} onSpellLoaded={onSpellLoaded} compUser={compUser} onSuggest={spell=>setSuggestSpell(spell)}/>;
           case "combined":  return <StepCombined  d={d} set={set} character={character}/>;
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
