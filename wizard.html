@@ -750,7 +750,7 @@
       return key ? key.charAt(0).toUpperCase() + key.slice(1) : "";
     }
 
-    function StepSpell({ d, set, character, onSpellLoaded }) {
+    function StepSpell({ d, set, character, onSpellLoaded, compUser, onSuggest }) {
       const pfChanged  = d.primaryFactor !== d.defaultPrimaryFactor;
       const rotes      = character?.rotes              || [];
       const praxes     = character?.praxes             || [];
@@ -769,25 +769,36 @@
         const tagColor = isRoteEntry ? undefined : isPraxisEntry ? "warning" : "danger";
         const tagLabel = isRoteEntry ? `Rote (${spell.roteCreator})` : isPraxisEntry ? "Praxis" : "Favorite";
         return (
-          <div onClick={()=>loadSpell(spell)} style={{
-            padding:"10px 14px",cursor:"pointer",transition:"background .15s",
+          <div style={{
+            padding:"10px 14px", transition:"background .15s",
             background:selected?C.accentFaint:"transparent",
             borderBottom:last?"none":`1px solid ${C.borderLight}`,
           }}>
-            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start" }}>
-              <div style={{ flex:1,minWidth:0 }}>
-                <div style={{ color:C.text,fontSize:13,fontWeight:selected?700:400 }}>{spell.name}</div>
+            <div style={{ display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:6 }}>
+              <div style={{ flex:1,minWidth:0 }} onClick={()=>loadSpell(spell)} >
+                <div style={{ color:C.text,fontSize:13,fontWeight:selected?700:400,cursor:"pointer" }}>{spell.name}</div>
                 <div style={{ color:C.textMuted,fontSize:11,marginTop:1 }}>
                   {arcKey(spell.primaryArcanum)} {"●".repeat(spell.primaryArcanumLevel||1)}
                   {spell.secondaryArcanum&&` · ${arcKey(spell.secondaryArcanum)} ${"●".repeat(spell.secondaryArcanumLevel||1)}`}
                   {" · "}{spell.practice}
                 </div>
               </div>
-              <Tag color={tagColor}>{tagLabel}</Tag>
+              <div style={{ display:"flex",alignItems:"center",gap:5,flexShrink:0 }}>
+                {compUser && (
+                  <button onClick={e=>{ e.stopPropagation(); onSuggest && onSuggest(spell); }}
+                    title="Suggest to Compendium"
+                    style={{ padding:"2px 6px",borderRadius:4,fontSize:12,cursor:"pointer",
+                      background:"rgba(233,196,106,0.12)",border:"1px solid rgba(233,196,106,0.3)",
+                      color:C.warning,lineHeight:1 }}>
+                    💡
+                  </button>
+                )}
+                <Tag color={tagColor}>{tagLabel}</Tag>
+              </div>
             </div>
             {spell.description&&(
-              <div style={{ color:C.textMuted,fontSize:10,marginTop:3,fontStyle:"italic",
-                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{spell.description}</div>
+              <div onClick={()=>loadSpell(spell)} style={{ color:C.textMuted,fontSize:10,marginTop:3,fontStyle:"italic",
+                overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer" }}>{spell.description}</div>
             )}
           </div>
         );
@@ -3226,6 +3237,138 @@
       prevParadox:0, witnesses:"none", inured:false, mitigateMana:0, paradoxChoice:"contain",
     };
 
+    // ── Suggest Spell Drawer ──────────────────────────────────────────────────
+    function SuggestSpellDrawer({ spell, compUser, onClose }) {
+      const [sourceBook, setSourceBook]   = useState(spell.sourceBook || '');
+      const [description, setDescription] = useState(spell.description || '');
+      const [note, setNote]               = useState('');
+      const [busy, setBusy]               = useState(false);
+      const [done, setDone]               = useState(false);
+      const [err,  setErr]                = useState('');
+
+      async function handleSubmit() {
+        if (!sourceBook) { setErr('Please select a source book.'); return; }
+        setBusy(true); setErr('');
+        try {
+          await _fsDb.collection('suggestions').add({
+            spell: {
+              name:                spell.name                || '',
+              sourceBook:          sourceBook,
+              primaryArcanum:      spell.primaryArcanum      || '',
+              primaryArcanumLevel: spell.primaryArcanumLevel || 1,
+              secondaryArcanum:    spell.secondaryArcanum    || null,
+              secondaryArcanumLevel: spell.secondaryArcanumLevel || null,
+              practice:            spell.practice            || '',
+              primaryFactor:       spell.primaryFactor       || 'potency',
+              withstand:           spell.withstand           || '',
+              description:         description,
+              reachOptions:        spell.reachOptions        || [],
+              optionalArcana:      spell.optionalArcana      || [],
+              defaults:            spell.defaults            || {},
+            },
+            submitterId:   compUser.uid,
+            submitterName: compUser.displayName || compUser.email || 'Unknown',
+            reviewNote:    note,
+            submittedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+            status:        'pending',
+          });
+          setDone(true);
+        } catch(e) {
+          setErr('Submit failed: ' + e.message);
+        } finally {
+          setBusy(false);
+        }
+      }
+
+      return (
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:300,
+          background:C.bgCard, borderTop:`2px solid ${C.accentBorder}`,
+          borderRadius:"0 0 20px 20px", padding:"16px 16px 24px",
+          boxShadow:"0 -8px 32px rgba(0,0,0,0.5)" }}>
+
+          {done ? (
+            <div style={{ textAlign:"center", padding:"12px 0" }}>
+              <div style={{ fontSize:28, marginBottom:8 }}>✅</div>
+              <div style={{ fontWeight:700, color:C.success, marginBottom:4 }}>Suggestion submitted!</div>
+              <div style={{ fontSize:12, color:C.textMuted, marginBottom:14 }}>
+                An editor will review "{spell.name}" shortly.
+              </div>
+              <button onClick={onClose} style={{ padding:"8px 24px", borderRadius:6, fontSize:13,
+                fontWeight:600, cursor:"pointer", border:`1px solid ${C.border}`,
+                background:"transparent", color:C.textMuted }}>
+                Close
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                <div>
+                  <div style={{ fontWeight:700, fontSize:14, color:C.text }}>💡 Suggest to Compendium</div>
+                  <div style={{ fontSize:11, color:C.textMuted, marginTop:2 }}>
+                    {spell.name} · {spell.primaryArcanum} {"●".repeat(spell.primaryArcanumLevel||1)}
+                  </div>
+                </div>
+                <button onClick={onClose} style={{ padding:"4px 8px", borderRadius:5, fontSize:14,
+                  cursor:"pointer", background:"transparent", border:`1px solid ${C.border}`,
+                  color:C.textMuted, lineHeight:1 }}>✕</button>
+              </div>
+
+              {/* Source book */}
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:11, color:C.textMuted, marginBottom:4 }}>Source Book *</div>
+                <select value={sourceBook} onChange={e=>setSourceBook(e.target.value)}
+                  style={{ width:"100%", padding:"7px 8px", borderRadius:6, fontSize:12,
+                    background:C.bgDeep, border:`1px solid ${!sourceBook&&err?C.danger:C.border}`,
+                    color:sourceBook?C.text:C.textMuted }}>
+                  <option value="">Select book…</option>
+                  {Object.entries(COMP_BOOKS).map(([k,v]) => (
+                    <option key={k} value={k}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Description */}
+              <div style={{ marginBottom:10 }}>
+                <div style={{ fontSize:11, color:C.textMuted, marginBottom:4 }}>Description</div>
+                <textarea value={description} onChange={e=>setDescription(e.target.value)}
+                  rows={3} placeholder="Spell description from the book…"
+                  style={{ width:"100%", padding:"7px 8px", borderRadius:6, fontSize:11,
+                    background:C.bgDeep, border:`1px solid ${C.border}`, color:C.text,
+                    outline:"none", resize:"vertical", lineHeight:1.5 }}/>
+              </div>
+
+              {/* Note to editors */}
+              <div style={{ marginBottom:12 }}>
+                <div style={{ fontSize:11, color:C.textMuted, marginBottom:4 }}>Note to editors (optional)</div>
+                <input value={note} onChange={e=>setNote(e.target.value)}
+                  placeholder="e.g. Page 132, double-checked against errata"
+                  style={{ width:"100%", padding:"7px 8px", borderRadius:6, fontSize:11,
+                    background:C.bgDeep, border:`1px solid ${C.border}`, color:C.text, outline:"none" }}/>
+              </div>
+
+              {err && <div style={{ fontSize:11, color:C.danger, marginBottom:8 }}>{err}</div>}
+
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={onClose} style={{ flex:1, padding:"9px 0", borderRadius:6,
+                  fontSize:12, fontWeight:600, cursor:"pointer",
+                  background:"transparent", border:`1px solid ${C.border}`, color:C.textMuted }}>
+                  Cancel
+                </button>
+                <button onClick={handleSubmit} disabled={busy}
+                  style={{ flex:2, padding:"9px 0", borderRadius:6, fontSize:12, fontWeight:600,
+                    cursor:busy?"not-allowed":"pointer", border:"none",
+                    background:`linear-gradient(135deg,${C.accent},${C.accentLight})`,
+                    color:"#fff", opacity:busy?0.6:1,
+                    boxShadow:`0 3px 10px rgba(123,44,191,0.35)` }}>
+                  {busy ? "Submitting…" : "Submit Suggestion"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
     // ── Compendium Overlay (read-only browse + add to library) ───────────────
     function CompendiumOverlay({ character, compUser, compRole, onAddSpell, onClose }) {
       const [spells, setSpells]           = useState([]);
@@ -3579,9 +3722,10 @@
       const [saveLibOpen,  setSaveLibOpen]  = useState(false);
       const [sourceSpellId, setSourceSpellId]       = useState(null);
       const [sourceRoteSkillKey, setSourceRoteKey]  = useState(null);
-      const [compOpen, setCompOpen]   = useState(false);
-      const [compUser, setCompUser]   = useState(null);
-      const [compRole, setCompRole]   = useState('player');
+      const [compOpen, setCompOpen]     = useState(false);
+      const [compUser, setCompUser]     = useState(null);
+      const [compRole, setCompRole]     = useState('player');
+      const [suggestSpell, setSuggestSpell] = useState(null);
 
       const set = useCallback((key, val) => setD(prev => ({...prev, [key]:val})), []);
 
@@ -3805,7 +3949,7 @@
       function renderStep() {
         switch(currentStep.id) {
           case "caster":    return <StepCaster    d={d} set={set} character={character} onQuickCast={handleQuickCast} onClash={()=>setClashOpen(true)}/>;
-          case "spell":     return <StepSpell     d={d} set={set} character={character} onSpellLoaded={onSpellLoaded}/>;
+          case "spell":     return <StepSpell     d={d} set={set} character={character} onSpellLoaded={onSpellLoaded} compUser={compUser} onSuggest={spell=>setSuggestSpell(spell)}/>;
           case "combined":  return <StepCombined  d={d} set={set} character={character}/>;
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
           case "yantras":   return <StepYantras   d={d} set={set}/>;
@@ -3840,6 +3984,13 @@
                 compRole={compRole}
                 onAddSpell={handleCompendiumAddSpell}
                 onClose={() => setCompOpen(false)}
+              />
+            )}
+            {suggestSpell && (
+              <SuggestSpellDrawer
+                spell={suggestSpell}
+                compUser={compUser}
+                onClose={() => setSuggestSpell(null)}
               />
             )}
             {sheetOpen && (
