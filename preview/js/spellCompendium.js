@@ -216,12 +216,15 @@
                 if (!groups[a]) groups[a] = [];
                 groups[a].push(s);
             });
+            var _collapsedGroups = new Set(JSON.parse(localStorage.getItem('spellLibraryCollapsed') || '[]'));
             ARCANA_ORDER.forEach(function (arc) {
                 if (!groups[arc] || !groups[arc].length) return;
-                html += '<div class="arcanum-group">' +
+                var collapsed = _collapsedGroups.has(arc) ? ' collapsed' : '';
+                html += '<div class="arcanum-group' + collapsed + '" data-arcanum="' + arc + '">' +
                     '<div class="arcanum-group-header">' +
                         '<span class="arcanum-dot"></span>' +
                         '<h3>' + _cap(arc) + '</h3>' +
+                        '<span class="arcanum-group-toggle">▾</span>' +
                     '</div>' +
                     '<div class="spell-cards-grid">';
                 groups[arc].forEach(function (s) { html += _buildCard(s); });
@@ -356,6 +359,19 @@
     // ── Card event wiring ─────────────────────────────────────────────────
     function _wireCardEvents(root) {
         var el;
+
+        // Collapsible arcanum groups
+        root.querySelectorAll('.arcanum-group-header').forEach(function (header) {
+            header.addEventListener('click', function () {
+                var group = header.closest('.arcanum-group');
+                var arc = group.dataset.arcanum;
+                group.classList.toggle('collapsed');
+                var stored = new Set(JSON.parse(localStorage.getItem('spellLibraryCollapsed') || '[]'));
+                if (group.classList.contains('collapsed')) stored.add(arc);
+                else stored.delete(arc);
+                localStorage.setItem('spellLibraryCollapsed', JSON.stringify(Array.from(stored)));
+            });
+        });
 
         el = root.querySelector('#btnCompSignIn');
         if (el) el.onclick = signIn;
