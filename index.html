@@ -913,6 +913,24 @@
             margin-bottom: 12px;
             padding-bottom: 8px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .arcanum-group-toggle {
+            margin-left: auto;
+            color: var(--accent-light);
+            font-size: 0.85em;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+
+        .arcanum-group.collapsed .arcanum-group-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .arcanum-group.collapsed .spell-cards-grid {
+            display: none;
         }
         
         .arcanum-group-header h3 {
@@ -5218,30 +5236,45 @@
                 // Render grouped spells
                 let html = '';
                 const arcanaOrder = ['death', 'fate', 'forces', 'life', 'matter', 'mind', 'prime', 'space', 'spirit', 'time'];
-                
+                const collapsedGroups = new Set(JSON.parse(localStorage.getItem('spellLibraryCollapsed') || '[]'));
+
                 arcanaOrder.forEach(arcanum => {
                     if (!grouped[arcanum] || grouped[arcanum].length === 0) return;
-                    
+                    const isCollapsed = collapsedGroups.has(arcanum) ? ' collapsed' : '';
                     html += `
-                        <div class="arcanum-group">
+                        <div class="arcanum-group${isCollapsed}" data-arcanum="${arcanum}">
                             <div class="arcanum-group-header">
                                 <span class="arcanum-dot"></span>
                                 <h3>${capitalize(arcanum)}</h3>
+                                <span class="arcanum-group-toggle">▾</span>
                             </div>
                             <div class="spell-cards-grid">
                     `;
-                    
+
                     grouped[arcanum].forEach(spell => {
                         html += renderSpellCard(spell);
                     });
-                    
+
                     html += `
                             </div>
                         </div>
                     `;
                 });
-                
+
                 content.innerHTML = html;
+
+                // Wire collapse toggles
+                content.querySelectorAll('.arcanum-group-header').forEach(header => {
+                    header.addEventListener('click', () => {
+                        const group = header.closest('.arcanum-group');
+                        const arcanum = group.dataset.arcanum;
+                        group.classList.toggle('collapsed');
+                        const stored = new Set(JSON.parse(localStorage.getItem('spellLibraryCollapsed') || '[]'));
+                        if (group.classList.contains('collapsed')) stored.add(arcanum);
+                        else stored.delete(arcanum);
+                        localStorage.setItem('spellLibraryCollapsed', JSON.stringify([...stored]));
+                    });
+                });
                 
                 // Attach card button handlers
                 content.querySelectorAll('.btn-cast-spell').forEach(btn => {
