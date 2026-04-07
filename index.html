@@ -8448,6 +8448,18 @@
                         <div style="color:var(--text-muted);font-size:0.85em;padding:8px">Loading…</div>
                     </div>
                 </div>
+                <!-- Bulk Export -->
+                <div class="modal-section">
+                    <h3>📤 Export Compendium</h3>
+                    <div class="info-text" style="margin-bottom:12px">
+                        Download all existing compendium spells (including unapproved) as a file you can edit and re-import.
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+                        <button class="btn-small btn-primary" id="btnAdminExportCsv">📊 Export as CSV</button>
+                        <button class="btn-small" id="btnAdminExportJson">📄 Export as JSON</button>
+                    </div>
+                    <div id="adminExportStatus" style="display:none;" class="import-status"></div>
+                </div>
                 <!-- Bulk Import -->
                 <div class="modal-section">
                     <h3>📥 Bulk Import Spells</h3>

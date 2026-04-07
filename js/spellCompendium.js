@@ -895,6 +895,119 @@
         URL.revokeObjectURL(url);
     }
 
+    // ── Export ────────────────────────────────────────────────────────────────
+
+    function _setExportStatus(msg, type) {
+        var el = document.getElementById('adminExportStatus');
+        if (!el) return;
+        el.style.display = msg ? 'block' : 'none';
+        el.textContent   = msg;
+        el.className     = 'import-status ' + (type || 'ok');
+    }
+
+    async function _fetchAllForExport() {
+        _setExportStatus('Fetching spells…', 'ok');
+        try {
+            var snap = await _db.collection('compendium').orderBy('name').get();
+            var spells = [];
+            snap.forEach(function(doc) {
+                var d = doc.data();
+                d._firestoreId = doc.id;   // preserve so re-import can overwrite correctly
+                spells.push(d);
+            });
+            return spells;
+        } catch(e) {
+            _setExportStatus('Export failed: ' + e.message, 'err');
+            return null;
+        }
+    }
+
+    async function _exportJson() {
+        var spells = await _fetchAllForExport();
+        if (!spells) return;
+        if (!spells.length) { _setExportStatus('No spells in compendium yet.', 'warn'); return; }
+        // Strip internal Firestore timestamps for clean JSON
+        var clean = spells.map(function(s) {
+            var c = Object.assign({}, s);
+            // Convert Firestore Timestamps to ISO strings if present
+            if (c.createdAt && c.createdAt.toDate) c.createdAt = c.createdAt.toDate().toISOString();
+            if (c.updatedAt && c.updatedAt.toDate) c.updatedAt = c.updatedAt.toDate().toISOString();
+            return c;
+        });
+        var blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'compendium-export-' + new Date().toISOString().slice(0,10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        _setExportStatus('✓ Exported ' + clean.length + ' spell' + (clean.length !== 1 ? 's' : '') + ' as JSON.', 'ok');
+    }
+
+    async function _exportCsv() {
+        var spells = await _fetchAllForExport();
+        if (!spells) return;
+        if (!spells.length) { _setExportStatus('No spells in compendium yet.', 'warn'); return; }
+
+        // Helper: escape a CSV cell value
+        function csvCell(val) {
+            if (val === null || val === undefined) return '';
+            var s = String(val);
+            // Wrap in quotes if contains comma, quote, or newline
+            if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        }
+
+        var rows = [CSV_COLUMNS.join(',')];
+
+        spells.forEach(function(s) {
+            // reach1..reach5
+            var reaches = (s.reachOptions || []).map(function(r) {
+                return r.cost && r.cost > 1 ? r.cost + ': ' + (r.effect || '') : (r.effect || r);
+            });
+
+            // optArcana pipe string
+            var optArcana = (s.optionalArcana || []).map(function(oa) {
+                return (oa.arcanum || '') + ' ' + (oa.level || 1) + ': ' + (oa.effect || '');
+            }).join('|');
+
+            var row = [
+                csvCell(s.name),
+                csvCell(s.sourceBook),
+                csvCell(s.sourcePage),
+                csvCell(s.primaryArcanum),
+                csvCell(s.primaryArcanumLevel),
+                csvCell(s.secondaryArcanum),
+                csvCell(s.secondaryArcanumLevel),
+                csvCell(s.practice),
+                csvCell(s.primaryFactor),
+                csvCell(s.withstand),
+                csvCell(s.description),
+                csvCell(reaches[0] || ''),
+                csvCell(reaches[1] || ''),
+                csvCell(reaches[2] || ''),
+                csvCell(reaches[3] || ''),
+                csvCell(reaches[4] || ''),
+                csvCell(optArcana),
+                csvCell(s.defaults ? s.defaults.potency : ''),
+                csvCell(s.defaults ? s.defaults.range   : ''),
+            ];
+            rows.push(row.join(','));
+        });
+
+        var csv  = rows.join('\r\n');
+        var blob = new Blob([csv], { type: 'text/csv' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'compendium-export-' + new Date().toISOString().slice(0,10) + '.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+        _setExportStatus('✓ Exported ' + spells.length + ' spell' + (spells.length !== 1 ? 's' : '') + ' as CSV.', 'ok');
+    }
+
     // CSV column order (must match _downloadCsvTemplate header row)
     var CSV_COLUMNS = [
         'name','sourceBook','sourcePage',
@@ -1318,6 +1431,8 @@
         _on('adminPanelClose',          'click', _closeAdminPanel);
         _on('btnAdminClose',            'click', _closeAdminPanel);
         _on('btnAdminGrant',            'click', _grantRole);
+        _on('btnAdminExportCsv',           'click', _exportCsv);
+        _on('btnAdminExportJson',          'click', _exportJson);
         _on('btnAdminDownloadCsvTemplate', 'click', _downloadCsvTemplate);
         _on('btnAdminDownloadTemplate',    'click', _downloadTemplate);
         _on('btnAdminImport',              'click', _triggerImport);
