@@ -5167,9 +5167,9 @@
                 if (emptyEl) emptyEl.style.display = 'none';
 
                 const ARCANUM_HEX = {
-                    death:'#6b7280', fate:'#a78bfa', forces:'#f59e0b', life:'#34d399',
-                    matter:'#9ca3af', mind:'#60a5fa', prime:'#f472b6', space:'#818cf8',
-                    spirit:'#a3e635', time:'#fbbf24',
+                    death:'#475569', fate:'#e2e8f0', forces:'#f87171', life:'#4ade80',
+                    matter:'#d97706', mind:'#fbbf24', prime:'#60a5fa', space:'#a78bfa',
+                    spirit:'#fb923c', time:'#22d3ee',
                 };
 
                 spells.forEach(spell => {
@@ -5427,9 +5427,9 @@
             // ── Carousel / Browse view ────────────────────────────────────────
             function renderCarouselView() {
                 const ARCANUM_HEX = {
-                    death:'#6b7280', fate:'#a78bfa', forces:'#f59e0b', life:'#34d399',
-                    matter:'#9ca3af', mind:'#60a5fa', prime:'#f472b6', space:'#818cf8',
-                    spirit:'#a3e635', time:'#fbbf24',
+                    death:'#475569', fate:'#e2e8f0', forces:'#f87171', life:'#4ade80',
+                    matter:'#d97706', mind:'#fbbf24', prime:'#60a5fa', space:'#a78bfa',
+                    spirit:'#fb923c', time:'#22d3ee',
                 };
                 const ARCANA_ORDER = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
 
@@ -5441,22 +5441,25 @@
                     return;
                 }
 
-                // Merge all personal spells
-                const allSpells = [
-                    ...(currentCharacter.rotes || []),
-                    ...(currentCharacter.praxes || []),
-                    ...(currentCharacter.improvisedFavorites || []),
-                ];
+                // Get spells for the active tab only
+                let tabSpells = [];
+                if (currentSpellTab === 'rotes') {
+                    tabSpells = currentCharacter.rotes || [];
+                } else if (currentSpellTab === 'praxes') {
+                    tabSpells = currentCharacter.praxes || [];
+                } else {
+                    tabSpells = currentCharacter.improvisedFavorites || [];
+                }
 
-                if (allSpells.length === 0) {
-                    content.innerHTML = `<div class="spell-library-empty">No spells yet. Add some Rotes, Praxes, or Favorites first.</div>`;
+                if (tabSpells.length === 0) {
+                    content.innerHTML = `<div class="spell-library-empty">No ${currentSpellTab} yet. Click "+ Add Spell" to create one.</div>`;
                     updateSpellCounts();
                     return;
                 }
 
                 // Group by arcanum
                 const grouped = {};
-                allSpells.forEach(spell => {
+                tabSpells.forEach(spell => {
                     const arc = spell.primaryArcanum || 'prime';
                     if (!grouped[arc]) grouped[arc] = [];
                     grouped[arc].push(spell);
