@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git checkout:*)",
+      "Bash(find /c/IT_Projects/ClaudeCode -type f \\\\\\(-name *.js -o -name *.jsx -o -name *.ts -o -name *.tsx -o -name *.html -o -name *.vue \\\\\\))",
+      "Bash(grep -n \"renderLibrary\\\\|library-spell\\\\|spell-library\" /c/IT_Projects/ClaudeCode/js/*.js)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/pages)",
+      "Bash(git credential:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth status)",
+      "Bash(git remote:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" auth setup-git)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/pages -X PUT -f build_type=legacy -f source[branch]=gh-pages -f source[path]=/)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/actions/workflows --jq '.workflows[] | {id, name, state}')",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/actions/workflows/257602591/dispatches -X POST -f ref=main)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" run list --repo Enzo-83/mage-spell-calculator --limit 4)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" run watch 24105084481 --repo Enzo-83/mage-spell-calculator)",
+      "Bash(git rebase:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" run list --repo Enzo-83/mage-spell-calculator --limit 3)",
+      "Bash('/c/Program Files/GitHub CLI/gh.exe' pr create --repo Enzo-83/mage-spell-calculator --base main --head e-grimoire-carousel --title 'E-Grimoire Carousel: browse view, collapsible groups & color sync' --body ':*)",
+      "Bash(git fetch:*)",
+      "Bash(git branch:*)"
+    ]
+  }
+}
