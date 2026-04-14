@@ -198,17 +198,17 @@
     }
 
     // ── Main tab render ───────────────────────────────────────────────────
-    function renderTab() {
-        var content = document.getElementById('spellLibraryContent');
-        if (!content) return;
+    function _renderList() {
+        var container = document.getElementById('spellListInner');
+        if (!container) return;
 
         var list = _filtered();
-        var html = _buildAuthBar() + _buildFilterBar();
+        var html = '';
 
         if (_spells.length === 0) {
-            html += '<div class="spell-library-empty">Loading compendium…</div>';
+            html = '<div class="spell-library-empty">Loading compendium…</div>';
         } else if (list.length === 0) {
-            html += '<div class="spell-library-empty">No spells match these filters.</div>';
+            html = '<div class="spell-library-empty">No spells match these filters.</div>';
         } else {
             var groups = {};
             list.forEach(function (s) {
@@ -216,10 +216,10 @@
                 if (!groups[a]) groups[a] = [];
                 groups[a].push(s);
             });
-            var _collapsedGroups = new Set(JSON.parse(localStorage.getItem('spellLibraryCollapsed') || '[]'));
+            var collapsedGroups = new Set(JSON.parse(localStorage.getItem('spellLibraryCollapsed') || '[]'));
             ARCANA_ORDER.forEach(function (arc) {
                 if (!groups[arc] || !groups[arc].length) return;
-                var collapsed = _collapsedGroups.has(arc) ? ' collapsed' : '';
+                var collapsed = collapsedGroups.has(arc) ? ' collapsed' : '';
                 html += '<div class="arcanum-group' + collapsed + '" data-arcanum="' + arc + '">' +
                     '<div class="arcanum-group-header">' +
                         '<span class="arcanum-dot"></span>' +
@@ -232,8 +232,16 @@
             });
         }
 
-        content.innerHTML = html;
-        _wireCardEvents(content);
+        container.innerHTML = html;
+        _wireCardEvents(container);
+    }
+
+    function renderTab() {
+        var content = document.getElementById('spellLibraryContent');
+        if (!content) return;
+
+        content.innerHTML = _buildAuthBar() + _buildFilterBar() + '<div id="spellListInner"></div>';
+        _renderList();
         _wireFilterEvents(content);
     }
 
@@ -431,7 +439,7 @@
     // ── Filter event wiring ───────────────────────────────────────────────
     function _wireFilterEvents(root) {
         var s = root.querySelector('#compSearch');
-        if (s) s.oninput = function () { _filters.search = s.value; renderTab(); };
+        if (s) s.oninput = function () { _filters.search = s.value; _renderList(); };
 
         var b = root.querySelector('#compFilterBook');
         if (b) b.onchange = function () { _filters.book = b.value; renderTab(); };
