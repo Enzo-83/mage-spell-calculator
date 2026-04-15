@@ -7320,10 +7320,13 @@
             var sceneNumber = 0;
             var scenePlayers = {};
             var sceneListener = null;
+            var sceneMyPlayerId = null;  // Cached for consistency within a session
 
             function sceneGetPlayerId() {
+                if (sceneMyPlayerId) return sceneMyPlayerId;
                 var name = (currentCharacter?.shadowName || currentCharacter?.name || 'player_' + Math.random().toString(36).slice(2,8));
-                return name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+                sceneMyPlayerId = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+                return sceneMyPlayerId;
             }
             function sceneGetPlayerName() {
                 return currentCharacter?.shadowName || currentCharacter?.name || 'Unknown Mage';
@@ -7415,11 +7418,13 @@
                 if (code.length < 3) { sceneShowError('Enter a valid room code'); return; }
                 sceneShowError('');
                 sceneRoomCode = code;
+                sceneMyPlayerId = null; // Reset so a fresh ID is derived from current character
                 sceneGetRef(code).once('value').then(function(snap) {
                     if (!snap.exists()) { sceneShowError('Room not found'); return; }
                     sceneMode = 'player';
-                    sceneJoinRoom(code, sceneGetPlayerId(), sceneGetPlayerName(), sceneGetPlayerPath());
-                    if (currentCharacter) scenePushStats(code, sceneGetPlayerId(), currentCharacter);
+                    var pid = sceneGetPlayerId();
+                    sceneJoinRoom(code, pid, sceneGetPlayerName(), sceneGetPlayerPath());
+                    if (currentCharacter) scenePushStats(code, pid, currentCharacter);
                     sceneAttachListener(code);
                     sceneRememberRoom(code, 'player');
                     sceneRenderUI();
@@ -7440,6 +7445,7 @@
                 sceneRoomCode = '';
                 sceneActive = false;
                 scenePlayers = {};
+                sceneMyPlayerId = null;
                 sceneShowError('');
                 sceneRenderUI();
                 sceneUpdatePrevParadox();
@@ -7741,8 +7747,12 @@
                                 return;
                             }
                             sceneMode = 'player';
-                            sceneJoinRoom(saved.code, sceneGetPlayerId(), sceneGetPlayerName(), sceneGetPlayerPath());
-                            if (currentCharacter) scenePushStats(saved.code, sceneGetPlayerId(), currentCharacter);
+                            var pid = sceneGetPlayerId();
+                            var playerRef = sceneGetRef(saved.code).child('players/' + pid);
+                            // Use update() to preserve existing paradoxRolls instead of resetting via set()
+                            playerRef.update({ name: sceneGetPlayerName(), path: sceneGetPlayerPath() });
+                            playerRef.onDisconnect().remove();
+                            if (currentCharacter) scenePushStats(saved.code, pid, currentCharacter);
                             sceneAttachListener(saved.code);
                             sceneRenderUI();
                         });
