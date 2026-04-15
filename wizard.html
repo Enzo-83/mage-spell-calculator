@@ -1878,7 +1878,8 @@
       const [players, setPlayers]         = useState({});
       const [connected, setConnected]     = useState(false);
       const [error, setError]             = useState("");
-      const listenerRef = useRef(null);
+      const listenerRef  = useRef(null);
+      const playerIdRef  = useRef(null); // Cached for consistency within a session
 
       // On mount: try to reconnect from localStorage
       useEffect(() => {
@@ -1942,8 +1943,10 @@
       }
 
       function getPlayerId() {
-        return (character?.shadowName || character?.name || "player_" + Math.random().toString(36).slice(2,8))
+        if (playerIdRef.current) return playerIdRef.current;
+        playerIdRef.current = (character?.shadowName || character?.name || "player_" + Math.random().toString(36).slice(2,8))
           .toLowerCase().replace(/[^a-z0-9_]/g, "_");
+        return playerIdRef.current;
       }
 
       function getPlayerName() {
@@ -2000,6 +2003,7 @@
         if (code.length < 3) { setError("Enter a valid room code"); return; }
         setError("");
         setRoomCode(code);
+        playerIdRef.current = null; // Reset so a fresh ID is derived from current character
         rejoinAsPlayer(code);
       }
 
@@ -2008,7 +2012,10 @@
         sceneGetRef(code).once("value").then(snap => {
           if (!snap.exists()) { setError("Room not found"); setConnected(false); return; }
           setMode("player");
-          sceneJoinRoom(code, pid, getPlayerName(), getPlayerPath());
+          const playerRef = sceneGetRef(code).child("players/" + pid);
+          // Use update() to preserve existing paradoxRolls instead of resetting via set()
+          playerRef.update({ name: getPlayerName(), path: getPlayerPath() });
+          playerRef.onDisconnect().remove();
           if (character) scenePushStats(code, pid, character);
           attachListener(code);
           sceneRememberRoom(code, "player");
@@ -2025,6 +2032,7 @@
         }
         detachListener();
         sceneForgetRoom();
+        playerIdRef.current = null;
         setMode(null);
         setRoomCode("");
         setInputCode("");
