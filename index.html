@@ -3463,11 +3463,11 @@
             <!-- Discord Actions -->
             <div class="preview-actions" id="discordActions">
                 <span class="discord-status" id="discordStatus" style="display: none;"></span>
-                <button class="save-library-btn" id="btnSaveToLibrary" title="Save current spell to Library">
+                <button class="save-library-btn" id="btnSaveToLibrary" title="Save current spell to Grimoire">
                     <svg class="save-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
                     </svg>
-                    Save to Library
+                    Save to Grimoire
                 </button>
                 <button class="btn-set-active" id="btnSetActive" title="Track this spell as currently active" disabled>
                     ⚡ Set as Active
@@ -3544,7 +3544,7 @@
         <!-- Spell Library -->
         <div class="card" id="spellLibrarySection">
             <div class="spell-library-header">
-                <h2>📖 Spell Library</h2>
+                <h2>📖 E-Grimoire</h2>
                 <div class="spell-library-controls">
                     <button class="btn-small" id="btnGrimoireView" title="Toggle view">◧ Browse</button>
                     <button class="btn-small" id="btnAddSpell">+ Add Spell</button>
@@ -6123,10 +6123,10 @@
                 if (sourceSpellId && findSpellById(sourceSpellId)) {
                     updateSection.style.display = 'block';
                     document.querySelector('input[name="saveLibMode"][value="update"]').checked = true;
-                    document.getElementById('saveLibTitle').textContent = 'Update Library Spell';
+                    document.getElementById('saveLibTitle').textContent = 'Update Grimoire Spell';
                 } else {
                     updateSection.style.display = 'none';
-                    document.getElementById('saveLibTitle').textContent = 'Save to Library';
+                    document.getElementById('saveLibTitle').textContent = 'Save to Grimoire';
                 }
                 
                 // Build read-only summary
@@ -8124,7 +8124,7 @@
     <div class="modal-overlay" id="saveToLibraryModal">
         <div class="modal" style="max-width: 640px;">
             <div class="modal-header">
-                <h2 id="saveLibTitle">Save to Library</h2>
+                <h2 id="saveLibTitle">Save to Grimoire</h2>
                 <button class="modal-close" id="saveLibModalClose">&times;</button>
             </div>
             <div class="modal-body">
@@ -8487,7 +8487,7 @@
     <div class="modal-overlay" id="addToLibraryModal">
         <div class="modal" style="max-width: 520px;">
             <div class="modal-header">
-                <h2 id="addLibModalTitle">Add Spell to Library</h2>
+                <h2 id="addLibModalTitle">Add Spell to Grimoire</h2>
                 <button class="modal-close" id="addLibModalClose">&times;</button>
             </div>
             <div class="modal-body">
@@ -8551,7 +8551,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn-small" id="addLibCancelBtn">Cancel</button>
-                <button class="btn-small btn-primary" id="addLibConfirmBtn">Add to Library</button>
+                <button class="btn-small btn-primary" id="addLibConfirmBtn">Add to Grimoire</button>
             </div>
         </div>
     </div>
