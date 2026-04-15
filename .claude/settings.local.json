@@ -25,7 +25,9 @@
       "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" run list --repo Enzo-83/mage-spell-calculator --limit 3)",
       "Bash('/c/Program Files/GitHub CLI/gh.exe' pr create --repo Enzo-83/mage-spell-calculator --base main --head e-grimoire-carousel --title 'E-Grimoire Carousel: browse view, collapsible groups & color sync' --body ':*)",
       "Bash(git fetch:*)",
-      "Bash(git branch:*)"
+      "Bash(git branch:*)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/contents/index.html --jq '.content' -H 'Accept: application/vnd.github.v3+json' --method GET -f ref=gh-pages)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/contents/index.html -H 'Accept: application/vnd.github.v3+json' --method GET -f ref=gh-pages --jq '.content')"
     ]
   }
 }
