@@ -243,6 +243,7 @@
         content.innerHTML = _buildAuthBar() + _buildFilterBar() + '<div id="spellListInner"></div>';
         _renderList();
         _wireFilterEvents(content);
+        _wireCardEvents(content); // wire auth-bar buttons (Sign Out, Add Spell, Suggestions, Roles)
     }
 
     // ── Auth bar HTML ─────────────────────────────────────────────────────
