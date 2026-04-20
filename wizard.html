@@ -36,6 +36,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="shared/session.js"></script>
   <script>
     // ─── Firebase Config ─── PASTE YOUR CONFIG VALUES BELOW ───
     const _fbApp = firebase.initializeApp({
@@ -61,7 +62,7 @@
     }
 
     function sceneGetRef(roomCode) {
-      return _fbDb.ref("rooms/" + roomCode);
+      return _fbDb.ref("sessions/" + roomCode);
     }
 
     function sceneCreateRoom(roomCode, stName) {
@@ -142,15 +143,8 @@
 
     function scenePushStats(roomCode, playerId, character) {
       if (!roomCode || !playerId || !character) return;
-      var h = character.health || { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
-      sceneGetRef(roomCode).child("players/" + playerId + "/stats").update({
-        gnosis: character.gnosis || 1,
-        wisdom: character.wisdom || 7,
-        mana: { current: character.mana?.current ?? 0, max: character.mana?.max ?? 10 },
-        health: { max: h.max || 7, bashing: h.bashing || 0, lethal: h.lethal || 0, aggravated: h.aggravated || 0 },
-        activeSpells: (character.activeSpells || []).length,
-        maxActiveSpells: character.gnosis || 1,
-      });
+      // Delegate to shared session helper (extended: willpower + full spell array)
+      sessionPushStats(roomCode, playerId, character);
     }
 
     function sceneClearParadoxLog(roomCode, playerId) {
@@ -1878,8 +1872,9 @@
       const [players, setPlayers]         = useState({});
       const [connected, setConnected]     = useState(false);
       const [error, setError]             = useState("");
-      const listenerRef  = useRef(null);
-      const playerIdRef  = useRef(null); // Cached for consistency within a session
+      const listenerRef     = useRef(null);
+      const playerIdRef     = useRef(null); // Cached for consistency within a session
+      const lastStEditRef   = useRef(null);  // timestamp of last applied ST stat edit
 
       // On mount: try to reconnect from localStorage
       useEffect(() => {
@@ -1903,7 +1898,8 @@
         const ref = sceneGetRef(code);
         const cb = ref.on("value", snap => {
           const data = snap.val();
-          if (!data || data.closed) {
+          if (!data || data.meta?.closed || data.closed) {
+            sessionForget();
             sceneForgetRoom();
             setMode(null);
             setRoomCode("");
@@ -1922,6 +1918,11 @@
           if (onSceneUpdate) {
             const pid = getPlayerId();
             const myP = data.players?.[pid];
+            // Detect ST stat override: only fire when editedAt is newer than last applied
+            const stEdit = myP?.stEdit || null;
+            const isNewStEdit = stEdit?.editedAt &&
+              stEdit.editedAt !== lastStEditRef.current;
+            if (isNewStEdit) lastStEditRef.current = stEdit.editedAt;
             onSceneUpdate({
               code: code,
               playerId: pid,
@@ -1929,6 +1930,7 @@
               myRolls: myP?.paradoxRolls || 0,
               myStAdj: myP?.stAdjustment || 0,
               myLog: myP?.paradoxLog || [],
+              stStatEdit: isNewStEdit ? stEdit.stats : null,
             });
           }
         });
@@ -2027,7 +2029,7 @@
         if (mode === "player") {
           sceneLeaveRoom(roomCode, getPlayerId());
         } else if (mode === "st" && roomCode) {
-          sceneGetRef(roomCode).update({ closed: true, sceneActive: false });
+          sceneGetRef(roomCode).update({ "meta/closed": true, sceneActive: false });
           setTimeout(() => sceneGetRef(roomCode).remove(), 5000);
         }
         detachListener();
@@ -3916,7 +3918,7 @@
         setStepIdx(0);
       }
       function handleSceneUpdate(info) {
-        // info = { code, playerId, connected, myRolls, myStAdj } or null
+        // info = { code, playerId, connected, myRolls, myStAdj, stStatEdit } or null
         if (!info || !info.connected) {
           setSceneConn(null);
           return;
@@ -3925,6 +3927,20 @@
         // Auto-sync prevParadox from Firebase when connected
         const eff = Math.max(0, (info.myRolls || 0) + (info.myStAdj || 0));
         setD(prev => prev.prevParadox !== eff ? { ...prev, prevParadox: eff } : prev);
+        // Apply ST stat override to local character then re-broadcast
+        if (info.stStatEdit) {
+          setChar(prev => {
+            if (!prev) return prev;
+            const edit = info.stStatEdit;
+            const next = { ...prev };
+            if (edit.health)    next.health    = { ...prev.health,    ...edit.health };
+            if (edit.mana)      next.mana      = { ...prev.mana,      ...edit.mana };
+            if (edit.willpower) next.willpower = { ...prev.willpower, ...edit.willpower };
+            // Re-broadcast updated stats so ST sees the acknowledged values
+            setTimeout(() => scenePushStats(info.code, info.playerId, next), 100);
+            return next;
+          });
+        }
       }
       function handleManaChange(newMana) {
         if (!character) return;
