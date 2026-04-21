@@ -2989,7 +2989,7 @@
     <script>
         // Wait for DOM to be fully loaded before initializing
         document.addEventListener('DOMContentLoaded', function() {
-            
+
             // Get current scale type
             function getScaleType() {
                 const checked = document.querySelector('input[name="scaleType"]:checked');
@@ -3743,26 +3743,8 @@
             // Initialize character system
             function initCharacterSystem() {
                 updateCharacterHeader();
-
-                // btnSetActive is wired via React onClick (Phase 4)
-                document.getElementById('activeSpellsManageLink').addEventListener('click', openCharacterEditor);
-
-                // Character editor modal controls
-                document.getElementById('modalClose').addEventListener('click', closeCharacterEditor);
-                document.getElementById('btnCancelEdit').addEventListener('click', closeCharacterEditor);
-                document.getElementById('btnApplyCharacter').addEventListener('click', applyCharacterChanges);
-                
-                // Path change updates ruling/inferior arcana display
-                document.getElementById('charPath').addEventListener('change', () => {
-                    populateLegacyRulingArcanum();
-                    updateArcanaDisplay();
-                });
-                
-                // Legacy ruling arcanum change updates arcana display
-                document.getElementById('charLegacyRulingArcanum').addEventListener('change', updateArcanaDisplay);
-                
-                // Order change updates additional rote skills display
-                document.getElementById('charOrder').addEventListener('change', populateAdditionalRoteSkills);
+                // activeSpellsManageLink and modal controls are React-rendered (Phase 5)
+                // Click handling wired via classicVanilla.onEdit in ClassicApp
             }
             
             // Create new character
@@ -3839,18 +3821,42 @@
                 }
             }
             
-            // Open character editor modal
+            // Open character editor modal (Phase 5 — delegates to React bridge)
             function openCharacterEditor() {
-                if (!currentCharacter) {
-                    currentCharacter = createNewCharacter();
-                }
-                populateCharacterModal();
-                document.getElementById('characterModal').classList.add('active');
+                if (!currentCharacter) currentCharacter = createNewCharacter();
+                if (!window.classicCharEditorBridge) return;
+                window.classicCharEditorBridge.open(currentCharacter, function(draft) {
+                    // Apply all draft fields to the closure-scoped currentCharacter
+                    currentCharacter.name                = draft.name;
+                    currentCharacter.shadowName          = draft.shadowName;
+                    currentCharacter.path                = draft.path;
+                    currentCharacter.order               = draft.order;
+                    currentCharacter.gnosis              = draft.gnosis;
+                    currentCharacter.wisdom              = draft.wisdom;
+                    if (!currentCharacter.health) currentCharacter.health = { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+                    currentCharacter.health.max          = draft.health?.max || 7;
+                    currentCharacter.mana.current        = draft.mana.current;
+                    currentCharacter.mana.max            = draft.mana.max;
+                    currentCharacter.willpower.current   = draft.willpower.current;
+                    currentCharacter.willpower.max       = draft.willpower.max;
+                    for (const [k, v] of Object.entries(draft.arcana)) currentCharacter.arcana[k] = v;
+                    for (const [k, v] of Object.entries(draft.skills)) currentCharacter.skills[k] = v;
+                    if (!currentCharacter.discord) currentCharacter.discord = {};
+                    currentCharacter.discord.spellPreviewWebhook = draft.discord?.spellPreviewWebhook || '';
+                    currentCharacter.discord.dicePoolWebhook     = draft.discord?.dicePoolWebhook || '';
+                    currentCharacter.additionalRoteSkills   = draft.additionalRoteSkills || [];
+                    currentCharacter.additionalRulingArcana = draft.additionalRulingArcana || [];
+                    currentCharacter.activeSpells           = draft.activeSpells || [];
+                    updateDerivedStats(currentCharacter);
+                    updateCharacterHeader();
+                    applyCharacterToForm();
+                    saveCharacterToLocalStorage();
+                });
             }
-            
-            // Close character editor modal
+
+            // Close character editor modal (Phase 5 — delegates to React bridge)
             function closeCharacterEditor() {
-                document.getElementById('characterModal').classList.remove('active');
+                if (window.classicCharEditorBridge) window.classicCharEditorBridge.close();
             }
             
             // Populate modal with character data
@@ -5362,7 +5368,10 @@
                 const section = document.getElementById('combinedSpellSection');
                 const toggleContainer = document.getElementById('combinedToggle');
                 const singleControls = document.getElementById('singleSpellControls');
-                
+
+                // These elements are React-rendered; if React hasn't committed yet, skip
+                if (!toggle || !section || !toggleContainer) return;
+
                 // Toggle combined mode
                 toggle.addEventListener('change', function() {
                     combinedModeEnabled = this.checked;
@@ -6308,10 +6317,10 @@
             
             // Initialize spell library
             initSpellLibrary();
-            
+
             // Initialize character system
             initCharacterSystem();
-            
+
             // =================================================================
             // SCENE TRACKER (Phase 2: React — ClassicSceneTracker owns Firebase)
             // These closure vars are updated via window.classicVanilla.onSceneChange
@@ -6864,243 +6873,8 @@
     <!-- Toast notification -->
     <div class="toast" id="toast"></div>
     
-    <!-- Character Editor Modal -->
-    <div class="modal-overlay" id="characterModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Character Editor</h2>
-                <button class="modal-close" id="modalClose">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- Basic Info -->
-                <div class="modal-section">
-                    <h3>Basic Information</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Name</label>
-                            <input type="text" id="charName" placeholder="Character Name">
-                        </div>
-                        <div class="form-group">
-                            <label>Shadow Name</label>
-                            <input type="text" id="charShadowName" placeholder="Shadow Name">
-                        </div>
-                        <div class="form-group">
-                            <label>Path</label>
-                            <select id="charPath">
-                                <option value="acanthus">Acanthus (Fate/Time)</option>
-                                <option value="mastigos">Mastigos (Mind/Space)</option>
-                                <option value="moros">Moros (Death/Matter)</option>
-                                <option value="obrimos">Obrimos (Forces/Prime)</option>
-                                <option value="thyrsus">Thyrsus (Life/Spirit)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Order</label>
-                            <select id="charOrder">
-                                <option value="adamantineArrow">Adamantine Arrow</option>
-                                <option value="guardiansOfTheVeil">Guardians of the Veil</option>
-                                <option value="mysterium">Mysterium</option>
-                                <option value="silverLadder">Silver Ladder</option>
-                                <option value="freeCouncil">Free Council</option>
-                                <option value="seersOfTheThrone">Seers of the Throne</option>
-                                <option value="apostate">Apostate</option>
-                                <option value="nameless">Nameless</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Traits -->
-                <div class="modal-section">
-                    <h3>Traits</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Gnosis</label>
-                            <input type="number" id="charGnosis" min="1" max="10" value="1">
-                        </div>
-                        <div class="form-group">
-                            <label>Wisdom</label>
-                            <input type="number" id="charWisdom" min="1" max="10" value="7">
-                        </div>
-                        <div class="form-group">
-                            <label>Mana (Current / Max)</label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="number" id="charManaCurrent" min="0" max="99" value="10" style="width: 60px;">
-                                <span style="line-height: 36px;">/</span>
-                                <input type="number" id="charManaMax" min="1" max="99" value="10" style="width: 60px;">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Willpower (Current / Max)</label>
-                            <div style="display: flex; gap: 8px;">
-                                <input type="number" id="charWillpowerCurrent" min="0" max="10" value="5" style="width: 60px;">
-                                <span style="line-height: 36px;">/</span>
-                                <input type="number" id="charWillpowerMax" min="1" max="10" value="5" style="width: 60px;">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Health (Max)</label>
-                            <input type="number" id="charHealthMax" min="1" max="20" value="7">
-                            <div class="info-text">Stamina + Size (typically 7)</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Arcana -->
-                <div class="modal-section">
-                    <h3>Arcana <span style="font-size: 0.8em; color: var(--text-muted);">(Green = Ruling, Red = Inferior)</span></h3>
-                    <div class="modal-grid modal-grid-5">
-                        <div class="arcana-input" id="arcanaContainer_death">
-                            <label>Death</label>
-                            <input type="number" id="arcana_death" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_fate">
-                            <label>Fate</label>
-                            <input type="number" id="arcana_fate" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_forces">
-                            <label>Forces</label>
-                            <input type="number" id="arcana_forces" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_life">
-                            <label>Life</label>
-                            <input type="number" id="arcana_life" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_matter">
-                            <label>Matter</label>
-                            <input type="number" id="arcana_matter" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_mind">
-                            <label>Mind</label>
-                            <input type="number" id="arcana_mind" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_prime">
-                            <label>Prime</label>
-                            <input type="number" id="arcana_prime" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_space">
-                            <label>Space</label>
-                            <input type="number" id="arcana_space" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_spirit">
-                            <label>Spirit</label>
-                            <input type="number" id="arcana_spirit" min="0" max="5" value="0">
-                        </div>
-                        <div class="arcana-input" id="arcanaContainer_time">
-                            <label>Time</label>
-                            <input type="number" id="arcana_time" min="0" max="5" value="0">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Skills -->
-                <div class="modal-section">
-                    <h3>Skills</h3>
-                    
-                    <div class="skill-category">
-                        <h4>Mental</h4>
-                        <div class="modal-grid modal-grid-3">
-                            <div class="skill-input"><label>Academics</label><input type="number" id="skill_academics" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Computer</label><input type="number" id="skill_computer" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Crafts</label><input type="number" id="skill_crafts" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Investigation</label><input type="number" id="skill_investigation" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Medicine</label><input type="number" id="skill_medicine" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Occult</label><input type="number" id="skill_occult" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Politics</label><input type="number" id="skill_politics" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Science</label><input type="number" id="skill_science" min="0" max="5" value="0"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="skill-category">
-                        <h4>Physical</h4>
-                        <div class="modal-grid modal-grid-3">
-                            <div class="skill-input"><label>Athletics</label><input type="number" id="skill_athletics" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Brawl</label><input type="number" id="skill_brawl" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Drive</label><input type="number" id="skill_drive" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Firearms</label><input type="number" id="skill_firearms" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Larceny</label><input type="number" id="skill_larceny" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Stealth</label><input type="number" id="skill_stealth" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Survival</label><input type="number" id="skill_survival" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Weaponry</label><input type="number" id="skill_weaponry" min="0" max="5" value="0"></div>
-                        </div>
-                    </div>
-                    
-                    <div class="skill-category">
-                        <h4>Social</h4>
-                        <div class="modal-grid modal-grid-3">
-                            <div class="skill-input"><label>Animal Ken</label><input type="number" id="skill_animalKen" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Empathy</label><input type="number" id="skill_empathy" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Expression</label><input type="number" id="skill_expression" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Intimidation</label><input type="number" id="skill_intimidation" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Persuasion</label><input type="number" id="skill_persuasion" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Socialize</label><input type="number" id="skill_socialize" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Streetwise</label><input type="number" id="skill_streetwise" min="0" max="5" value="0"></div>
-                            <div class="skill-input"><label>Subterfuge</label><input type="number" id="skill_subterfuge" min="0" max="5" value="0"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Additional Rote Skills -->
-                <div class="modal-section">
-                    <h3>Legacy Ruling Arcanum <span style="font-size: 0.8em; color: var(--text-muted);">(optional)</span></h3>
-                    <div class="info-text" style="margin-bottom: 12px;">
-                        If your Legacy grants an additional Ruling Arcanum, select it here. Path Ruling Arcana are excluded.
-                    </div>
-                    <select id="charLegacyRulingArcanum" style="width: 100%; max-width: 260px;">
-                        <option value="">— None —</option>
-                        <!-- Populated by JavaScript -->
-                    </select>
-                </div>
-                
-                <!-- Additional Rote Skills -->
-                <div class="modal-section">
-                    <h3>Additional Rote Skills <span style="font-size: 0.8em; color: var(--text-muted);">(from Legacy, etc.)</span></h3>
-                    <div class="info-text" style="margin-bottom: 12px;">
-                        Select any extra Rote Skills granted by your Legacy or other sources. Order Rote Skills are shown as already selected.
-                    </div>
-                    <div id="additionalRoteSkillsContainer" class="additional-rote-skills-grid">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-                
-                <!-- Active Spells -->
-                <div class="modal-section">
-                    <h3>Active Spells <span id="activeSpellsModalCount" style="color:var(--text-muted);font-weight:400;font-size:0.85em;"></span></h3>
-                    <div class="info-text" style="margin-bottom:10px;">
-                        Spells added via "⚡ Set as Active" in the Live Preview. Each counts against your Spell Control limit.
-                    </div>
-                    <div id="activeSpellsList">
-                        <div class="spell-list-empty" id="activeSpellsEmpty">No active spells.</div>
-                    </div>
-                </div>
-                
-                <!-- Discord Integration -->
-                <div class="modal-section">
-                    <h3>🎮 Discord Integration</h3>
-                    <div class="info-text" style="margin-bottom: 12px;">
-                        Configure webhooks to send spell results to Discord channels.
-                        <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" target="_blank" style="color: var(--accent-light);">How to create webhooks</a>
-                    </div>
-                    <div class="modal-grid">
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label>Spell Preview Webhook URL</label>
-                            <input type="text" id="charDiscordPreviewWebhook" placeholder="https://discord.com/api/webhooks/...">
-                            <div class="info-text">Channel for spell details (Potency, Duration, Scale, etc.)</div>
-                        </div>
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label>Dice Pool Webhook URL</label>
-                            <input type="text" id="charDiscordDiceWebhook" placeholder="https://discord.com/api/webhooks/...">
-                            <div class="info-text">Channel for dice roll commands ($cod, $rote)</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-small" id="btnCancelEdit">Cancel</button>
-                <button class="btn-small btn-primary" id="btnApplyCharacter">Apply Changes</button>
-            </div>
-        </div>
-    </div>
+    <!-- Character Editor Modal (Phase 5 — React) -->
+    <div id="classic-chareditor-root"></div>
     <!-- ═══════════════════════════════════════════════════════════════
          COMPENDIUM MODALS
          ═══════════════════════════════════════════════════════════════ -->
@@ -9033,6 +8807,284 @@
       }
 
       ReactDOM.createRoot(document.getElementById('classic-results-root')).render(<ClassicResultsPanel/>);
+    </script>
+
+    <!-- ── React Character Editor Modal (Phase 5 migration) ──────────────── -->
+    <script type="text/babel">
+      function ClassicCharacterEditor() {
+        const [open, setOpen] = React.useState(false);
+        const [draft, setDraft] = React.useState(null);
+        const onApplyRef = React.useRef(null);
+
+        React.useEffect(() => {
+          window.classicCharEditorBridge = {
+            open: (char, onApply) => {
+              setDraft(JSON.parse(JSON.stringify(char)));
+              onApplyRef.current = onApply;
+              setOpen(true);
+            },
+            close: () => setOpen(false),
+          };
+        }, []);
+
+        if (!open || !draft) return null;
+
+        const pathData = PATHS[draft.path] || PATHS.obrimos;
+        const pathRuling = pathData.rulingArcana;
+        const inferiorArcanum = pathData.inferiorArcanum;
+        const allRuling = [...pathRuling, ...(draft.additionalRulingArcana || [])];
+        const orderData = ORDERS[draft.order] || ORDERS.mysterium;
+        const orderSkills = orderData.roteSkills || [];
+        const additionalRoteSkills = draft.additionalRoteSkills || [];
+        const activeSpells = (draft.activeSpells || []).filter(s => !s.isRelinquished);
+
+        function set(field, val) { setDraft(d => ({ ...d, [field]: val })); }
+        function setNested(outer, field, val) { setDraft(d => ({ ...d, [outer]: { ...d[outer], [field]: val } })); }
+        function setArcanum(key, val) { setDraft(d => ({ ...d, arcana: { ...d.arcana, [key]: parseInt(val) || 0 } })); }
+        function setSkill(key, val) { setDraft(d => ({ ...d, skills: { ...d.skills, [key]: parseInt(val) || 0 } })); }
+
+        function toggleRoteSkill(skillKey, isOrderSkill) {
+          if (isOrderSkill) return;
+          setDraft(d => {
+            const cur = d.additionalRoteSkills || [];
+            const has = cur.includes(skillKey);
+            return { ...d, additionalRoteSkills: has ? cur.filter(s => s !== skillKey) : [...cur, skillKey] };
+          });
+        }
+
+        function removeActiveSpellLocal(spellId) {
+          setDraft(d => ({ ...d, activeSpells: (d.activeSpells || []).filter(s => s.id !== spellId) }));
+        }
+
+        function applyChanges() {
+          if (onApplyRef.current) onApplyRef.current(draft);
+          setOpen(false);
+        }
+
+        return (
+          <div className="modal-overlay active" onClick={e => { if (e.target === e.currentTarget) setOpen(false); }}>
+            <div className="modal">
+              <div className="modal-header">
+                <h2>Character Editor</h2>
+                <button className="modal-close" onClick={() => setOpen(false)}>&times;</button>
+              </div>
+              <div className="modal-body">
+
+                {/* Basic Info */}
+                <div className="modal-section">
+                  <h3>Basic Information</h3>
+                  <div className="modal-grid">
+                    <div className="form-group">
+                      <label>Name</label>
+                      <input type="text" value={draft.name || ''} onChange={e => set('name', e.target.value)} placeholder="Character Name" />
+                    </div>
+                    <div className="form-group">
+                      <label>Shadow Name</label>
+                      <input type="text" value={draft.shadowName || ''} onChange={e => set('shadowName', e.target.value)} placeholder="Shadow Name" />
+                    </div>
+                    <div className="form-group">
+                      <label>Path</label>
+                      <select value={draft.path} onChange={e => set('path', e.target.value)}>
+                        <option value="acanthus">Acanthus (Fate/Time)</option>
+                        <option value="mastigos">Mastigos (Mind/Space)</option>
+                        <option value="moros">Moros (Death/Matter)</option>
+                        <option value="obrimos">Obrimos (Forces/Prime)</option>
+                        <option value="thyrsus">Thyrsus (Life/Spirit)</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Order</label>
+                      <select value={draft.order} onChange={e => set('order', e.target.value)}>
+                        <option value="adamantineArrow">Adamantine Arrow</option>
+                        <option value="guardiansOfTheVeil">Guardians of the Veil</option>
+                        <option value="mysterium">Mysterium</option>
+                        <option value="silverLadder">Silver Ladder</option>
+                        <option value="freeCouncil">Free Council</option>
+                        <option value="seersOfTheThrone">Seers of the Throne</option>
+                        <option value="apostate">Apostate</option>
+                        <option value="nameless">Nameless</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Traits */}
+                <div className="modal-section">
+                  <h3>Traits</h3>
+                  <div className="modal-grid">
+                    <div className="form-group">
+                      <label>Gnosis</label>
+                      <input type="number" min="1" max="10" value={draft.gnosis} onChange={e => set('gnosis', parseInt(e.target.value) || 1)} />
+                    </div>
+                    <div className="form-group">
+                      <label>Wisdom</label>
+                      <input type="number" min="1" max="10" value={draft.wisdom} onChange={e => set('wisdom', parseInt(e.target.value) || 7)} />
+                    </div>
+                    <div className="form-group">
+                      <label>Mana (Current / Max)</label>
+                      <div style={{display:'flex', gap:'8px'}}>
+                        <input type="number" min="0" max="99" value={draft.mana.current} onChange={e => setNested('mana','current', parseInt(e.target.value)||0)} style={{width:'60px'}} />
+                        <span style={{lineHeight:'36px'}}>/</span>
+                        <input type="number" min="1" max="99" value={draft.mana.max} onChange={e => setNested('mana','max', parseInt(e.target.value)||10)} style={{width:'60px'}} />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Willpower (Current / Max)</label>
+                      <div style={{display:'flex', gap:'8px'}}>
+                        <input type="number" min="0" max="10" value={draft.willpower.current} onChange={e => setNested('willpower','current', parseInt(e.target.value)||0)} style={{width:'60px'}} />
+                        <span style={{lineHeight:'36px'}}>/</span>
+                        <input type="number" min="1" max="10" value={draft.willpower.max} onChange={e => setNested('willpower','max', parseInt(e.target.value)||5)} style={{width:'60px'}} />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Health (Max)</label>
+                      <input type="number" min="1" max="20" value={draft.health?.max || 7}
+                        onChange={e => setDraft(d => ({...d, health: {...(d.health||{}), max: parseInt(e.target.value)||7}}))} />
+                      <div className="info-text">Stamina + Size (typically 7)</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Arcana */}
+                <div className="modal-section">
+                  <h3>Arcana <span style={{fontSize:'0.8em', color:'var(--text-muted)'}}>(Green = Ruling, Red = Inferior)</span></h3>
+                  <div className="modal-grid modal-grid-5">
+                    {Object.keys(ARCANA).map(key => {
+                      const isRuling = allRuling.includes(key);
+                      const isInferior = key === inferiorArcanum;
+                      return (
+                        <div key={key} className={`arcana-input${isRuling ? ' ruling' : ''}${isInferior ? ' inferior' : ''}`}>
+                          <label>{ARCANA[key].label}</label>
+                          <input type="number" min="0" max="5" value={draft.arcana[key] || 0} onChange={e => setArcanum(key, e.target.value)} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div className="modal-section">
+                  <h3>Skills</h3>
+                  {Object.entries(SKILLS).map(([catKey, catData]) => (
+                    <div key={catKey} className="skill-category">
+                      <h4>{catData.label}</h4>
+                      <div className="modal-grid modal-grid-3">
+                        {Object.entries(catData.skills).map(([skillKey, skillData]) => (
+                          <div key={skillKey} className="skill-input">
+                            <label>{skillData.label}</label>
+                            <input type="number" min="0" max="5" value={draft.skills[skillKey] || 0} onChange={e => setSkill(skillKey, e.target.value)} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Legacy Ruling Arcanum */}
+                <div className="modal-section">
+                  <h3>Legacy Ruling Arcanum <span style={{fontSize:'0.8em', color:'var(--text-muted)'}}>(optional)</span></h3>
+                  <div className="info-text" style={{marginBottom:'12px'}}>
+                    If your Legacy grants an additional Ruling Arcanum, select it here. Path Ruling Arcana are excluded.
+                  </div>
+                  <select
+                    value={(draft.additionalRulingArcana || [])[0] || ''}
+                    onChange={e => set('additionalRulingArcana', e.target.value ? [e.target.value] : [])}
+                    style={{width:'100%', maxWidth:'260px'}}
+                  >
+                    <option value="">— None —</option>
+                    {Object.entries(ARCANA)
+                      .filter(([key]) => !pathRuling.includes(key))
+                      .map(([key, data]) => <option key={key} value={key}>{data.label}</option>)}
+                  </select>
+                </div>
+
+                {/* Additional Rote Skills */}
+                <div className="modal-section">
+                  <h3>Additional Rote Skills <span style={{fontSize:'0.8em', color:'var(--text-muted)'}}>(from Legacy, etc.)</span></h3>
+                  <div className="info-text" style={{marginBottom:'12px'}}>
+                    Select any extra Rote Skills granted by your Legacy or other sources. Order Rote Skills are shown as already selected.
+                  </div>
+                  <div className="additional-rote-skills-grid">
+                    {Object.entries(getAllSkills()).map(([skillKey, skillData]) => {
+                      const isOrderSkill = orderSkills.includes(skillKey);
+                      const isAdditional = additionalRoteSkills.includes(skillKey);
+                      return (
+                        <label key={skillKey} className={`rote-skill-option${isOrderSkill ? ' order-skill' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={isOrderSkill || isAdditional}
+                            disabled={isOrderSkill}
+                            onChange={() => toggleRoteSkill(skillKey, isOrderSkill)}
+                          />
+                          <span>{skillData.label}{isOrderSkill ? ' (Order)' : ''}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Active Spells */}
+                <div className="modal-section">
+                  <h3>Active Spells{' '}
+                    <span style={{color:'var(--text-muted)', fontWeight:400, fontSize:'0.85em'}}>
+                      {activeSpells.length > 0 ? `(${activeSpells.length})` : ''}
+                    </span>
+                  </h3>
+                  <div className="info-text" style={{marginBottom:'10px'}}>
+                    Spells added via "⚡ Set as Active" in the Live Preview. Each counts against your Spell Control limit.
+                  </div>
+                  {activeSpells.length === 0
+                    ? <div className="spell-list-empty">No active spells.</div>
+                    : activeSpells.map(spell => (
+                      <div key={spell.id} className="spell-list-item">
+                        <div>
+                          <span className="spell-name">{spell.name}</span>
+                          <span className="spell-details">{ARCANA[spell.arcanum]?.label || spell.arcanum} {spell.arcanumLevel} | Potency {spell.potency}</span>
+                        </div>
+                        <button className="btn-remove" onClick={() => removeActiveSpellLocal(spell.id)}>×</button>
+                      </div>
+                    ))
+                  }
+                </div>
+
+                {/* Discord Integration */}
+                <div className="modal-section">
+                  <h3>🎮 Discord Integration</h3>
+                  <div className="info-text" style={{marginBottom:'12px'}}>
+                    Configure webhooks to send spell results to Discord channels.{' '}
+                    <a href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks" target="_blank" style={{color:'var(--accent-light)'}}>How to create webhooks</a>
+                  </div>
+                  <div className="modal-grid">
+                    <div className="form-group" style={{gridColumn:'1 / -1'}}>
+                      <label>Spell Preview Webhook URL</label>
+                      <input type="text"
+                        value={draft.discord?.spellPreviewWebhook || ''}
+                        onChange={e => setDraft(d => ({...d, discord: {...(d.discord||{}), spellPreviewWebhook: e.target.value}}))}
+                        placeholder="https://discord.com/api/webhooks/..." />
+                      <div className="info-text">Channel for spell details (Potency, Duration, Scale, etc.)</div>
+                    </div>
+                    <div className="form-group" style={{gridColumn:'1 / -1'}}>
+                      <label>Dice Pool Webhook URL</label>
+                      <input type="text"
+                        value={draft.discord?.dicePoolWebhook || ''}
+                        onChange={e => setDraft(d => ({...d, discord: {...(d.discord||{}), dicePoolWebhook: e.target.value}}))}
+                        placeholder="https://discord.com/api/webhooks/..." />
+                      <div className="info-text">Channel for dice roll commands ($cod, $rote)</div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              <div className="modal-footer">
+                <button className="btn-small" onClick={() => setOpen(false)}>Cancel</button>
+                <button className="btn-small btn-primary" onClick={applyChanges}>Apply Changes</button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('classic-chareditor-root')).render(<ClassicCharacterEditor/>);
     </script>
 
     <!-- Service Worker Registration -->
