@@ -2756,463 +2756,8 @@
 
         <h1>⟡ Spell Factor Calculator ⟡</h1>
         
-        <!-- Caster Info -->
-        <div class="card">
-            <h2>Caster</h2>
-            
-            <div class="paradox-warning" id="spellControlWarning">
-                <h3>⚡ Spell Control Limit</h3>
-                <p>You have <span id="currentActiveSpells">0</span> active spells (max <span id="maxActiveSpells">0</span>). 
-                Casting this spell costs <strong>+<span id="spellControlReach">0</span> Reach</strong>.</p>
-            </div>
-            
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Gnosis</label>
-                    <input type="number" id="gnosis" min="1" max="10" value="1">
-                    <div class="info-text" id="gnosisInfo">Ritual: 3 hours | Max Yantras: 2</div>
-                </div>
-                <div class="form-group" id="spellArcanumGroup">
-                    <label>Spell's Arcanum</label>
-                    <select id="spellArcanum">
-                        <option value="">— Select —</option>
-                        <option value="death">Death</option>
-                        <option value="fate">Fate</option>
-                        <option value="forces">Forces</option>
-                        <option value="life">Life</option>
-                        <option value="matter">Matter</option>
-                        <option value="mind">Mind</option>
-                        <option value="prime">Prime</option>
-                        <option value="space">Space</option>
-                        <option value="spirit">Spirit</option>
-                        <option value="time">Time</option>
-                    </select>
-                    <div class="info-text" id="spellArcanumInfo"></div>
-                </div>
-                <div class="form-group">
-                    <label>Caster's Arcanum Dots</label>
-                    <input type="number" id="arcanumDots" min="1" max="5" value="3">
-                </div>
-                <div class="form-group">
-                    <label>Spell's Arcanum Requirement</label>
-                    <input type="number" id="spellRequirement" min="1" max="5" value="1">
-                    <div class="info-text">Minimum Arcanum dots needed for the spell</div>
-                </div>
-                <div class="form-group">
-                    <label>Currently Active Spells</label>
-                    <div class="active-spells-display">
-                        <span class="active-spells-count" id="activeSpellsCount">0</span>
-                        <span id="activeSpellsInfo" style="color:var(--text-muted);font-size:0.8em;">/ 1 max</span>
-                        <span class="active-spells-manage-link" id="activeSpellsManageLink">Manage →</span>
-                    </div>
-                </div>
-                <div class="form-group" id="roteSkillGroup" style="display: none;">
-                    <label>Rote Skill</label>
-                    <input type="number" id="roteSkill" min="0" max="5" value="0">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="isOrderSkill">
-                        <label for="isOrderSkill" style="margin: 0; text-transform: none;">Order Skill (+1 Mudra)</label>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Spell Info -->
-        <div class="card">
-            <h2>Spell</h2>
-            
-            <!-- Spell Name (optional) -->
-            <div class="form-group spell-name-group">
-                <label>Spell Name <span class="optional-label">(optional)</span></label>
-                <input type="text" id="spellName" placeholder="e.g., Supernal Vision, Counterspell Prime...">
-            </div>
-            
-            <!-- Combined Spell Toggle -->
-            <div class="combined-spell-toggle" id="combinedToggle">
-                <input type="checkbox" id="combinedSpellEnabled">
-                <label for="combinedSpellEnabled">Combined Spell</label>
-                <span class="info" id="combinedMaxInfo">Combine up to 2 spells at Gnosis 3+</span>
-            </div>
-            
-            <!-- Combined Spell Section (hidden by default) -->
-            <div class="combined-spell-section" id="combinedSpellSection">
-                <div class="combined-spell-list" id="combinedSpellList">
-                    <!-- Spells will be added here -->
-                </div>
-                
-                <div class="combined-add-controls">
-                    <button class="btn-small" id="btnAddFromLibrary">+ From Library</button>
-                    <button class="btn-small" id="btnAddManualSpell">+ Manual Entry</button>
-                </div>
-                
-                <div class="scale-separation" id="scaleSeparation">
-                    <label>
-                        <input type="checkbox" id="separateScales">
-                        <span>Separate Scales (+1 Reach)</span>
-                    </label>
-                    <div class="info-text">Allow different spells to affect different targets/areas</div>
-                </div>
-                
-                <div class="combined-stats" id="combinedStats">
-                    <div class="combined-stat">
-                        <span class="combined-stat-label">Spells:</span>
-                        <span class="combined-stat-value" id="combinedSpellCount">0</span>
-                    </div>
-                    <div class="combined-stat">
-                        <span class="combined-stat-label">Lowest Arcanum:</span>
-                        <span class="combined-stat-value" id="combinedLowestArcanum">—</span>
-                    </div>
-                    <div class="combined-stat">
-                        <span class="combined-stat-label">Combination Penalty:</span>
-                        <span class="combined-stat-value penalty" id="combinedPenalty">0</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Standard single-spell controls -->
-            <div id="singleSpellControls">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Casting Method</label>
-                    <select id="castingMethod">
-                        <option value="improvised">Improvised (+1 Mana if not Ruling)</option>
-                        <option value="praxis">Praxis (Exceptional at 3)</option>
-                        <option value="roteGrimoire">Rote - Grimoire (Rote Quality, 2× Ritual)</option>
-                        <option value="roteOwn">Rote - Your Design (Rote Quality, Mudra)</option>
-                        <option value="roteLearned">Rote - Learned (Mudra only)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Practice</label>
-                    <select id="practice">
-                        <optgroup label="Initiate (1 dot) - 1 Free Reach">
-                            <option value="compelling">Compelling</option>
-                            <option value="knowing">Knowing</option>
-                            <option value="unveiling">Unveiling</option>
-                        </optgroup>
-                        <optgroup label="Apprentice (2 dots) - 2 Free Reach">
-                            <option value="ruling">Ruling</option>
-                            <option value="shielding">Shielding</option>
-                            <option value="veiling">Veiling</option>
-                        </optgroup>
-                        <optgroup label="Disciple (3 dots) - 3 Free Reach">
-                            <option value="fraying">Fraying</option>
-                            <option value="perfecting">Perfecting</option>
-                            <option value="weaving" selected>Weaving</option>
-                        </optgroup>
-                        <optgroup label="Adept (4 dots) - 4 Free Reach">
-                            <option value="patterning">Patterning</option>
-                            <option value="unraveling">Unraveling</option>
-                        </optgroup>
-                        <optgroup label="Master (5 dots) - 5 Free Reach">
-                            <option value="making">Making</option>
-                            <option value="unmaking">Unmaking</option>
-                        </optgroup>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Spell's Default Primary Factor</label>
-                    <select id="defaultPrimaryFactor">
-                        <option value="potency" selected>Potency</option>
-                        <option value="duration">Duration</option>
-                    </select>
-                    <div class="info-text">As listed in the spell description</div>
-                </div>
-                <div class="form-group">
-                    <label>Chosen Primary Factor</label>
-                    <select id="primaryFactor">
-                        <option value="potency">Potency</option>
-                        <option value="duration">Duration</option>
-                    </select>
-                    <div class="info-text" id="primaryFactorInfo"></div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Spell Factors -->
-        <div class="card">
-            <h2>Spell Factors</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Potency</label>
-                    <input type="number" id="potency" min="1" max="20" value="1">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="advancedPotency">
-                        <label for="advancedPotency" style="margin: 0; text-transform: none;">Advanced Potency +1 Reach</label>
-                    </div>
-                    <div class="info-text" id="advancedPotencyInfo" style="display: none; color: var(--warning);">+2 Withstand vs Dispellation · +1 die to Clash of Wills</div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Duration</label>
-                    <select id="duration"></select>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="advancedDuration">
-                        <label for="advancedDuration" style="margin: 0; text-transform: none;">Advanced (Scene+) +1 Reach</label>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Scale</label>
-                    <select id="scale"></select>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="advancedScale">
-                        <label for="advancedScale" style="margin: 0; text-transform: none;">Advanced +1 Reach</label>
-                    </div>
-                    <div class="radio-group" style="margin-top: 8px;">
-                        <label>
-                            <input type="radio" name="scaleType" value="subjects" checked>
-                            Subjects
-                        </label>
-                        <label>
-                            <input type="radio" name="scaleType" value="aoe">
-                            Area
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Range</label>
-                    <select id="range">
-                        <option value="self">Self</option>
-                        <option value="touch" selected>Touch</option>
-                        <option value="aimed">Aimed (attack roll required)</option>
-                        <option value="sensory">Sensory (+1 Reach)</option>
-                        <option value="remoteView">Remote Viewed (+2 Reach)</option>
-                        <option value="sympathetic">Sympathetic (Space 2 + 1 Mana)</option>
-                        <option value="temporal">Temporal (Time 2 + 1 Mana)</option>
-                    </select>
-                    <div class="info-text" id="rangeInfo"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Casting Time</label>
-                    <select id="castingTime">
-                        <option value="ritual" selected>Ritual</option>
-                        <option value="instant">Instant (+1 Reach)</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" id="ritualIntervalsGroup">
-                    <label>Ritual Intervals (0-5)</label>
-                    <input type="number" id="ritualIntervals" min="0" max="5" value="0">
-                    <div class="info-text">+1 die per interval, max +5</div>
-                </div>
-                
-                <div class="form-group">
-                    <label>Additional Reach</label>
-                    <input type="number" id="additionalReach" min="0" max="10" value="0">
-                    <div class="info-text">For spell effects (Instant, extra damage, etc.)</div>
-                </div>
-            </div>
-            </div> <!-- end singleSpellControls -->
-        </div>
-        
-        <!-- Yantras -->
-        <div class="card">
-            <h2>Yantras <span class="info-text" id="yantraCount">(0 / 2 max)</span></h2>
-            <div class="yantra-grid" id="yantraGrid">
-                <!-- Places -->
-                <div class="yantra-category">
-                    <h4>Places</h4>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="demesne" data-bonus="2">
-                        <span>Demesne (+2)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="environment" data-bonus="1">
-                        <span>Environment (+1)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="supernalVerge" data-bonus="2">
-                        <span>Supernal Verge (+2)</span>
-                    </label>
-                </div>
-                
-                <!-- Tools -->
-                <div class="yantra-category">
-                    <h4>Tools</h4>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="dedicatedTool" data-bonus="0" data-special="paradox">
-                        <span>Dedicated Tool (−2 Paradox)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="pathTool" data-bonus="1">
-                        <span>Path Tool (+1)</span>
-                    </label>
-                    <label class="yantra-sub-option" id="pathToolDedicatedOption" style="display: none;">
-                        <input type="checkbox" id="pathToolDedicated" data-also-dedicated="true">
-                        <span>↳ Also my Dedicated Tool (−2 Paradox)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="orderTool" data-bonus="1">
-                        <span>Order Tool (+1)</span>
-                    </label>
-                    <label class="yantra-sub-option" id="orderToolDedicatedOption" style="display: none;">
-                        <input type="checkbox" id="orderToolDedicated" data-also-dedicated="true">
-                        <span>↳ Also my Dedicated Tool (−2 Paradox)</span>
-                    </label>
-                </div>
-                
-                <!-- Actions -->
-                <div class="yantra-category">
-                    <h4>Actions</h4>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="concentration" data-bonus="2">
-                        <span>Concentration (+2)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="highSpeech" data-bonus="2">
-                        <span>High Speech (+2)</span>
-                    </label>
-                    <label class="yantra-option" id="mudraOption" style="display: none;">
-                        <input type="checkbox" data-yantra="mudra" data-bonus="0" data-special="mudra">
-                        <span>Mudra (+Skill)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="rune" data-bonus="2">
-                        <span>Rune (+2)</span>
-                    </label>
-                </div>
-                
-                <!-- Sympathy -->
-                <div class="yantra-category">
-                    <h4>Sympathy</h4>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="material" data-bonus="2">
-                        <span>Material (+2)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="representational" data-bonus="1">
-                        <span>Representational (+1)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="symbolic" data-bonus="0">
-                        <span>Symbolic (+0)</span>
-                    </label>
-                </div>
-                
-                <!-- Sacraments -->
-                <div class="yantra-category">
-                    <h4>Sacraments</h4>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="sacramentNormal" data-bonus="1">
-                        <span>Normal (+1)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="sacramentRare" data-bonus="2">
-                        <span>Rare/Effort (+2)</span>
-                    </label>
-                    <label class="yantra-option">
-                        <input type="checkbox" data-yantra="sacramentOther" data-bonus="3">
-                        <span>Other Realm (+3)</span>
-                    </label>
-                </div>
-                
-                <!-- Persona -->
-                <div class="yantra-category">
-                    <h4>Persona</h4>
-                    <div class="form-group" style="margin-top: 8px;">
-                        <select id="personaBonus" data-yantra="persona">
-                            <option value="0">None</option>
-                            <option value="1">+1 (Shadow Name)</option>
-                            <option value="2">+2</option>
-                            <option value="3">+3</option>
-                            <option value="4">+4 (Full Persona)</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="info-text" style="margin-top: 12px;">
-                First Yantra is reflexive. Each additional adds 1 turn to casting. Max bonus after penalties: +5.
-            </div>
-        </div>
-        
-        <!-- Additional Modifiers -->
-        <div class="card">
-            <h2>Additional Modifiers</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label class="checkbox-group" style="margin-bottom: 0;">
-                        <input type="checkbox" id="spendWillpower">
-                        <span style="text-transform: none;">Spend Willpower (+3 dice)</span>
-                    </label>
-                </div>
-                <div class="form-group">
-                    <label>Teamwork Dice</label>
-                    <input type="number" id="teamworkDice" min="0" max="10" value="0">
-                </div>
-                <div class="form-group">
-                    <label>Other Modifier</label>
-                    <input type="number" id="otherModifier" min="-10" max="10" value="0">
-                    <input type="text" id="otherModifierName" placeholder="Modifier name (optional)" style="margin-top: 4px;">
-                </div>
-            </div>
-            
-            <!-- Mana Summary -->
-            <div class="mana-summary" id="manaSummary">
-                <h3>Mana Summary</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Additional Mana Cost</label>
-                        <input type="number" id="additionalManaCost" min="0" max="20" value="0">
-                        <div class="info-text">For spell-specific costs</div>
-                    </div>
-                </div>
-                <div class="mana-breakdown" id="manaBreakdown">
-                    <div class="mana-row">
-                        <span class="mana-source">Non-Ruling Improvised:</span>
-                        <span class="mana-cost" id="manaNonRuling">0</span>
-                    </div>
-                    <div class="mana-row">
-                        <span class="mana-source">Indefinite Duration:</span>
-                        <span class="mana-cost" id="manaIndefinite">0</span>
-                    </div>
-                    <div class="mana-row">
-                        <span class="mana-source">Sympathetic / Temporal:</span>
-                        <span class="mana-cost" id="manaSympathy">0</span>
-                    </div>
-                    <div class="mana-row">
-                        <span class="mana-source">Paradox Mitigation:</span>
-                        <span class="mana-cost" id="manaParadox">0</span>
-                    </div>
-                    <div class="mana-row">
-                        <span class="mana-source">Additional Costs:</span>
-                        <span class="mana-cost" id="manaAdditional">0</span>
-                    </div>
-                    <div class="mana-row mana-total">
-                        <span class="mana-source">Total Mana Required:</span>
-                        <span class="mana-cost" id="manaTotalCost">0</span>
-                    </div>
-                </div>
-                <div class="mana-ledger" id="manaLedger" style="display: none;">
-                    <div class="mana-ledger-row">
-                        <span class="label">Current mana</span>
-                        <span id="manaLedgerCurrent">0</span>
-                    </div>
-                    <div class="mana-ledger-row">
-                        <span class="label">Cost</span>
-                        <span style="color: var(--warning);" id="manaLedgerCost">−0</span>
-                    </div>
-                    <div class="mana-ledger-divider"></div>
-                    <div class="mana-ledger-total">
-                        <span>After cast</span>
-                        <span id="manaLedgerAfter">0</span>
-                    </div>
-                    <div style="font-size: 0.75em; color: var(--text-muted); margin-top: 4px;" id="manaPerTurnInfo"></div>
-                </div>
-                <div class="mana-validation" id="manaValidation" style="display: none;"></div>
-                <div class="mana-deducted-notice" id="manaDeductedNotice">✓ Mana deducted</div>
-                <div class="mana-pool-status" id="manaPoolStatus">
-                    <span id="manaPoolDisplay">No character loaded</span>
-                </div>
-                <div class="mana-warning" id="manaExceedWarning" style="display: none;">
-                    <strong>⚠ Mana Limit Warning!</strong>
-                    <span id="manaExceedText"></span>
-                </div>
-            </div>
-        </div>
-        
+        <!-- SpellForm (Phase 3: React) -->
+        <div id="classic-spellform-root"></div>
         <!-- Paradox Inputs (separate for usability) -->
         <div class="card" id="paradoxInputSection" style="display: none;">
             <h2>Paradox Modifiers</h2>
@@ -3756,93 +3301,6 @@
                     `(${selectedCount} / ${maxYantras} max)`;
             }
             
-            // Initialize dropdowns
-            populateDurationSelect(false);
-            populateScaleSelect(false, 'subjects');
-            updateGnosisInfo();
-            toggleRitualIntervals();
-            toggleRoteSkill();
-            updateRangeInfo();
-            updatePrimaryFactorInfo();
-            
-            // Event listeners
-            document.getElementById('advancedDuration').addEventListener('change', function() {
-                populateDurationSelect(this.checked);
-            });
-            
-            document.getElementById('advancedPotency').addEventListener('change', function() {
-                document.getElementById('advancedPotencyInfo').style.display = this.checked ? 'block' : 'none';
-            });
-            
-            document.getElementById('advancedScale').addEventListener('change', function() {
-                populateScaleSelect(this.checked, getScaleType());
-            });
-            
-            document.querySelectorAll('input[name="scaleType"]').forEach(radio => {
-                radio.addEventListener('change', function() {
-                    const useAdvanced = document.getElementById('advancedScale').checked;
-                    populateScaleSelect(useAdvanced, this.value);
-                });
-            });
-            
-            document.getElementById('gnosis').addEventListener('change', updateGnosisInfo);
-            document.getElementById('castingTime').addEventListener('change', toggleRitualIntervals);
-            document.getElementById('range').addEventListener('change', updateRangeInfo);
-            document.getElementById('defaultPrimaryFactor').addEventListener('change', updatePrimaryFactorInfo);
-            document.getElementById('primaryFactor').addEventListener('change', updatePrimaryFactorInfo);
-            document.getElementById('castingMethod').addEventListener('change', function() {
-                toggleRoteSkill();
-                updateYantraCount();
-            });
-            
-            // Yantra checkbox listeners
-            document.querySelectorAll('.yantra-option input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    updateYantraCount();
-                    // Update Paradox if Dedicated Tool changed
-                    if (this.dataset.yantra === 'dedicatedTool') {
-                        updateDedicatedToolExclusivity('dedicatedTool');
-                        updateParadoxDisplay();
-                    }
-                    // Show/hide "Also Dedicated" sub-options
-                    if (this.dataset.yantra === 'pathTool') {
-                        document.getElementById('pathToolDedicatedOption').style.display = this.checked ? 'flex' : 'none';
-                        if (!this.checked) {
-                            document.getElementById('pathToolDedicated').checked = false;
-                            updateDedicatedToolExclusivity(null);
-                        }
-                    }
-                    if (this.dataset.yantra === 'orderTool') {
-                        document.getElementById('orderToolDedicatedOption').style.display = this.checked ? 'flex' : 'none';
-                        if (!this.checked) {
-                            document.getElementById('orderToolDedicated').checked = false;
-                            updateDedicatedToolExclusivity(null);
-                        }
-                    }
-                });
-            });
-            
-            // "Also Dedicated Tool" checkbox listeners
-            document.getElementById('pathToolDedicated').addEventListener('change', function() {
-                if (this.checked) {
-                    updateDedicatedToolExclusivity('pathToolDedicated');
-                } else {
-                    updateDedicatedToolExclusivity(null);
-                }
-                updateParadoxDisplay();
-                calculate();
-            });
-            
-            document.getElementById('orderToolDedicated').addEventListener('change', function() {
-                if (this.checked) {
-                    updateDedicatedToolExclusivity('orderToolDedicated');
-                } else {
-                    updateDedicatedToolExclusivity(null);
-                }
-                updateParadoxDisplay();
-                calculate();
-            });
-            
             // Handle mutual exclusivity of Dedicated Tool options
             function updateDedicatedToolExclusivity(activeId) {
                 const dedicatedTool = document.querySelector('[data-yantra="dedicatedTool"]');
@@ -3893,73 +3351,6 @@
                 const orderToolDedicated = document.getElementById('orderToolDedicated');
                 return dedicatedTool.checked || pathToolDedicated.checked || orderToolDedicated.checked;
             }
-            
-            document.getElementById('personaBonus').addEventListener('change', updateYantraCount);
-            
-            // Auto-calculate on any relevant input change
-            const autoCalcInputs = [
-                'gnosis', 'spellArcanum', 'arcanumDots', 'spellRequirement', 'activeSpells',
-                'castingMethod', 'defaultPrimaryFactor', 'primaryFactor',
-                'potency', 'duration', 'scale', 'range', 'castingTime',
-                'ritualIntervals', 'additionalReach', 'roteSkill',
-                'teamworkDice', 'otherModifier', 'additionalManaCost'
-            ];
-            
-            autoCalcInputs.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.addEventListener('change', calculate);
-                    // Also listen to 'input' for real-time updates on number/text fields
-                    if (el.type === 'number' || el.type === 'text') {
-                        el.addEventListener('input', calculate);
-                    }
-                }
-            });
-            
-            // Checkboxes that trigger recalculation
-            const autoCalcCheckboxes = [
-                'advancedDuration', 'advancedScale', 'advancedPotency', 'isOrderSkill', 'spendWillpower'
-            ];
-            
-            autoCalcCheckboxes.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('change', calculate);
-            });
-            
-            // Radio buttons for scale type
-            document.querySelectorAll('input[name="scaleType"]').forEach(radio => {
-                radio.addEventListener('change', calculate);
-            });
-            
-            // Yantra changes trigger calculation
-            document.querySelectorAll('.yantra-option input[type="checkbox"]').forEach(checkbox => {
-                checkbox.addEventListener('change', calculate);
-            });
-            document.getElementById('personaBonus').addEventListener('change', calculate);
-            document.getElementById('personaBonus').addEventListener('input', calculate);
-            
-            // High Speech bonus
-            const highSpeechEl = document.getElementById('highSpeechBonus');
-            if (highSpeechEl) {
-                highSpeechEl.addEventListener('change', calculate);
-                highSpeechEl.addEventListener('input', calculate);
-            }
-            
-            // Spell Arcanum dropdown: auto-fill dots from character + show ruling/inferior
-            document.getElementById('spellArcanum').addEventListener('change', function() {
-                const selectedArcanum = this.value;
-                window.currentCastingArcanum = selectedArcanum || null;
-                
-                if (selectedArcanum && currentCharacter) {
-                    // Auto-fill caster's dots in this arcanum
-                    const dots = currentCharacter.arcana[selectedArcanum] || 0;
-                    if (dots > 0) {
-                        document.getElementById('arcanumDots').value = dots;
-                    }
-                }
-                
-                updateSpellArcanumInfo();
-            });
             
             // Update Spell Arcanum info text (ruling/inferior indicator)
             function updateSpellArcanumInfo() {
@@ -4842,40 +4233,20 @@
             // Apply character data to main calculator form
             function applyCharacterToForm() {
                 if (!currentCharacter) return;
-                
-                // Gnosis
-                document.getElementById('gnosis').value = currentCharacter.gnosis;
-                updateGnosisInfo();
-                updateCombinedMaxInfo(); // Update combined spell availability
-                
-            // Active spells count — driven by activeSpells array
+                updateCombinedMaxInfo();
                 syncActiveSpellCount();
                 renderActiveSpellsList();
-                
-                // Find highest arcanum for default
-                let highestArcanum = 'prime';
-                let highestDots = 0;
-                for (const [key, dots] of Object.entries(currentCharacter.arcana)) {
-                    if (dots > highestDots) {
-                        highestDots = dots;
-                        highestArcanum = key;
+
+                if (window.classicBridge?.setSpellForm) {
+                    let highestArcanum = 'prime', highestDots = 0;
+                    for (const [key, dots] of Object.entries(currentCharacter.arcana || {})) {
+                        if (dots > highestDots) { highestDots = dots; highestArcanum = key; }
                     }
+                    window.classicBridge.setSpellForm({
+                        gnosis: currentCharacter.gnosis || 1,
+                        arcanumDots: highestDots || 3,
+                    });
                 }
-                
-                if (highestDots > 0) {
-                    document.getElementById('arcanumDots').value = highestDots;
-                }
-                
-                // Refresh arcanum dots if a spell arcanum is already selected
-                const selectedArc = document.getElementById('spellArcanum').value;
-                if (selectedArc) {
-                    const dots = currentCharacter.arcana[selectedArc] || 0;
-                    if (dots > 0) {
-                        document.getElementById('arcanumDots').value = dots;
-                    }
-                    window.currentCastingArcanum = selectedArc;
-                }
-                updateSpellArcanumInfo();
             }
             
             // Save character to file
@@ -4964,21 +4335,10 @@
             }
 
             function syncActiveSpellCount() {
-                const count  = currentCharacter?.activeSpells?.length || 0;
-                const gnosis = parseInt(document.getElementById('gnosis')?.value) || 1;
-
-                const countEl = document.getElementById('activeSpellsCount');
-                if (countEl) countEl.textContent = count;
-
-                const infoEl = document.getElementById('activeSpellsInfo');
-                if (infoEl) infoEl.textContent = `/ ${gnosis} max (Gnosis ${gnosis})`;
-
-                // Keep spellControlWarning spans in sync
-                const curEl = document.getElementById('currentActiveSpells');
-                const maxEl = document.getElementById('maxActiveSpells');
-                if (curEl) curEl.textContent = count;
-                if (maxEl) maxEl.textContent = gnosis;
-
+                const count = (currentCharacter?.activeSpells || []).filter(s => !s.isRelinquished).length;
+                if (window.classicBridge?.setActiveSpellCount) {
+                    window.classicBridge.setActiveSpellCount(count);
+                }
                 // Modal badge
                 const badgeEl = document.getElementById('activeSpellsModalCount');
                 if (badgeEl) badgeEl.textContent = count > 0 ? `(${count})` : '';
@@ -5796,75 +5156,44 @@
             function loadSpellToCalculator(spellId) {
                 const spell = findSpellById(spellId);
                 if (!spell) return;
-                
-                // Track source for "Save to Library" update feature
+
                 sourceSpellId = spellId;
                 window.currentRoteSkillKey = spell.roteSkill || null;
-                
-                // Set spell name
-                document.getElementById('spellName').value = spell.name || '';
-                
-                // Set casting method based on spell type
-                let castingMethod = 'improvised';
-                if (spell.type === 'rote') {
-                    if (spell.roteCreator === 'grimoire') {
-                        castingMethod = 'roteGrimoire';
-                    } else if (spell.roteCreator === 'self') {
-                        castingMethod = 'roteOwn';
-                    } else {
-                        castingMethod = 'roteLearned';
-                    }
-                } else if (spell.type === 'praxis') {
-                    castingMethod = 'praxis';
-                }
-                document.getElementById('castingMethod').value = castingMethod;
-                toggleRoteSkill();
-                
-                // Practice
-                document.getElementById('practice').value = spell.practice;
-                
-                // Arcanum
-                document.getElementById('spellArcanum').value = spell.primaryArcanum;
                 window.currentCastingArcanum = spell.primaryArcanum;
-                const primaryDots = currentCharacter.arcana[spell.primaryArcanum] || 0;
-                document.getElementById('arcanumDots').value = primaryDots;
-                document.getElementById('spellRequirement').value = spell.primaryArcanumLevel;
-                updateSpellArcanumInfo();
-                
-                // Primary factor
-                document.getElementById('defaultPrimaryFactor').value = spell.primaryFactor;
-                document.getElementById('primaryFactor').value = spell.primaryFactor;
-                updatePrimaryFactorInfo();
-                
-                // Rote skill
-                if (spell.type === 'rote' && spell.roteSkill) {
-                    document.getElementById('roteSkill').value = currentCharacter.skills[spell.roteSkill] || 0;
-                    document.getElementById('isOrderSkill').checked = isRoteSkill(currentCharacter, spell.roteSkill);
+
+                if (window.classicBridge?.setSpellForm) {
+                    let castingMethod = 'improvised';
+                    if (spell.type === 'rote') {
+                        castingMethod = spell.roteCreator === 'grimoire' ? 'roteGrimoire'
+                                      : spell.roteCreator === 'self'     ? 'roteOwn' : 'roteLearned';
+                    } else if (spell.type === 'praxis') {
+                        castingMethod = 'praxis';
+                    }
+                    const defaults = spell.defaults || {};
+                    const primaryDots = currentCharacter?.arcana?.[spell.primaryArcanum] || 0;
+                    window.classicBridge.setSpellForm({
+                        spellName:            spell.name || '',
+                        castingMethod,
+                        practice:             spell.practice,
+                        spellArcanum:         spell.primaryArcanum,
+                        arcanumDots:          primaryDots,
+                        spellRequirement:     spell.primaryArcanumLevel,
+                        defaultPrimaryFactor: spell.primaryFactor,
+                        primaryFactor:        spell.primaryFactor,
+                        roteSkill:   (spell.type === 'rote' && spell.roteSkill) ? (currentCharacter?.skills?.[spell.roteSkill] || 0) : 0,
+                        isOrderSkill:(spell.type === 'rote' && spell.roteSkill) ? isRoteSkill(currentCharacter, spell.roteSkill) : false,
+                        potency:         defaults.potency        || 1,
+                        advancedPotency: defaults.useAdvancedPotency  || false,
+                        durationIndex:   defaults.durationIndex   || 0,
+                        advancedDuration:defaults.useAdvancedDuration || false,
+                        scaleIndex:      defaults.scaleIndex       || 0,
+                        advancedScale:   defaults.useAdvancedScale  || false,
+                        scaleType:       defaults.scaleType         || 'subjects',
+                        range:           defaults.range             || 'touch',
+                    });
                 }
-                
-                // Default settings
-                const defaults = spell.defaults || {};
-                document.getElementById('potency').value = defaults.potency || 1;
-                document.getElementById('advancedPotency').checked = defaults.useAdvancedPotency || false;
-                document.getElementById('advancedPotencyInfo').style.display = defaults.useAdvancedPotency ? 'block' : 'none';
-                document.getElementById('advancedDuration').checked = defaults.useAdvancedDuration || false;
-                populateDurationSelect(defaults.useAdvancedDuration || false);
-                document.getElementById('duration').value = defaults.durationIndex || 0;
-                document.getElementById('advancedScale').checked = defaults.useAdvancedScale || false;
-                populateScaleSelect(defaults.useAdvancedScale || false, defaults.scaleType || 'subjects');
-                document.getElementById('scale').value = defaults.scaleIndex || 0;
-                // Set scale type radio button to match loaded spell
-                const loadedScaleType = defaults.scaleType || 'subjects';
-                const scaleRadio = document.querySelector(`input[name="scaleType"][value="${loadedScaleType}"]`);
-                if (scaleRadio) scaleRadio.checked = true;
-                document.getElementById('range').value = defaults.range || 'touch';
-                updateRangeInfo();
-                
-                // Scroll to calculator
+
                 document.querySelector('h1').scrollIntoView({ behavior: 'smooth' });
-                
-                // Recalculate
-                calculate();
             }
             
             // =========================================================
@@ -8985,6 +8314,566 @@
       }
 
       ReactDOM.createRoot(document.getElementById('classic-scene-root')).render(<ClassicSceneTracker/>);
+    </script>
+
+    <!-- ── React Spell Form (Phase 3 migration) ──────────────────────────── -->
+    <script type="text/babel">
+      const { useState: _sf_us, useEffect: _sf_ue } = React;
+
+      // ── Zones that vanilla JS manages — never re-render once mounted ──────
+      const SpellControlZone = React.memo(function() {
+        return (
+          <React.Fragment>
+            <div className="paradox-warning" id="spellControlWarning" style={{display:'none'}}>
+              <h3>⚡ Spell Control Limit</h3>
+              <p>You have <span id="currentActiveSpells">0</span> active spells (max <span id="maxActiveSpells">0</span>).
+              Casting this spell costs <strong>+<span id="spellControlReach">0</span> Reach</strong>.</p>
+            </div>
+          </React.Fragment>
+        );
+      }, () => true);
+
+      const ActiveSpellsDisplay = React.memo(function() {
+        return (
+          <div className="active-spells-display">
+            <span className="active-spells-count" id="activeSpellsCount">0</span>
+            <span id="activeSpellsInfo" style={{color:'var(--text-muted)',fontSize:'0.8em'}}>/ 1 max</span>
+            <span className="active-spells-manage-link" id="activeSpellsManageLink">Manage →</span>
+          </div>
+        );
+      }, () => true);
+
+      const CombinedSpellZone = React.memo(function() {
+        return (
+          <React.Fragment>
+            <div className="combined-spell-toggle" id="combinedToggle">
+              <input type="checkbox" id="combinedSpellEnabled" />
+              <label htmlFor="combinedSpellEnabled">Combined Spell</label>
+              <span className="info" id="combinedMaxInfo">Combine up to 2 spells at Gnosis 3+</span>
+            </div>
+            <div className="combined-spell-section" id="combinedSpellSection">
+              <div className="combined-spell-list" id="combinedSpellList"></div>
+              <div className="combined-add-controls">
+                <button className="btn-small" id="btnAddFromLibrary">+ From Library</button>
+                <button className="btn-small" id="btnAddManualSpell">+ Manual Entry</button>
+              </div>
+              <div className="scale-separation" id="scaleSeparation">
+                <label>
+                  <input type="checkbox" id="separateScales" />
+                  <span>Separate Scales (+1 Reach)</span>
+                </label>
+                <div className="info-text">Allow different spells to affect different targets/areas</div>
+              </div>
+              <div className="combined-stats" id="combinedStats">
+                <div className="combined-stat"><span className="combined-stat-label">Spells:</span><span className="combined-stat-value" id="combinedSpellCount">0</span></div>
+                <div className="combined-stat"><span className="combined-stat-label">Lowest Arcanum:</span><span className="combined-stat-value" id="combinedLowestArcanum">—</span></div>
+                <div className="combined-stat"><span className="combined-stat-label">Combination Penalty:</span><span className="combined-stat-value penalty" id="combinedPenalty">0</span></div>
+              </div>
+            </div>
+          </React.Fragment>
+        );
+      }, () => true);
+
+      const ManaSummaryDisplay = React.memo(function() {
+        return (
+          <React.Fragment>
+            <div className="mana-breakdown" id="manaBreakdown">
+              <div className="mana-row"><span className="mana-source">Non-Ruling Improvised:</span><span className="mana-cost" id="manaNonRuling">0</span></div>
+              <div className="mana-row"><span className="mana-source">Indefinite Duration:</span><span className="mana-cost" id="manaIndefinite">0</span></div>
+              <div className="mana-row"><span className="mana-source">Sympathetic / Temporal:</span><span className="mana-cost" id="manaSympathy">0</span></div>
+              <div className="mana-row"><span className="mana-source">Paradox Mitigation:</span><span className="mana-cost" id="manaParadox">0</span></div>
+              <div className="mana-row"><span className="mana-source">Additional Costs:</span><span className="mana-cost" id="manaAdditional">0</span></div>
+              <div className="mana-row mana-total"><span className="mana-source">Total Mana Required:</span><span className="mana-cost" id="manaTotalCost">0</span></div>
+            </div>
+            <div className="mana-ledger" id="manaLedger" style={{display:'none'}}>
+              <div className="mana-ledger-row"><span className="label">Current mana</span><span id="manaLedgerCurrent">0</span></div>
+              <div className="mana-ledger-row"><span className="label">Cost</span><span style={{color:'var(--warning)'}} id="manaLedgerCost">−0</span></div>
+              <div className="mana-ledger-divider"></div>
+              <div className="mana-ledger-total"><span>After cast</span><span id="manaLedgerAfter">0</span></div>
+              <div style={{fontSize:'0.75em',color:'var(--text-muted)',marginTop:4}} id="manaPerTurnInfo"></div>
+            </div>
+            <div className="mana-validation" id="manaValidation" style={{display:'none'}}></div>
+          </React.Fragment>
+        );
+      }, () => true);
+
+      // ── Main spell form component ─────────────────────────────────────────
+      function ClassicSpellForm() {
+        const [form, setForm] = _sf_us({
+          gnosis: 1, spellArcanum: '', arcanumDots: 3, spellRequirement: 1,
+          activeSpellCount: 0,
+          spellName: '',
+          castingMethod: 'improvised', practice: 'weaving',
+          defaultPrimaryFactor: 'potency', primaryFactor: 'potency',
+          potency: 1, advancedPotency: false,
+          durationIndex: 0, advancedDuration: false,
+          scaleIndex: 0, advancedScale: false, scaleType: 'subjects',
+          range: 'touch', castingTime: 'ritual', ritualIntervals: 0, additionalReach: 0,
+          roteSkill: 0, isOrderSkill: false,
+          yantras: {}, pathToolDedicated: false, orderToolDedicated: false, personaBonus: 0,
+          spendWillpower: false, teamworkDice: 0, otherModifier: 0, otherModifierName: '',
+          additionalManaCost: 0,
+        });
+
+        const set   = (k, v) => setForm(f => ({...f, [k]: v}));
+        const merge = (d)    => setForm(f => ({...f, ...d}));
+
+        // Bridge — callers use classicBridge.setSpellForm / setSpellFormField
+        _sf_ue(() => {
+          window.classicBridge = {
+            ...window.classicBridge,
+            setSpellForm:        merge,
+            setSpellFormField:   set,
+            setActiveSpellCount: (n) => set('activeSpellCount', n),
+          };
+        }, []);
+
+        // Recalculate after every state change
+        _sf_ue(() => {
+          if (typeof calculate       === 'function') calculate();
+          if (typeof updateManaSummary === 'function') updateManaSummary();
+          if (typeof updateParadoxDisplay === 'function') updateParadoxDisplay();
+        }, [form]);
+
+        // ── Derived ──────────────────────────────────────────────────────────
+        const isRote    = form.castingMethod.startsWith('rote');
+        const mInfo     = typeof CASTING_METHODS !== 'undefined' ? CASTING_METHODS[form.castingMethod] : null;
+        const mudraOk   = mInfo?.mudraAvailable || false;
+        const ritInt    = typeof getRitualInterval !== 'undefined' ? getRitualInterval(form.gnosis) : '3 hours';
+        const maxYant   = typeof getMaxYantras    !== 'undefined' ? getMaxYantras(form.gnosis) : 2;
+        const durOpts   = typeof getDurationOptions !== 'undefined' ? getDurationOptions(form.advancedDuration) : [];
+        const scaleOpts = typeof getScaleOptions  !== 'undefined' ? getScaleOptions(form.advancedScale, form.scaleType) : [];
+        const rangeDesc = typeof RANGE_OPTIONS    !== 'undefined' ? (RANGE_OPTIONS[form.range]?.description || '') : '';
+        const pfChg     = form.primaryFactor !== form.defaultPrimaryFactor;
+
+        const yantraCount = Object.values(form.yantras).filter(Boolean).length
+          + (form.pathToolDedicated ? 1 : 0) + (form.orderToolDedicated ? 1 : 0)
+          + (form.personaBonus > 0 ? 1 : 0);
+
+        const ch = window.currentCharacter;
+        let arcText = '', arcColor = '';
+        if (form.spellArcanum && ch) {
+          if (typeof isRulingArcanum   !== 'undefined' && isRulingArcanum(ch, form.spellArcanum))
+            { arcText = '✓ Ruling Arcanum (no extra Mana)';          arcColor = 'var(--success)'; }
+          else if (typeof isInferiorArcanum !== 'undefined' && isInferiorArcanum(ch, form.spellArcanum))
+            { arcText = '✗ Inferior Arcanum (+1 Mana if improvised)'; arcColor = 'var(--danger)'; }
+          else if (form.spellArcanum)
+            { arcText = 'Common Arcanum (+1 Mana if improvised)';     arcColor = 'var(--warning)'; }
+        }
+
+        // ── Handlers ─────────────────────────────────────────────────────────
+        function onArcanum(val) {
+          let dots = form.arcanumDots;
+          const ch2 = window.currentCharacter;
+          if (val && ch2?.arcana?.[val] > 0) dots = ch2.arcana[val];
+          window.currentCastingArcanum = val || null;
+          merge({ spellArcanum: val, arcanumDots: dots });
+        }
+
+        function onCastingMethod(val) {
+          const newMInfo = typeof CASTING_METHODS !== 'undefined' ? CASTING_METHODS[val] : null;
+          if (!newMInfo?.mudraAvailable) {
+            const y = {...form.yantras}; delete y.mudra;
+            merge({ castingMethod: val, yantras: y });
+          } else {
+            set('castingMethod', val);
+          }
+        }
+
+        function onYantra(key, checked) {
+          const y = {...form.yantras};
+          if (checked) y[key] = true; else delete y[key];
+          const upd = { yantras: y };
+          if (key === 'dedicatedTool' && checked)   { upd.pathToolDedicated = false; upd.orderToolDedicated = false; }
+          if (key === 'pathTool'  && !checked)       { upd.pathToolDedicated = false; }
+          if (key === 'orderTool' && !checked)       { upd.orderToolDedicated = false; }
+          merge(upd);
+        }
+
+        function onDedSub(which, checked) {
+          const upd = { [which]: checked };
+          if (checked) {
+            const y = {...form.yantras}; delete y.dedicatedTool; upd.yantras = y;
+            if (which === 'pathToolDedicated')  upd.orderToolDedicated = false;
+            else                                upd.pathToolDedicated  = false;
+          }
+          merge(upd);
+        }
+
+        const ARCANA = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
+        const showWarning = form.activeSpellCount > form.gnosis;
+
+        // ── Render ────────────────────────────────────────────────────────────
+        return (
+          <React.Fragment>
+
+            {/* ── CASTER CARD ── */}
+            <div className="card">
+              <h2>Caster</h2>
+              <SpellControlZone />
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Gnosis</label>
+                  <input type="number" id="gnosis" min="1" max="10"
+                    value={form.gnosis} onChange={e => set('gnosis', Math.max(1, parseInt(e.target.value)||1))} />
+                  <div className="info-text" id="gnosisInfo">{ritInt} | Max Yantras: {maxYant}</div>
+                </div>
+                <div className="form-group" id="spellArcanumGroup">
+                  <label>Spell's Arcanum</label>
+                  <select id="spellArcanum" value={form.spellArcanum} onChange={e => onArcanum(e.target.value)}>
+                    <option value="">— Select —</option>
+                    {ARCANA.map(a => <option key={a} value={a}>{a.charAt(0).toUpperCase()+a.slice(1)}</option>)}
+                  </select>
+                  <div className="info-text" id="spellArcanumInfo" style={{color:arcColor}}>{arcText}</div>
+                </div>
+                <div className="form-group">
+                  <label>Caster's Arcanum Dots</label>
+                  <input type="number" id="arcanumDots" min="1" max="5"
+                    value={form.arcanumDots} onChange={e => set('arcanumDots', parseInt(e.target.value)||1)} />
+                </div>
+                <div className="form-group">
+                  <label>Spell's Arcanum Requirement</label>
+                  <input type="number" id="spellRequirement" min="1" max="5"
+                    value={form.spellRequirement} onChange={e => set('spellRequirement', parseInt(e.target.value)||1)} />
+                  <div className="info-text">Minimum Arcanum dots needed for the spell</div>
+                </div>
+                <div className="form-group">
+                  <label>Currently Active Spells</label>
+                  <ActiveSpellsDisplay />
+                </div>
+                {isRote && (
+                  <div className="form-group" id="roteSkillGroup">
+                    <label>Rote Skill</label>
+                    <input type="number" id="roteSkill" min="0" max="5"
+                      value={form.roteSkill} onChange={e => set('roteSkill', parseInt(e.target.value)||0)} />
+                    <div className="checkbox-group">
+                      <input type="checkbox" id="isOrderSkill"
+                        checked={form.isOrderSkill} onChange={e => set('isOrderSkill', e.target.checked)} />
+                      <label htmlFor="isOrderSkill" style={{margin:0,textTransform:'none'}}>Order Skill (+1 Mudra)</label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── SPELL CARD ── */}
+            <div className="card">
+              <h2>Spell</h2>
+              <div className="form-group spell-name-group">
+                <label>Spell Name <span className="optional-label">(optional)</span></label>
+                <input type="text" id="spellName" placeholder="e.g., Supernal Vision, Counterspell Prime..."
+                  value={form.spellName} onChange={e => set('spellName', e.target.value)} />
+              </div>
+              <CombinedSpellZone />
+              <div id="singleSpellControls">
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Casting Method</label>
+                    <select id="castingMethod" value={form.castingMethod} onChange={e => onCastingMethod(e.target.value)}>
+                      <option value="improvised">Improvised (+1 Mana if not Ruling)</option>
+                      <option value="praxis">Praxis (Exceptional at 3)</option>
+                      <option value="roteGrimoire">Rote - Grimoire (Rote Quality, 2× Ritual)</option>
+                      <option value="roteOwn">Rote - Your Design (Rote Quality, Mudra)</option>
+                      <option value="roteLearned">Rote - Learned (Mudra only)</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Practice</label>
+                    <select id="practice" value={form.practice} onChange={e => set('practice', e.target.value)}>
+                      <optgroup label="Initiate (1 dot) - 1 Free Reach">
+                        <option value="compelling">Compelling</option>
+                        <option value="knowing">Knowing</option>
+                        <option value="unveiling">Unveiling</option>
+                      </optgroup>
+                      <optgroup label="Apprentice (2 dots) - 2 Free Reach">
+                        <option value="ruling">Ruling</option>
+                        <option value="shielding">Shielding</option>
+                        <option value="veiling">Veiling</option>
+                      </optgroup>
+                      <optgroup label="Disciple (3 dots) - 3 Free Reach">
+                        <option value="fraying">Fraying</option>
+                        <option value="perfecting">Perfecting</option>
+                        <option value="weaving">Weaving</option>
+                      </optgroup>
+                      <optgroup label="Adept (4 dots) - 4 Free Reach">
+                        <option value="patterning">Patterning</option>
+                        <option value="unraveling">Unraveling</option>
+                      </optgroup>
+                      <optgroup label="Master (5 dots) - 5 Free Reach">
+                        <option value="making">Making</option>
+                        <option value="unmaking">Unmaking</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Spell's Default Primary Factor</label>
+                    <select id="defaultPrimaryFactor" value={form.defaultPrimaryFactor}
+                      onChange={e => set('defaultPrimaryFactor', e.target.value)}>
+                      <option value="potency">Potency</option>
+                      <option value="duration">Duration</option>
+                    </select>
+                    <div className="info-text">As listed in the spell description</div>
+                  </div>
+                  <div className="form-group">
+                    <label>Chosen Primary Factor</label>
+                    <select id="primaryFactor" value={form.primaryFactor}
+                      onChange={e => set('primaryFactor', e.target.value)}>
+                      <option value="potency">Potency</option>
+                      <option value="duration">Duration</option>
+                    </select>
+                    <div className="info-text" id="primaryFactorInfo"
+                      style={{color: pfChg ? 'var(--warning)' : ''}}>
+                      {pfChg ? `Changed from ${form.defaultPrimaryFactor} (+1 Reach)` : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── SPELL FACTORS CARD ── */}
+            <div className="card">
+              <h2>Spell Factors</h2>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Potency</label>
+                  <input type="number" id="potency" min="1" max="20"
+                    value={form.potency} onChange={e => set('potency', parseInt(e.target.value)||1)} />
+                  <div className="checkbox-group">
+                    <input type="checkbox" id="advancedPotency"
+                      checked={form.advancedPotency} onChange={e => set('advancedPotency', e.target.checked)} />
+                    <label htmlFor="advancedPotency" style={{margin:0,textTransform:'none'}}>Advanced Potency +1 Reach</label>
+                  </div>
+                  {form.advancedPotency && (
+                    <div className="info-text" id="advancedPotencyInfo" style={{color:'var(--warning)'}}>
+                      +2 Withstand vs Dispellation · +1 die to Clash of Wills
+                    </div>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label>Duration</label>
+                  <select id="duration" value={form.durationIndex}
+                    onChange={e => set('durationIndex', parseInt(e.target.value)||0)}>
+                    {durOpts.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
+                  </select>
+                  <div className="checkbox-group">
+                    <input type="checkbox" id="advancedDuration"
+                      checked={form.advancedDuration} onChange={e => merge({advancedDuration:e.target.checked, durationIndex:0})} />
+                    <label htmlFor="advancedDuration" style={{margin:0,textTransform:'none'}}>Advanced (Scene+) +1 Reach</label>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Scale</label>
+                  <select id="scale" value={form.scaleIndex}
+                    onChange={e => set('scaleIndex', parseInt(e.target.value)||0)}>
+                    {scaleOpts.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
+                  </select>
+                  <div className="checkbox-group">
+                    <input type="checkbox" id="advancedScale"
+                      checked={form.advancedScale} onChange={e => merge({advancedScale:e.target.checked, scaleIndex:0})} />
+                    <label htmlFor="advancedScale" style={{margin:0,textTransform:'none'}}>Advanced +1 Reach</label>
+                  </div>
+                  <div className="radio-group" style={{marginTop:8}}>
+                    <label>
+                      <input type="radio" name="scaleType" value="subjects"
+                        checked={form.scaleType==='subjects'} onChange={() => merge({scaleType:'subjects', scaleIndex:0})} />
+                      Subjects
+                    </label>
+                    <label>
+                      <input type="radio" name="scaleType" value="aoe"
+                        checked={form.scaleType==='aoe'} onChange={() => merge({scaleType:'aoe', scaleIndex:0})} />
+                      Area
+                    </label>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Range</label>
+                  <select id="range" value={form.range} onChange={e => set('range', e.target.value)}>
+                    <option value="self">Self</option>
+                    <option value="touch">Touch</option>
+                    <option value="aimed">Aimed (attack roll required)</option>
+                    <option value="sensory">Sensory (+1 Reach)</option>
+                    <option value="remoteView">Remote Viewed (+2 Reach)</option>
+                    <option value="sympathetic">Sympathetic (Space 2 + 1 Mana)</option>
+                    <option value="temporal">Temporal (Time 2 + 1 Mana)</option>
+                  </select>
+                  <div className="info-text" id="rangeInfo">{rangeDesc}</div>
+                </div>
+                <div className="form-group">
+                  <label>Casting Time</label>
+                  <select id="castingTime" value={form.castingTime} onChange={e => set('castingTime', e.target.value)}>
+                    <option value="ritual">Ritual</option>
+                    <option value="instant">Instant (+1 Reach)</option>
+                  </select>
+                </div>
+                {form.castingTime === 'ritual' && (
+                  <div className="form-group" id="ritualIntervalsGroup">
+                    <label>Ritual Intervals (0-5)</label>
+                    <input type="number" id="ritualIntervals" min="0" max="5"
+                      value={form.ritualIntervals} onChange={e => set('ritualIntervals', Math.min(5, parseInt(e.target.value)||0))} />
+                    <div className="info-text">+1 die per interval, max +5</div>
+                  </div>
+                )}
+                <div className="form-group">
+                  <label>Additional Reach</label>
+                  <input type="number" id="additionalReach" min="0" max="10"
+                    value={form.additionalReach} onChange={e => set('additionalReach', parseInt(e.target.value)||0)} />
+                  <div className="info-text">For spell effects (Instant, extra damage, etc.)</div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── YANTRAS CARD ── */}
+            <div className="card">
+              <h2>Yantras <span className="info-text" id="yantraCount">({yantraCount} / {maxYant} max)</span></h2>
+              <div className="yantra-grid" id="yantraGrid">
+                <div className="yantra-category">
+                  <h4>Places</h4>
+                  {[['demesne','+2',2],['environment','+1',1],['supernalVerge','+2',2]].map(([k,lbl,b]) => (
+                    <label key={k} className="yantra-option">
+                      <input type="checkbox" data-yantra={k} data-bonus={b}
+                        checked={!!form.yantras[k]} onChange={e => onYantra(k, e.target.checked)} />
+                      <span>{k==='demesne'?'Demesne':k==='environment'?'Environment':'Supernal Verge'} ({lbl})</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="yantra-category">
+                  <h4>Tools</h4>
+                  <label className={"yantra-option" + (form.pathToolDedicated||form.orderToolDedicated ? ' disabled' : '')}>
+                    <input type="checkbox" data-yantra="dedicatedTool" data-bonus="0" data-special="paradox"
+                      checked={!!form.yantras.dedicatedTool}
+                      disabled={form.pathToolDedicated || form.orderToolDedicated}
+                      onChange={e => onYantra('dedicatedTool', e.target.checked)} />
+                    <span>Dedicated Tool (−2 Paradox)</span>
+                  </label>
+                  <label className="yantra-option">
+                    <input type="checkbox" data-yantra="pathTool" data-bonus="1"
+                      checked={!!form.yantras.pathTool} onChange={e => onYantra('pathTool', e.target.checked)} />
+                    <span>Path Tool (+1)</span>
+                  </label>
+                  {form.yantras.pathTool && (
+                    <label className={"yantra-sub-option" + (form.orderToolDedicated||form.yantras.dedicatedTool ? ' disabled' : '')} id="pathToolDedicatedOption">
+                      <input type="checkbox" id="pathToolDedicated" data-also-dedicated="true"
+                        checked={form.pathToolDedicated}
+                        disabled={form.orderToolDedicated || !!form.yantras.dedicatedTool}
+                        onChange={e => onDedSub('pathToolDedicated', e.target.checked)} />
+                      <span>↳ Also my Dedicated Tool (−2 Paradox)</span>
+                    </label>
+                  )}
+                  <label className="yantra-option">
+                    <input type="checkbox" data-yantra="orderTool" data-bonus="1"
+                      checked={!!form.yantras.orderTool} onChange={e => onYantra('orderTool', e.target.checked)} />
+                    <span>Order Tool (+1)</span>
+                  </label>
+                  {form.yantras.orderTool && (
+                    <label className={"yantra-sub-option" + (form.pathToolDedicated||form.yantras.dedicatedTool ? ' disabled' : '')} id="orderToolDedicatedOption">
+                      <input type="checkbox" id="orderToolDedicated" data-also-dedicated="true"
+                        checked={form.orderToolDedicated}
+                        disabled={form.pathToolDedicated || !!form.yantras.dedicatedTool}
+                        onChange={e => onDedSub('orderToolDedicated', e.target.checked)} />
+                      <span>↳ Also my Dedicated Tool (−2 Paradox)</span>
+                    </label>
+                  )}
+                </div>
+                <div className="yantra-category">
+                  <h4>Actions</h4>
+                  {[['concentration','Concentration',2],['highSpeech','High Speech',2],['rune','Rune',2]].map(([k,lbl,b]) => (
+                    <label key={k} className="yantra-option">
+                      <input type="checkbox" data-yantra={k} data-bonus={b}
+                        checked={!!form.yantras[k]} onChange={e => onYantra(k, e.target.checked)} />
+                      <span>{lbl} (+{b})</span>
+                    </label>
+                  ))}
+                  {mudraOk && (
+                    <label className="yantra-option" id="mudraOption">
+                      <input type="checkbox" data-yantra="mudra" data-bonus="0" data-special="mudra"
+                        checked={!!form.yantras.mudra} onChange={e => onYantra('mudra', e.target.checked)} />
+                      <span>Mudra (+Skill)</span>
+                    </label>
+                  )}
+                </div>
+                <div className="yantra-category">
+                  <h4>Sympathy</h4>
+                  {[['material','Material',2],['representational','Representational',1],['symbolic','Symbolic',0]].map(([k,lbl,b]) => (
+                    <label key={k} className="yantra-option">
+                      <input type="checkbox" data-yantra={k} data-bonus={b}
+                        checked={!!form.yantras[k]} onChange={e => onYantra(k, e.target.checked)} />
+                      <span>{lbl} ({b>0?'+'+b:'+0'})</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="yantra-category">
+                  <h4>Sacraments</h4>
+                  {[['sacramentNormal','Normal',1],['sacramentRare','Rare/Effort',2],['sacramentOther','Other Realm',3]].map(([k,lbl,b]) => (
+                    <label key={k} className="yantra-option">
+                      <input type="checkbox" data-yantra={k} data-bonus={b}
+                        checked={!!form.yantras[k]} onChange={e => onYantra(k, e.target.checked)} />
+                      <span>{lbl} (+{b})</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="yantra-category">
+                  <h4>Persona</h4>
+                  <div className="form-group" style={{marginTop:8}}>
+                    <select id="personaBonus" data-yantra="persona"
+                      value={form.personaBonus} onChange={e => set('personaBonus', parseInt(e.target.value)||0)}>
+                      <option value="0">None</option>
+                      <option value="1">+1 (Shadow Name)</option>
+                      <option value="2">+2</option>
+                      <option value="3">+3</option>
+                      <option value="4">+4 (Full Persona)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="info-text" style={{marginTop:12}}>
+                First Yantra is reflexive. Each additional adds 1 turn to casting. Max bonus after penalties: +5.
+              </div>
+            </div>
+
+            {/* ── ADDITIONAL MODIFIERS CARD ── */}
+            <div className="card">
+              <h2>Additional Modifiers</h2>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="checkbox-group" style={{marginBottom:0}}>
+                    <input type="checkbox" id="spendWillpower"
+                      checked={form.spendWillpower} onChange={e => set('spendWillpower', e.target.checked)} />
+                    <span style={{textTransform:'none'}}>Spend Willpower (+3 dice)</span>
+                  </label>
+                </div>
+                <div className="form-group">
+                  <label>Teamwork Dice</label>
+                  <input type="number" id="teamworkDice" min="0" max="10"
+                    value={form.teamworkDice} onChange={e => set('teamworkDice', parseInt(e.target.value)||0)} />
+                </div>
+                <div className="form-group">
+                  <label>Other Modifier</label>
+                  <input type="number" id="otherModifier" min="-10" max="10"
+                    value={form.otherModifier} onChange={e => set('otherModifier', parseInt(e.target.value)||0)} />
+                  <input type="text" id="otherModifierName" placeholder="Modifier name (optional)"
+                    style={{marginTop:4}} value={form.otherModifierName}
+                    onChange={e => set('otherModifierName', e.target.value)} />
+                </div>
+              </div>
+              <div className="mana-summary" id="manaSummary">
+                <h3>Mana Summary</h3>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Additional Mana Cost</label>
+                    <input type="number" id="additionalManaCost" min="0" max="20"
+                      value={form.additionalManaCost} onChange={e => set('additionalManaCost', parseInt(e.target.value)||0)} />
+                    <div className="info-text">For spell-specific costs</div>
+                  </div>
+                </div>
+                <ManaSummaryDisplay />
+              </div>
+            </div>
+
+          </React.Fragment>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('classic-spellform-root')).render(<ClassicSpellForm/>);
     </script>
 
     <!-- Service Worker Registration -->
