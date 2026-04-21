@@ -1931,6 +1931,7 @@
               myStAdj: myP?.stAdjustment || 0,
               myLog: myP?.paradoxLog || [],
               stStatEdit: isNewStEdit ? stEdit.stats : null,
+              myTilts: myP?.tilts || [],
             });
           }
         });
@@ -2951,13 +2952,16 @@
     }
 
     // ── Character header ──────────────────────────────────────────────────────
-    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, onHealthChange, activeCount, onSheetToggle, onSceneToggle, sceneConnected, onCompendiumToggle, compUser }) {
+    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, onHealthChange, onWillpowerChange, activeCount, onSheetToggle, onSceneToggle, sceneConnected, onCompendiumToggle, compUser }) {
       const fileRef = useRef(null);
       const [manaOpen, setManaOpen] = useState(false);
       const [healthOpen, setHealthOpen] = useState(false);
+      const [wpOpen, setWpOpen] = useState(false);
       const manaC   = character?.mana?.current ?? 0;
       const manaM   = character?.mana?.max     ?? 10;
       const manaPerTurn = MANA_PER_TURN[character?.gnosis] || 1;
+      const wpC = character?.willpower?.current ?? 0;
+      const wpM = character?.willpower?.max     ?? 5;
       const hp = character?.health || { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
       const hpFilled = hp.bashing + hp.lethal + hp.aggravated;
       const hpEmpty = Math.max(0, hp.max - hpFilled);
@@ -3005,6 +3009,11 @@
                       style={{ color:hpFilled>0?(woundPen<=-2?C.danger:C.warning):C.success,marginLeft:8,cursor:"pointer",
                         borderBottom:healthOpen?`1px solid ${C.accentLight}`:"1px solid transparent" }}>
                       ♥ {hpEmpty}/{hp.max} HP{woundPen<0?` (${woundPen})`:""}
+                    </span>
+                    <span onClick={()=>setWpOpen(o=>!o)}
+                      style={{ color:wpC<=1?C.danger:wpC<=2?C.warning:"#6ec6f5",marginLeft:8,cursor:"pointer",
+                        borderBottom:wpOpen?`1px solid ${C.accentLight}`:"1px solid transparent" }}>
+                      ◈ {wpC}/{wpM} WP
                     </span>
                   </div>
                 </>
@@ -3079,6 +3088,24 @@
                   cursor:"pointer",background:"transparent",border:`1px solid ${C.border}`,color:C.text,
                   display:"flex",alignItems:"center",justifyContent:"center",padding:0 }}>+</button>
                 <span style={{ color:C.textMuted,fontSize:10,marginLeft:4 }}>/ {manaM} · per turn: {manaPerTurn}</span>
+              </div>
+            </div>
+          )}
+          {character && wpOpen && (
+            <div style={{ padding:"6px 16px 10px",borderTop:`1px solid ${C.borderLight}`,
+              display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+              <span style={{ color:C.textMuted,fontSize:11 }}>Adjust willpower</span>
+              <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+                <button onClick={()=>{ const n=Math.max(0,wpC-1); if(n!==wpC&&onWillpowerChange) onWillpowerChange(n); }}
+                  style={{ width:28,height:28,borderRadius:6,fontSize:16,cursor:"pointer",
+                    background:"transparent",border:`1px solid ${C.border}`,color:C.text,
+                    display:"flex",alignItems:"center",justifyContent:"center",padding:0 }}>−</button>
+                <span style={{ fontSize:16,fontWeight:700,color:"#6ec6f5",minWidth:24,textAlign:"center" }}>{wpC}</span>
+                <button onClick={()=>{ const n=Math.min(wpM,wpC+1); if(n!==wpC&&onWillpowerChange) onWillpowerChange(n); }}
+                  style={{ width:28,height:28,borderRadius:6,fontSize:16,cursor:"pointer",
+                    background:"transparent",border:`1px solid ${C.border}`,color:C.text,
+                    display:"flex",alignItems:"center",justifyContent:"center",padding:0 }}>+</button>
+                <span style={{ color:C.textMuted,fontSize:10,marginLeft:4 }}>/ {wpM}</span>
               </div>
             </div>
           )}
@@ -3824,6 +3851,7 @@
       const [compUser, setCompUser]     = useState(null);
       const [compRole, setCompRole]     = useState('player');
       const [suggestSpell, setSuggestSpell] = useState(null);
+      const [myTilts, setMyTilts] = useState([]);
 
       const set = useCallback((key, val) => setD(prev => ({...prev, [key]:val})), []);
 
@@ -3847,6 +3875,7 @@
         setChar(char);
         applyCharacterToForm(char, setD);
         setActiveSpells(char.activeSpells || []);
+        if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, char);
       }
       
       function addActiveSpellWizard(snapshot) {
@@ -3918,12 +3947,14 @@
         setStepIdx(0);
       }
       function handleSceneUpdate(info) {
-        // info = { code, playerId, connected, myRolls, myStAdj, stStatEdit } or null
+        // info = { code, playerId, connected, myRolls, myStAdj, stStatEdit, myTilts } or null
         if (!info || !info.connected) {
           setSceneConn(null);
+          setMyTilts([]);
           return;
         }
         setSceneConn({ code: info.code, playerId: info.playerId });
+        setMyTilts(info.myTilts || []);
         // Auto-sync prevParadox from Firebase when connected
         const eff = Math.max(0, (info.myRolls || 0) + (info.myStAdj || 0));
         setD(prev => prev.prevParadox !== eff ? { ...prev, prevParadox: eff } : prev);
@@ -3951,6 +3982,13 @@
       function handleHealthChange(newHealth) {
         if (!character) return;
         const updated = {...character, health: newHealth};
+        setChar(updated);
+        try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
+        if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, updated);
+      }
+      function handleWillpowerChange(newWP) {
+        if (!character) return;
+        const updated = {...character, willpower: {...character.willpower, current: newWP}};
         setChar(updated);
         try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
         if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, updated);
@@ -4136,6 +4174,7 @@
               onNew={handleNew}
               onManaChange={handleManaChange}
               onHealthChange={handleHealthChange}
+              onWillpowerChange={handleWillpowerChange}
               activeCount={activeSpells.length}
               onSheetToggle={() => setSheetOpen(o => !o)}
               onSceneToggle={() => setSceneOpen(o => !o)}
@@ -4143,6 +4182,23 @@
               onCompendiumToggle={() => setCompOpen(o => !o)}
               compUser={compUser}
             />
+
+            {/* ST-applied tilts banner */}
+            {myTilts.length > 0 && (
+              <div style={{ padding:"5px 14px", background:"rgba(230,57,70,0.08)",
+                borderBottom:"1px solid rgba(230,57,70,0.25)",
+                display:"flex", flexWrap:"wrap", gap:5, alignItems:"center" }}>
+                <span style={{ fontSize:9, letterSpacing:1, textTransform:"uppercase",
+                  color:"#e63946", fontWeight:700, marginRight:2 }}>Tilts</span>
+                {myTilts.map((tilt, i) => (
+                  <span key={i} style={{ fontSize:11, padding:"2px 9px", borderRadius:10,
+                    background:"rgba(230,57,70,0.15)", border:"1px solid rgba(230,57,70,0.35)",
+                    color:"#e63946" }}>
+                    {tilt}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Step indicator */}
             <div style={{ padding:"8px 16px 0",background:C.bgCard,borderBottom:`1px solid ${C.border}` }}>
