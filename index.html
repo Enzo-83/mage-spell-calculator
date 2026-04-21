@@ -4068,6 +4068,7 @@
                     window.classicBridge.setSpellForm({
                         gnosis: currentCharacter.gnosis || 1,
                         arcanumDots: highestDots || 3,
+                        spellArcanum: highestArcanum,
                     });
                 }
             }
@@ -4972,11 +4973,14 @@
             }
             
             // Load spell to calculator
-            function loadSpellToCalculator(spellId) {
-                const spell = findSpellById(spellId);
+            function loadSpellToCalculator(spellOrId) {
+                // Accept either a full spell object (from React) or a spell ID string (from vanilla)
+                const spell = (typeof spellOrId === 'object' && spellOrId !== null)
+                    ? spellOrId
+                    : findSpellById(spellOrId);
                 if (!spell) return;
 
-                sourceSpellId = spellId;
+                sourceSpellId = spell.id || spellOrId;
                 window.currentRoteSkillKey = spell.roteSkill || null;
                 window.currentCastingArcanum = spell.primaryArcanum;
 
@@ -5414,16 +5418,17 @@
             
             // Update max combined spells info
             function updateCombinedMaxInfo() {
-                const gnosis = parseInt(document.getElementById('gnosis').value) || 1;
+                const gnosis = parseInt(document.getElementById('gnosis')?.value) || 1;
                 const max = getMaxCombinedSpells(gnosis);
                 const infoEl = document.getElementById('combinedMaxInfo');
-                
+                const enabledEl = document.getElementById('combinedSpellEnabled');
+                if (!infoEl) return; // React not yet rendered
                 if (gnosis < 3) {
                     infoEl.textContent = 'Requires Gnosis 3+ to combine spells';
-                    document.getElementById('combinedSpellEnabled').disabled = true;
+                    if (enabledEl) enabledEl.disabled = true;
                 } else {
                     infoEl.textContent = `Combine up to ${max} spells at Gnosis ${gnosis}`;
-                    document.getElementById('combinedSpellEnabled').disabled = false;
+                    if (enabledEl) enabledEl.disabled = false;
                 }
             }
             
@@ -7071,11 +7076,11 @@
 
         useEffect(() => {
           window.classicBridge = {
+            ...(window.classicBridge || {}),
             setCharacter:     (c) => setCharacter(c ? {...c} : null),
             setSceneConnected:(v) => setSceneConn(!!v),
           };
           if (window.currentCharacter) setCharacter({...window.currentCharacter});
-          return () => { delete window.classicBridge; };
         }, []);
 
         function handleLoad(char) {
@@ -9331,6 +9336,7 @@
 
         _sl_ue(() => {
           setLoading(true);
+          setSpells([]);
           const unsub = _slFs.collection('compendium')
             .where('approved', '==', true)
             .onSnapshot(snap => {
@@ -9341,7 +9347,7 @@
               setLoading(false);
             }, err => { console.error('Compendium error:', err); setLoading(false); });
           return () => unsub();
-        }, []);
+        }, [compUser]); // re-subscribe when auth state changes so sign-in unlocks spells
 
         function handleSignIn() {
           setSignBusy(true);
@@ -9736,9 +9742,18 @@
             border:"1px solid rgba(255,255,255,0.08)", overflow:"hidden",
             display:"flex", flexDirection:"column", height:"100%" }}>
 
+            {/* Section title */}
+            <div style={{ padding:"10px 14px 0", flexShrink:0 }}>
+              <h2 style={{ margin:0, fontSize:"1.1em", fontFamily:"'Rajdhani',sans-serif",
+                fontWeight:700, letterSpacing:2, textTransform:"uppercase",
+                color:"var(--accent-light)" }}>
+                ⚡ Electronic Grimoire
+              </h2>
+            </div>
+
             {/* Tab bar */}
             <div style={{ display:"flex", alignItems:"center", borderBottom:"1px solid rgba(255,255,255,0.08)",
-              padding:"0 8px", flexShrink:0, gap:2 }}>
+              padding:"0 8px", flexShrink:0, gap:2, marginTop:4 }}>
               {tabDefs.map(td => (
                 <button key={td.key} onClick={()=>setTab(td.key)}
                   style={{ padding:"9px 12px", fontSize:12, fontWeight:600, cursor:"pointer",
