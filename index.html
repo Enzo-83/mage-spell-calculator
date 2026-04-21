@@ -2815,38 +2815,8 @@
             </div>
         </div>
         
-        <!-- Spell Library -->
-        <div class="card" id="spellLibrarySection">
-            <div class="spell-library-header">
-                <h2>📖 E-Grimoire</h2>
-                <div class="spell-library-controls">
-                    <button class="btn-small" id="btnGrimoireView" title="Toggle view">◧ Browse</button>
-                    <button class="btn-small" id="btnAddSpell">+ Add Spell</button>
-                    <button class="btn-small" id="btnExportLibrary">📷 Export</button>
-                </div>
-            </div>
-            
-            <div class="spell-library-tabs">
-                <button class="spell-tab active" data-tab="rotes">
-                    Rotes <span class="spell-tab-count" id="roteCount">0</span>
-                </button>
-                <button class="spell-tab" data-tab="praxes">
-                    Praxes <span class="spell-tab-count" id="praxisCount">0</span>
-                </button>
-                <button class="spell-tab" data-tab="improvised">
-                    Favorites <span class="spell-tab-count" id="improvisedCount">0</span>
-                </button>
-                <button class="spell-tab" data-tab="compendium">
-                    📖 Compendium <span class="spell-tab-count" id="compendiumCount">0</span>
-                </button>
-            </div>
-            
-            <div id="spellLibraryContent">
-                <div class="spell-library-empty" id="libraryEmpty">
-                    No character loaded. Create or load a character to manage spells.
-                </div>
-            </div>
-        </div>
+        <!-- Spell Library (Phase 6 — React ClassicSpellLibraryDrawer) -->
+        <div id="classic-spelllib-root"></div>
         
         <!-- Hidden container for export -->
         <div id="spellLibraryExport"></div>
@@ -4361,20 +4331,16 @@
                 document.getElementById('spellAdvancedScale').addEventListener('change', updateScaleDropdown);
             }
             
-            // Render spell library based on current tab
+            // Render spell library — Phase 6: delegate to React bridge
             function renderSpellLibrary() {
-                // Delegate to compendium module when on that tab
-                if (currentSpellTab === 'compendium') {
-                    if (window.renderCompendiumTab) window.renderCompendiumTab();
+                if (window.classicSpellLibBridge?.refresh) {
+                    window.classicSpellLibBridge.refresh(currentCharacter);
                     return;
                 }
-                if (grimoireViewMode === 'browse') {
-                    renderCarouselView();
-                    return;
-                }
-
+                // Fallback pre-bridge (should not reach here after Phase 6 mounts)
                 const content = document.getElementById('spellLibraryContent');
                 const emptyMsg = document.getElementById('libraryEmpty');
+                if (!content) return;
 
                 if (!currentCharacter) {
                     content.innerHTML = '';
@@ -5108,9 +5074,12 @@
                     alert('Please load or create a character first.');
                     return;
                 }
-                
                 const state = extractCalculatorState();
-                
+                if (window.classicSpellLibBridge?.openSaveToLibrary) {
+                    window.classicSpellLibBridge.openSaveToLibrary(state, sourceSpellId);
+                    return;
+                }
+                // Fallback pre-bridge
                 // Pre-fill name
                 document.getElementById('saveLibName').value = state.name;
                 
@@ -6315,8 +6284,7 @@
                 if (el) el.addEventListener('change', resetManaDeductedFlag);
             });
             
-            // Initialize spell library
-            initSpellLibrary();
+            // initSpellLibrary() removed — Phase 6 React ClassicSpellLibraryDrawer owns all spell library DOM
 
             // Initialize character system
             initCharacterSystem();
@@ -6366,23 +6334,30 @@
             // Exposes controlled access to index.html internals for spellCompendium.js
             window.spellLibraryAPI = {
                 getCharacter:   function () { return currentCharacter; },
-                getCurrentTab:  function () { return currentSpellTab; },
+                getCurrentTab:  function () {
+                    var t = window.classicSpellLibBridge?.getCurrentTab?.() || currentSpellTab;
+                    // Prevent spellCompendium.js from rendering vanilla HTML into the compendium tab
+                    return t === 'compendium' ? 'rotes' : t;
+                },
                 switchTab: function (tabName) {
-                    var tab = document.querySelector('.spell-tab[data-tab="' + tabName + '"]');
-                    if (tab) tab.click();
+                    currentSpellTab = tabName;
+                    if (window.classicSpellLibBridge?.switchTab) window.classicSpellLibBridge.switchTab(tabName);
                 },
                 renderLibrary:  function () { renderSpellLibrary(); },
                 save:           saveCharacterToLocalStorage
             };
 
-            // Initialise the compendium module now that all DOM + state is ready
+            // Initialise the compendium module (Firebase sub, auth, suggestFromSpell)
             if (window.initCompendium) window.initCompendium();
+            // Phase 6: React handles the compendium tab — no-op the vanilla renderer
+            window.renderCompendiumTab = function () {};
 
             // ── React ↔ Vanilla bridge (callbacks React components call into) ──
             window.classicVanilla = {
                 onCharacterLoad: function(char) {
+                    currentCharacter = char; // keep closure in sync with React-loaded character
                     applyCharacterToForm();
-                    if (typeof renderSpellLibrary === 'function') renderSpellLibrary();
+                    if (window.classicSpellLibBridge?.refresh) window.classicSpellLibBridge.refresh(char);
                     if (typeof populateClashArcanum === 'function') populateClashArcanum();
                     saveCharacterToLocalStorage();
                 },
@@ -6407,6 +6382,39 @@
                     sceneUpdatePrevParadox();
                 },
             };
+
+            // ── Spell CRUD helpers called by React ClassicSpellLibraryDrawer ──────
+            window.classicVanilla.addSpell = function(type, spellData) {
+                if (!currentCharacter) return null;
+                if (type === 'rote') addRote(currentCharacter, spellData);
+                else if (type === 'praxis') addPraxis(currentCharacter, spellData);
+                else addImprovisedFavorite(currentCharacter, spellData);
+                saveCharacterToLocalStorage();
+                window.currentCharacter = currentCharacter;
+                return currentCharacter;
+            };
+            window.classicVanilla.updateSpell = function(spellId, spellData, newType) {
+                if (!currentCharacter) return null;
+                updateSpellInCharacter(spellId, spellData, newType);
+                saveCharacterToLocalStorage();
+                window.currentCharacter = currentCharacter;
+                return currentCharacter;
+            };
+            window.classicVanilla.deleteSpell = function(spellId) {
+                if (!currentCharacter) return null;
+                var spell = findSpellById(spellId);
+                if (spell) {
+                    if (spell.type === 'rote') removeRote(currentCharacter, spellId);
+                    else if (spell.type === 'praxis') removePraxis(currentCharacter, spellId);
+                    else removeImprovisedFavorite(currentCharacter, spellId);
+                }
+                saveCharacterToLocalStorage();
+                window.currentCharacter = currentCharacter;
+                return currentCharacter;
+            };
+            window.classicVanilla.showToast = showToast;
+            window.classicVanilla.loadSpell = loadSpellToCalculator;
+            window.classicVanilla.exportSpellLibrary = exportSpellLibrary;
 
             // Run initial calculation
             calculate();
@@ -6502,373 +6510,7 @@
         </div>
     </div>
     
-    <!-- Spell Editor Modal -->
-    <div class="modal-overlay" id="spellEditorModal">
-        <div class="modal">
-            <div class="modal-header">
-                <h2 id="spellEditorTitle">Add Spell</h2>
-                <button class="modal-close" id="spellModalClose">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- Spell Type -->
-                <div class="modal-section">
-                    <h3>Spell Type</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Type</label>
-                            <select id="spellType">
-                                <option value="rote">Rote</option>
-                                <option value="praxis">Praxis</option>
-                                <option value="improvised">Improvised Favorite</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Spell Name</label>
-                            <input type="text" id="spellEditorName" placeholder="Enter spell name">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Arcanum -->
-                <div class="modal-section">
-                    <h3>Arcanum Requirements</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Primary Arcanum</label>
-                            <select id="spellPrimaryArcanum">
-                                <option value="death">Death</option>
-                                <option value="fate">Fate</option>
-                                <option value="forces">Forces</option>
-                                <option value="life">Life</option>
-                                <option value="matter">Matter</option>
-                                <option value="mind">Mind</option>
-                                <option value="prime" selected>Prime</option>
-                                <option value="space">Space</option>
-                                <option value="spirit">Spirit</option>
-                                <option value="time">Time</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Primary Level</label>
-                            <input type="number" id="spellPrimaryLevel" min="1" max="5" value="1">
-                        </div>
-                        <div class="form-group">
-                            <label>Secondary Arcanum (optional)</label>
-                            <select id="spellSecondaryArcanum">
-                                <option value="">None</option>
-                                <option value="death">Death</option>
-                                <option value="fate">Fate</option>
-                                <option value="forces">Forces</option>
-                                <option value="life">Life</option>
-                                <option value="matter">Matter</option>
-                                <option value="mind">Mind</option>
-                                <option value="prime">Prime</option>
-                                <option value="space">Space</option>
-                                <option value="spirit">Spirit</option>
-                                <option value="time">Time</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Secondary Level</label>
-                            <input type="number" id="spellSecondaryLevel" min="1" max="5" value="1">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Practice & Factor -->
-                <div class="modal-section">
-                    <h3>Practice & Primary Factor</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Practice</label>
-                            <select id="spellPractice">
-                                <optgroup label="1-dot (Initiate)">
-                                    <option value="compelling">Compelling</option>
-                                    <option value="knowing">Knowing</option>
-                                    <option value="unveiling">Unveiling</option>
-                                </optgroup>
-                                <optgroup label="2-dot (Apprentice)">
-                                    <option value="ruling">Ruling</option>
-                                    <option value="shielding">Shielding</option>
-                                    <option value="veiling">Veiling</option>
-                                </optgroup>
-                                <optgroup label="3-dot (Disciple)">
-                                    <option value="fraying">Fraying</option>
-                                    <option value="perfecting">Perfecting</option>
-                                    <option value="weaving">Weaving</option>
-                                </optgroup>
-                                <optgroup label="4-dot (Adept)">
-                                    <option value="patterning">Patterning</option>
-                                    <option value="unraveling">Unraveling</option>
-                                </optgroup>
-                                <optgroup label="5-dot (Master)">
-                                    <option value="making">Making</option>
-                                    <option value="unmaking">Unmaking</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Primary Factor</label>
-                            <select id="spellPrimaryFactor">
-                                <option value="potency">Potency</option>
-                                <option value="duration">Duration</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Withstand (optional)</label>
-                            <input type="text" id="spellWithstand" placeholder="e.g., Composure, Resolve">
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Rote-specific -->
-                <div class="modal-section" id="roteSpecificSection">
-                    <h3>Rote Details</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Rote Skill</label>
-                            <select id="spellRoteSkill">
-                                <optgroup label="Mental">
-                                    <option value="academics">Academics</option>
-                                    <option value="computer">Computer</option>
-                                    <option value="crafts">Crafts</option>
-                                    <option value="investigation">Investigation</option>
-                                    <option value="medicine">Medicine</option>
-                                    <option value="occult" selected>Occult</option>
-                                    <option value="politics">Politics</option>
-                                    <option value="science">Science</option>
-                                </optgroup>
-                                <optgroup label="Physical">
-                                    <option value="athletics">Athletics</option>
-                                    <option value="brawl">Brawl</option>
-                                    <option value="drive">Drive</option>
-                                    <option value="firearms">Firearms</option>
-                                    <option value="larceny">Larceny</option>
-                                    <option value="stealth">Stealth</option>
-                                    <option value="survival">Survival</option>
-                                    <option value="weaponry">Weaponry</option>
-                                </optgroup>
-                                <optgroup label="Social">
-                                    <option value="animalKen">Animal Ken</option>
-                                    <option value="empathy">Empathy</option>
-                                    <option value="expression">Expression</option>
-                                    <option value="intimidation">Intimidation</option>
-                                    <option value="persuasion">Persuasion</option>
-                                    <option value="socialize">Socialize</option>
-                                    <option value="streetwise">Streetwise</option>
-                                    <option value="subterfuge">Subterfuge</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Rote Source</label>
-                            <select id="spellRoteCreator">
-                                <option value="order">Order Rote (Mudra only)</option>
-                                <option value="self">Your Design (Rote Quality, Mudra)</option>
-                                <option value="grimoire">Grimoire (Rote Quality, 2× time)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Default Settings -->
-                <div class="modal-section">
-                    <h3>Default Casting Settings</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Potency</label>
-                            <input type="number" id="spellDefaultPotency" min="1" max="10" value="1">
-                            <label class="checkbox-group" style="margin-top: 4px;">
-                                <input type="checkbox" id="spellAdvancedPotency">
-                                <span style="text-transform: none; font-size: 0.85em;">Advanced Potency</span>
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label>Expected Yantra Dice</label>
-                            <input type="number" id="spellYantraDice" min="0" max="5" value="0">
-                            <div class="info-text">Total bonus dice from typical Yantras</div>
-                        </div>
-                        <div class="form-group">
-                            <label>Duration</label>
-                            <select id="spellDefaultDuration">
-                                <option value="0">1 turn (Standard)</option>
-                                <option value="1">2 turns</option>
-                                <option value="2">3 turns</option>
-                                <option value="3">5 turns</option>
-                                <option value="4">10 turns</option>
-                                <option value="5">20 turns</option>
-                            </select>
-                            <label class="checkbox-group" style="margin-top: 4px;">
-                                <input type="checkbox" id="spellAdvancedDuration">
-                                <span style="text-transform: none; font-size: 0.85em;">Advanced Duration</span>
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label>Scale</label>
-                            <select id="spellDefaultScale">
-                                <option value="0">1 subject</option>
-                                <option value="1">2 subjects</option>
-                                <option value="2">4 subjects</option>
-                                <option value="3">8 subjects</option>
-                                <option value="4">16 subjects</option>
-                            </select>
-                            <label class="checkbox-group" style="margin-top: 4px;">
-                                <input type="checkbox" id="spellAdvancedScale">
-                                <span style="text-transform: none; font-size: 0.85em;">Advanced Scale</span>
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label>Range</label>
-                            <select id="spellDefaultRange">
-                                <option value="self">Self</option>
-                                <option value="touch" selected>Touch</option>
-                                <option value="aimed">Aimed</option>
-                                <option value="sensory">Sensory (+1 Reach)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Reach Options -->
-                <div class="modal-section">
-                    <h3>Reach Options</h3>
-                    <div class="info-text" style="margin-bottom: 12px;">Add common Reach effects for this spell</div>
-                    <div id="reachOptionsContainer"></div>
-                    <button class="btn-small" id="btnAddReachOption">+ Add Reach Option</button>
-                </div>
-                
-                <!-- Description -->
-                <div class="modal-section">
-                    <h3>Description</h3>
-                    <textarea id="spellDescription" rows="3" placeholder="Optional spell description or notes"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-small" id="btnDeleteSpell" style="background: rgba(199,62,29,0.3); margin-right: auto;">Delete</button>
-                <button class="btn-small" id="btnCancelSpell">Cancel</button>
-                <button class="btn-small btn-primary" id="btnSaveSpell">Save Spell</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Save to Library Modal -->
-    <div class="modal-overlay" id="saveToLibraryModal">
-        <div class="modal" style="max-width: 640px;">
-            <div class="modal-header">
-                <h2 id="saveLibTitle">Save to Grimoire</h2>
-                <button class="modal-close" id="saveLibModalClose">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- Update vs New choice (shown only when source spell exists) -->
-                <div id="saveLibUpdateSection" style="display: none;">
-                    <div class="save-lib-update-choice">
-                        <label>
-                            <input type="radio" name="saveLibMode" value="update" checked>
-                            Update existing spell
-                        </label>
-                        <label>
-                            <input type="radio" name="saveLibMode" value="new">
-                            Save as new spell
-                        </label>
-                    </div>
-                </div>
-                
-                <!-- Spell Summary (read-only) -->
-                <div class="modal-section">
-                    <h3>Spell Summary</h3>
-                    <div class="save-lib-summary" id="saveLibSummary"></div>
-                </div>
-                
-                <!-- Editable Fields -->
-                <div class="modal-section">
-                    <h3>Spell Details</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Spell Name <span style="color: #c73e1d;">*</span></label>
-                            <input type="text" id="saveLibName" placeholder="Enter spell name">
-                        </div>
-                        <div class="form-group">
-                            <label>Spell Type</label>
-                            <select id="saveLibType">
-                                <option value="rote">Rote</option>
-                                <option value="praxis">Praxis</option>
-                                <option value="improvised">Improvised Favorite</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Rote-specific (shown/hidden based on type) -->
-                <div class="modal-section" id="saveLibRoteSection" style="display: none;">
-                    <h3>Rote Details</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Rote Skill</label>
-                            <select id="saveLibRoteSkill">
-                                <optgroup label="Mental">
-                                    <option value="academics">Academics</option>
-                                    <option value="computer">Computer</option>
-                                    <option value="crafts">Crafts</option>
-                                    <option value="investigation">Investigation</option>
-                                    <option value="medicine">Medicine</option>
-                                    <option value="occult" selected>Occult</option>
-                                    <option value="politics">Politics</option>
-                                    <option value="science">Science</option>
-                                </optgroup>
-                                <optgroup label="Physical">
-                                    <option value="athletics">Athletics</option>
-                                    <option value="brawl">Brawl</option>
-                                    <option value="drive">Drive</option>
-                                    <option value="firearms">Firearms</option>
-                                    <option value="larceny">Larceny</option>
-                                    <option value="stealth">Stealth</option>
-                                    <option value="survival">Survival</option>
-                                    <option value="weaponry">Weaponry</option>
-                                </optgroup>
-                                <optgroup label="Social">
-                                    <option value="animalKen">Animal Ken</option>
-                                    <option value="empathy">Empathy</option>
-                                    <option value="expression">Expression</option>
-                                    <option value="intimidation">Intimidation</option>
-                                    <option value="persuasion">Persuasion</option>
-                                    <option value="socialize">Socialize</option>
-                                    <option value="streetwise">Streetwise</option>
-                                    <option value="subterfuge">Subterfuge</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Rote Source</label>
-                            <select id="saveLibRoteCreator">
-                                <option value="order">Order Rote (Mudra only)</option>
-                                <option value="self">Your Design (Rote Quality, Mudra)</option>
-                                <option value="grimoire">Grimoire (Rote Quality, 2× time)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Description & Withstand -->
-                <div class="modal-section">
-                    <h3>Additional Info</h3>
-                    <div class="modal-grid">
-                        <div class="form-group">
-                            <label>Withstand (optional)</label>
-                            <input type="text" id="saveLibWithstand" placeholder="e.g., Composure, Resolve">
-                        </div>
-                    </div>
-                    <div class="form-group" style="margin-top: 8px;">
-                        <label>Description (optional)</label>
-                        <textarea id="saveLibDescription" rows="2" placeholder="Spell notes or description"></textarea>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-small" id="btnCancelSaveLib">Cancel</button>
-                <button class="btn-small btn-primary" id="btnConfirmSaveLib">Save Spell</button>
-            </div>
-        </div>
-    </div>
+    <!-- Spell Editor Modal + Save to Library Modal: Phase 6 React ClassicSpellLibraryDrawer -->
     
     <!-- Toast notification -->
     <div class="toast" id="toast"></div>
@@ -9085,6 +8727,1094 @@
       }
 
       ReactDOM.createRoot(document.getElementById('classic-chareditor-root')).render(<ClassicCharacterEditor/>);
+    </script>
+
+    <!-- ── React Spell Library Drawer (Phase 6) ─────────────────────────── -->
+    <script type="text/babel">
+      const { useState: _sl_us, useEffect: _sl_ue, useRef: _sl_ur } = React;
+
+      // ── Firebase refs ────────────────────────────────────────────────────────
+      const _slFs   = firebase.firestore();
+      const _slAuth = firebase.auth();
+
+      // ── Constants ────────────────────────────────────────────────────────────
+      const SL_ARCANA = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
+      const SL_ARC_COLORS = {
+        death:'#9b59b6', fate:'#f39c12', forces:'#e74c3c', life:'#27ae60',
+        matter:'#7f8c8d', mind:'#3498db', prime:'#8e44ad', space:'#1abc9c',
+        spirit:'#d35400', time:'#2980b9',
+      };
+      const SL_PRACTICES = ['Compelling','Knowing','Unveiling','Ruling','Shielding','Veiling',
+        'Fraying','Perfecting','Weaving','Patterning','Unraveling','Making','Unmaking'];
+      const SL_PRACTICE_DOTS = {
+        Compelling:1,Knowing:1,Unveiling:1,Ruling:2,Shielding:2,Veiling:2,
+        Fraying:3,Perfecting:3,Weaving:3,Patterning:4,Unraveling:4,Making:5,Unmaking:5,
+      };
+      const SL_SKILL_OPTS = [
+        {key:'academics',lbl:'Academics'},{key:'computer',lbl:'Computer'},{key:'crafts',lbl:'Crafts'},
+        {key:'investigation',lbl:'Investigation'},{key:'medicine',lbl:'Medicine'},{key:'occult',lbl:'Occult'},
+        {key:'politics',lbl:'Politics'},{key:'science',lbl:'Science'},{key:'athletics',lbl:'Athletics'},
+        {key:'brawl',lbl:'Brawl'},{key:'drive',lbl:'Drive'},{key:'firearms',lbl:'Firearms'},
+        {key:'larceny',lbl:'Larceny'},{key:'stealth',lbl:'Stealth'},{key:'survival',lbl:'Survival'},
+        {key:'weaponry',lbl:'Weaponry'},{key:'animalKen',lbl:'Animal Ken'},{key:'empathy',lbl:'Empathy'},
+        {key:'expression',lbl:'Expression'},{key:'intimidation',lbl:'Intimidation'},
+        {key:'persuasion',lbl:'Persuasion'},{key:'socialize',lbl:'Socialize'},
+        {key:'streetwise',lbl:'Streetwise'},{key:'subterfuge',lbl:'Subterfuge'},
+      ];
+      const SL_COMP_BOOKS = {
+        'core':             { color:'#e9c46a', short:'Core' },
+        'signs-of-sorcery': { color:'#2a9d8f', short:'SoS'  },
+        'night-horrors':    { color:'#c73e1d', short:'NH'   },
+        'tome-of-pentacle': { color:'#9d4edd', short:'ToP'  },
+      };
+
+      // ── Shared style helpers ─────────────────────────────────────────────────
+      const SL_INP = {
+        padding:"7px 10px", borderRadius:6, fontSize:12, outline:"none",
+        background:"var(--bg-dark)", border:"1px solid rgba(255,255,255,0.12)",
+        color:"var(--text)", width:"100%", boxSizing:"border-box",
+      };
+      const SL_LBL = { fontSize:11, color:"var(--text-muted)", marginBottom:3, display:"block" };
+      function slTypeBadge(type) {
+        if (type==='rote')      return {bg:'rgba(42,157,143,0.15)',bd:'rgba(42,157,143,0.4)', tx:'var(--success)'};
+        if (type==='praxis')    return {bg:'rgba(123,44,191,0.15)',bd:'rgba(157,78,221,0.4)', tx:'var(--accent-light)'};
+        return                         {bg:'rgba(233,196,106,0.15)',bd:'rgba(233,196,106,0.4)',tx:'var(--warning)'};
+      }
+      function slTypeLabel(type) {
+        return type==='improvised' ? 'Improvised' : type.charAt(0).toUpperCase()+type.slice(1);
+      }
+
+      // ── SLSpellCard ──────────────────────────────────────────────────────────
+      function SLSpellCard({ spell, character, onLoad, onEdit, onDelete }) {
+        const card = (character && typeof calculateSpellCardData === 'function')
+          ? calculateSpellCardData(spell, character) : null;
+        const arc = (spell.primaryArcanum || 'prime').toLowerCase();
+        const arcColor = SL_ARC_COLORS[arc] || '#9d4edd';
+        const tc = slTypeBadge(spell.type);
+        return (
+          <div style={{ background:"var(--bg-card)", border:"1px solid rgba(255,255,255,0.08)",
+            borderRadius:8, padding:"10px 12px", display:"flex", flexDirection:"column", gap:6 }}>
+            <div style={{ display:"flex", alignItems:"flex-start", gap:6 }}>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700, fontSize:13, color:"var(--text)", marginBottom:3,
+                  overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                  {spell.name}
+                </div>
+                <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+                  <span style={{ fontSize:10, padding:"1px 6px", borderRadius:3,
+                    background:tc.bg, color:tc.tx, border:`1px solid ${tc.bd}` }}>
+                    {slTypeLabel(spell.type)}
+                  </span>
+                  <span style={{ fontSize:10, padding:"1px 6px", borderRadius:3,
+                    background:`${arcColor}22`, color:arcColor, border:`1px solid ${arcColor}44` }}>
+                    {capitalize(arc)} {'●'.repeat(spell.primaryArcanumLevel || 1)}
+                  </span>
+                </div>
+              </div>
+              {card && (
+                <div style={{ textAlign:"center", flexShrink:0 }}>
+                  <div style={{ fontSize:22, fontWeight:700, color:"var(--accent-light)", lineHeight:1 }}>{card.totalPool}</div>
+                  <div style={{ fontSize:9, color:"var(--text-muted)" }}>dice</div>
+                </div>
+              )}
+            </div>
+            <div style={{ fontSize:10, color:"var(--text-muted)" }}>
+              {spell.practice && <span>{spell.practice}</span>}
+              {spell.primaryFactor && <span> · {spell.primaryFactor}</span>}
+              {spell.type==='rote' && spell.roteSkill && <span> · {getSkillLabel(spell.roteSkill)}</span>}
+            </div>
+            <div style={{ display:"flex", gap:4, marginTop:2 }}>
+              <button onClick={() => onLoad(spell)}
+                style={{ flex:1, padding:"5px 0", borderRadius:5, fontSize:11, fontWeight:600,
+                  cursor:"pointer", background:"rgba(42,157,143,0.15)",
+                  border:"1px solid rgba(42,157,143,0.4)", color:"var(--success)" }}>
+                ▶ Load
+              </button>
+              <button onClick={() => onEdit(spell)} title="Edit"
+                style={{ padding:"5px 10px", borderRadius:5, fontSize:12, cursor:"pointer",
+                  background:"transparent", border:"1px solid rgba(255,255,255,0.12)",
+                  color:"var(--text-muted)" }}>✎</button>
+              <button onClick={() => onDelete(spell)} title="Delete"
+                style={{ padding:"5px 10px", borderRadius:5, fontSize:12, cursor:"pointer",
+                  background:"rgba(199,62,29,0.1)", border:"1px solid rgba(199,62,29,0.28)",
+                  color:"var(--danger)" }}>✕</button>
+            </div>
+          </div>
+        );
+      }
+
+      // ── SLGridView ───────────────────────────────────────────────────────────
+      function SLGridView({ spells, character, tabKey, onLoad, onEdit, onDelete, onNew }) {
+        const [search, setSearch] = _sl_us('');
+        const filtered = spells.filter(s => {
+          if (!search) return true;
+          const q = search.toLowerCase();
+          return (s.name||'').toLowerCase().includes(q)
+              || (s.description||'').toLowerCase().includes(q)
+              || (s.primaryArcanum||'').toLowerCase().includes(q)
+              || (s.practice||'').toLowerCase().includes(q);
+        });
+        return (
+          <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0 }}>
+            <div style={{ padding:"8px 10px", display:"flex", gap:6, flexShrink:0 }}>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…"
+                style={{ ...SL_INP, flex:1 }}/>
+              <button onClick={onNew}
+                style={{ padding:"6px 14px", borderRadius:6, fontSize:12, fontWeight:700,
+                  cursor:"pointer", border:"none",
+                  background:"linear-gradient(135deg,var(--accent),var(--accent-light))", color:"#fff" }}>
+                + New
+              </button>
+            </div>
+            <div style={{ flex:1, overflowY:"auto", padding:"0 10px 10px",
+              display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",
+              gap:8, alignContent:"start" }}>
+              {filtered.length === 0 && (
+                <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"40px 0",
+                  color:"var(--text-muted)", fontSize:13 }}>
+                  {spells.length === 0
+                    ? `No ${tabKey==='improvised'?'improvised favorites':tabKey} yet — click + New to add one.`
+                    : "No spells match your search."}
+                </div>
+              )}
+              {filtered.map(spell => (
+                <SLSpellCard key={spell.id} spell={spell} character={character}
+                  onLoad={onLoad} onEdit={onEdit} onDelete={onDelete}/>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      // ── SLBrowseView ─────────────────────────────────────────────────────────
+      function SLBrowseView({ spells, character, tabKey, onLoad, onEdit, onDelete, onNew }) {
+        const [idx, setIdx] = _sl_us(0);
+        const wrapRef = _sl_ur(null);
+        const [slideW, setSlideW] = _sl_us(300);
+        _sl_ue(() => {
+          if (!wrapRef.current) return;
+          const obs = new ResizeObserver(() => {
+            if (wrapRef.current) setSlideW(Math.max(180, wrapRef.current.offsetWidth - 56));
+          });
+          obs.observe(wrapRef.current);
+          setSlideW(Math.max(180, wrapRef.current.offsetWidth - 56));
+          return () => obs.disconnect();
+        }, []);
+        _sl_ue(() => {
+          if (idx >= spells.length && spells.length > 0) setIdx(spells.length - 1);
+        }, [spells.length]);
+        const safeIdx = Math.min(idx, Math.max(0, spells.length - 1));
+        const spell = spells[safeIdx];
+        return (
+          <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0 }}>
+            <div style={{ padding:"8px 10px", display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+              <button onClick={() => setIdx(i => Math.max(0,i-1))} disabled={safeIdx===0}
+                style={{ padding:"5px 14px", borderRadius:5, cursor:safeIdx===0?"not-allowed":"pointer",
+                  opacity:safeIdx===0?0.35:1, background:"transparent",
+                  border:"1px solid rgba(255,255,255,0.12)", color:"var(--text)" }}>‹</button>
+              <span style={{ flex:1, textAlign:"center", fontSize:11, color:"var(--text-muted)" }}>
+                {spells.length===0 ? "—" : `${safeIdx+1} / ${spells.length}`}
+              </span>
+              <button onClick={() => setIdx(i => Math.min(spells.length-1,i+1))}
+                disabled={safeIdx>=spells.length-1}
+                style={{ padding:"5px 14px", borderRadius:5,
+                  cursor:safeIdx>=spells.length-1?"not-allowed":"pointer",
+                  opacity:safeIdx>=spells.length-1?0.35:1, background:"transparent",
+                  border:"1px solid rgba(255,255,255,0.12)", color:"var(--text)" }}>›</button>
+              <button onClick={onNew}
+                style={{ padding:"5px 12px", borderRadius:5, fontSize:12, fontWeight:700,
+                  cursor:"pointer", border:"none",
+                  background:"linear-gradient(135deg,var(--accent),var(--accent-light))", color:"#fff" }}>
+                + New
+              </button>
+            </div>
+            <div ref={wrapRef} style={{ flex:1, overflow:"hidden", position:"relative", padding:"0 28px" }}>
+              <div style={{ display:"flex", gap:12, height:"100%", transition:"transform .3s ease",
+                transform:`translateX(${spells.length ? 28 - safeIdx*(slideW+12) : 0}px)` }}>
+                {spells.length === 0 && (
+                  <div style={{ width:slideW, flexShrink:0, display:"flex", alignItems:"center",
+                    justifyContent:"center", color:"var(--text-muted)", fontSize:13 }}>
+                    No {tabKey==='improvised'?'improvised favorites':tabKey} yet.
+                  </div>
+                )}
+                {spells.map((s, i) => {
+                  const c = (character && typeof calculateSpellCardData==='function')
+                    ? calculateSpellCardData(s, character) : null;
+                  const arc = (s.primaryArcanum||'prime').toLowerCase();
+                  const arcColor = SL_ARC_COLORS[arc] || '#9d4edd';
+                  const tc = slTypeBadge(s.type);
+                  return (
+                    <div key={s.id} style={{ width:slideW, flexShrink:0,
+                      background:"var(--bg-card)",
+                      border:`2px solid ${i===safeIdx?'var(--accent-light)':'rgba(255,255,255,0.08)'}`,
+                      borderRadius:10, padding:"14px 16px",
+                      display:"flex", flexDirection:"column", gap:10,
+                      boxSizing:"border-box", overflowY:"auto" }}>
+                      <div>
+                        <div style={{ fontWeight:700, fontSize:15, color:"var(--text)", marginBottom:5 }}>{s.name}</div>
+                        <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+                          <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
+                            background:tc.bg, color:tc.tx, border:`1px solid ${tc.bd}` }}>
+                            {slTypeLabel(s.type)}
+                          </span>
+                          <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
+                            background:`${arcColor}22`, color:arcColor, border:`1px solid ${arcColor}44` }}>
+                            {capitalize(arc)} {'●'.repeat(s.primaryArcanumLevel||1)}
+                          </span>
+                        </div>
+                      </div>
+                      {c && (
+                        <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+                          <div style={{ textAlign:"center" }}>
+                            <div style={{ fontSize:26, fontWeight:700, color:"var(--accent-light)", lineHeight:1 }}>{c.totalPool}</div>
+                            <div style={{ fontSize:9, color:"var(--text-muted)" }}>dice pool</div>
+                          </div>
+                          <div style={{ fontSize:11, color:"var(--text-muted)", flex:1 }}>
+                            <div>{c.baseSource}</div>
+                            {c.yantraDice>0 && <div>+{c.yantraDice} yantra</div>}
+                            <div>{c.rollQuality}</div>
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ fontSize:11, color:"var(--text-muted)", display:"flex", flexDirection:"column", gap:2 }}>
+                        {s.practice && <div>Practice: {s.practice}</div>}
+                        {s.primaryFactor && <div>Primary Factor: {s.primaryFactor}</div>}
+                        {s.withstand && <div>Withstand: {s.withstand}</div>}
+                        {s.type==='rote' && s.roteSkill && <div>Mudra: {getSkillLabel(s.roteSkill)}</div>}
+                        {c && <div>Free Reach: {c.freeReach}</div>}
+                      </div>
+                      {s.description && (
+                        <div style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.5,
+                          fontStyle:"italic", maxHeight:80, overflowY:"auto" }}>
+                          {s.description}
+                        </div>
+                      )}
+                      <div style={{ display:"flex", gap:6, marginTop:"auto" }}>
+                        <button onClick={() => onLoad(s)}
+                          style={{ flex:1, padding:"7px 0", borderRadius:6, fontSize:12, fontWeight:600,
+                            cursor:"pointer", background:"rgba(42,157,143,0.15)",
+                            border:"1px solid rgba(42,157,143,0.4)", color:"var(--success)" }}>
+                          ▶ Load
+                        </button>
+                        <button onClick={() => onEdit(s)}
+                          style={{ padding:"7px 12px", borderRadius:6, fontSize:12, cursor:"pointer",
+                            background:"transparent", border:"1px solid rgba(255,255,255,0.12)",
+                            color:"var(--text-muted)" }}>✎</button>
+                        <button onClick={() => onDelete(s)}
+                          style={{ padding:"7px 12px", borderRadius:6, fontSize:12, cursor:"pointer",
+                            background:"rgba(199,62,29,0.1)", border:"1px solid rgba(199,62,29,0.28)",
+                            color:"var(--danger)" }}>✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ── SLSpellEditorModal ───────────────────────────────────────────────────
+      function SLSpellEditorModal({ spell, onSave, onClose }) {
+        const isNew = !spell.id;
+        const [form, setForm] = _sl_us({
+          name:               spell.name || "New Spell",
+          type:               spell.type || "praxis",
+          primaryArcanum:     spell.primaryArcanum || "prime",
+          primaryArcanumLevel:spell.primaryArcanumLevel || 1,
+          secondaryArcanum:   spell.secondaryArcanum || "",
+          secondaryArcanumLevel: spell.secondaryArcanumLevel || 1,
+          practice:           spell.practice || "Compelling",
+          primaryFactor:      spell.primaryFactor || "potency",
+          withstand:          spell.withstand || "",
+          roteSkill:          spell.roteSkill || "occult",
+          roteCreator:        spell.roteCreator || "order",
+          description:        spell.description || "",
+          reachOptions:       (spell.reachOptions || []).join('\n'),
+          yantraDice:         spell.defaults?.yantraDice || 0,
+        });
+        function upd(k, v) { setForm(f => ({...f, [k]: v})); }
+        function handleSave() {
+          const params = {
+            ...spell,
+            name: form.name.trim() || "Unnamed Spell",
+            type: form.type,
+            primaryArcanum: form.primaryArcanum,
+            primaryArcanumLevel: parseInt(form.primaryArcanumLevel) || 1,
+            secondaryArcanum: form.secondaryArcanum || null,
+            secondaryArcanumLevel: form.secondaryArcanum ? (parseInt(form.secondaryArcanumLevel)||1) : null,
+            practice: form.practice,
+            primaryFactor: form.primaryFactor,
+            withstand: form.withstand,
+            roteSkill: form.type==='rote' ? form.roteSkill : null,
+            roteCreator: form.type==='rote' ? form.roteCreator : null,
+            description: form.description,
+            reachOptions: form.reachOptions.split('\n').map(s=>s.trim()).filter(Boolean),
+            defaults: { ...(spell.defaults||{}), yantraDice: parseInt(form.yantraDice)||0 },
+          };
+          onSave(params);
+        }
+        return (
+          <div style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.78)",
+            display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ background:"var(--bg-card)", borderRadius:12, width:620, maxWidth:"96vw",
+              maxHeight:"88vh", display:"flex", flexDirection:"column", overflow:"hidden",
+              border:"1px solid rgba(157,78,221,0.3)" }}>
+              <div style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.1)",
+                display:"flex", alignItems:"center", flexShrink:0 }}>
+                <span style={{ flex:1, fontFamily:"'Rajdhani',sans-serif", fontSize:15, fontWeight:700,
+                  letterSpacing:2, textTransform:"uppercase", color:"var(--accent-light)" }}>
+                  {isNew ? "New Spell" : "Edit Spell"}
+                </span>
+                <button onClick={onClose}
+                  style={{ padding:"4px 9px", borderRadius:5, fontSize:14, cursor:"pointer",
+                    background:"transparent", border:"1px solid rgba(255,255,255,0.12)",
+                    color:"var(--text-muted)" }}>✕</button>
+              </div>
+              <div style={{ overflowY:"auto", flex:1, padding:16, display:"flex", flexDirection:"column", gap:12 }}>
+                {/* Name + Type */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 160px", gap:10 }}>
+                  <div>
+                    <label style={SL_LBL}>Spell Name</label>
+                    <input value={form.name} onChange={e=>upd('name',e.target.value)} style={SL_INP}/>
+                  </div>
+                  <div>
+                    <label style={SL_LBL}>Type</label>
+                    <select value={form.type} onChange={e=>upd('type',e.target.value)} style={SL_INP}>
+                      <option value="rote">Rote</option>
+                      <option value="praxis">Praxis</option>
+                      <option value="improvised">Improvised Fav.</option>
+                    </select>
+                  </div>
+                </div>
+                {/* Arcana */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 80px 1fr 80px", gap:10 }}>
+                  <div>
+                    <label style={SL_LBL}>Primary Arcanum</label>
+                    <select value={form.primaryArcanum} onChange={e=>upd('primaryArcanum',e.target.value)} style={SL_INP}>
+                      {SL_ARCANA.map(a=><option key={a} value={a}>{capitalize(a)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={SL_LBL}>Dots</label>
+                    <select value={form.primaryArcanumLevel} onChange={e=>upd('primaryArcanumLevel',e.target.value)} style={SL_INP}>
+                      {[1,2,3,4,5].map(n=><option key={n} value={n}>{'●'.repeat(n)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={SL_LBL}>Secondary Arcanum <span style={{color:"var(--text-muted)"}}>(optional)</span></label>
+                    <select value={form.secondaryArcanum} onChange={e=>upd('secondaryArcanum',e.target.value)} style={SL_INP}>
+                      <option value="">—</option>
+                      {SL_ARCANA.map(a=><option key={a} value={a}>{capitalize(a)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={SL_LBL}>Dots</label>
+                    <select value={form.secondaryArcanumLevel} onChange={e=>upd('secondaryArcanumLevel',e.target.value)}
+                      style={{ ...SL_INP, opacity:form.secondaryArcanum?1:0.4 }} disabled={!form.secondaryArcanum}>
+                      {[1,2,3,4,5].map(n=><option key={n} value={n}>{'●'.repeat(n)}</option>)}
+                    </select>
+                  </div>
+                </div>
+                {/* Practice + Factor + Withstand */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+                  <div>
+                    <label style={SL_LBL}>Practice</label>
+                    <select value={form.practice} onChange={e=>upd('practice',e.target.value)} style={SL_INP}>
+                      {SL_PRACTICES.map(p=><option key={p} value={p}>{p} ({SL_PRACTICE_DOTS[p]}●)</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={SL_LBL}>Primary Factor</label>
+                    <select value={form.primaryFactor} onChange={e=>upd('primaryFactor',e.target.value)} style={SL_INP}>
+                      <option value="potency">Potency</option>
+                      <option value="duration">Duration</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={SL_LBL}>Withstand</label>
+                    <input value={form.withstand} onChange={e=>upd('withstand',e.target.value)}
+                      style={SL_INP} placeholder="e.g. Composure"/>
+                  </div>
+                </div>
+                {/* Rote extras */}
+                {form.type==='rote' && (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, padding:"10px 12px",
+                    background:"var(--bg-dark)", borderRadius:6, border:"1px solid rgba(42,157,143,0.2)" }}>
+                    <div>
+                      <label style={SL_LBL}>Mudra Skill</label>
+                      <select value={form.roteSkill} onChange={e=>upd('roteSkill',e.target.value)} style={SL_INP}>
+                        {SL_SKILL_OPTS.map(s=><option key={s.key} value={s.key}>{s.lbl}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={SL_LBL}>Rote Source</label>
+                      <select value={form.roteCreator} onChange={e=>upd('roteCreator',e.target.value)} style={SL_INP}>
+                        <option value="order">Order Rote (Mudra only)</option>
+                        <option value="self">Your Design (Rote Quality + Mudra)</option>
+                        <option value="grimoire">Grimoire (Rote Quality, 2× time)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+                {/* Yantra dice */}
+                <div>
+                  <label style={SL_LBL}>Default Yantra Dice</label>
+                  <input type="number" min="0" max="10" value={form.yantraDice}
+                    onChange={e=>upd('yantraDice',e.target.value)}
+                    style={{ ...SL_INP, width:80 }}/>
+                </div>
+                {/* Reach options */}
+                <div>
+                  <label style={SL_LBL}>Reach Options <span style={{color:"var(--text-muted)"}}>(one per line)</span></label>
+                  <textarea value={form.reachOptions} onChange={e=>upd('reachOptions',e.target.value)}
+                    rows={3} style={{ ...SL_INP, resize:"vertical", fontFamily:"inherit" }}
+                    placeholder={"Advanced Duration\nAdvanced Scale\nExtra target…"}/>
+                </div>
+                {/* Description */}
+                <div>
+                  <label style={SL_LBL}>Description / Notes</label>
+                  <textarea value={form.description} onChange={e=>upd('description',e.target.value)}
+                    rows={4} style={{ ...SL_INP, resize:"vertical", fontFamily:"inherit" }}
+                    placeholder="Spell description, notes, house rules…"/>
+                </div>
+              </div>
+              <div style={{ padding:"12px 16px", borderTop:"1px solid rgba(255,255,255,0.1)",
+                display:"flex", gap:8, justifyContent:"flex-end", flexShrink:0 }}>
+                <button onClick={onClose}
+                  style={{ padding:"8px 18px", borderRadius:6, fontSize:12, fontWeight:600,
+                    cursor:"pointer", background:"transparent",
+                    border:"1px solid rgba(255,255,255,0.12)", color:"var(--text-muted)" }}>
+                  Cancel
+                </button>
+                <button onClick={handleSave}
+                  style={{ padding:"8px 24px", borderRadius:6, fontSize:12, fontWeight:700,
+                    cursor:"pointer", border:"none",
+                    background:"linear-gradient(135deg,var(--accent),var(--accent-light))",
+                    color:"#fff" }}>
+                  {isNew ? "✚ Add Spell" : "✔ Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ── SLSaveToLibModal ─────────────────────────────────────────────────────
+      function SLSaveToLibModal({ state, sourceSpellId, character, onClose }) {
+        const srcSpell = sourceSpellId
+          ? [...(character?.rotes||[]), ...(character?.praxes||[]), ...(character?.improvisedFavorites||[])]
+              .find(s => s.id === sourceSpellId)
+          : null;
+        const [name, setName]           = _sl_us(state?.name || "");
+        const [type, setType]           = _sl_us(state?.type || "praxis");
+        const [roteSkill, setRoteSkill] = _sl_us(state?.roteSkill || "occult");
+        const [roteCreator, setRoteCreator] = _sl_us(state?.roteCreator || "order");
+
+        function handleSave() {
+          if (!name.trim()) { alert('Please enter a spell name.'); return; }
+          if (!character) { alert('No character loaded.'); return; }
+          const params = {
+            ...state,
+            id: sourceSpellId || undefined,
+            name: name.trim(),
+            type,
+            roteSkill: type==='rote' ? roteSkill : null,
+            roteCreator: type==='rote' ? roteCreator : null,
+            description: srcSpell?.description || state?.description || "",
+            withstand:   srcSpell?.withstand   || state?.withstand   || "",
+            reachOptions: srcSpell?.reachOptions || state?.reachOptions || [],
+          };
+          const updatedChar = sourceSpellId
+            ? window.classicVanilla?.updateSpell?.(sourceSpellId, params, type)
+            : window.classicVanilla?.addSpell?.(type, params);
+          if (updatedChar) {
+            window.classicSpellLibBridge?.refresh?.(updatedChar);
+            window.classicVanilla?.showToast?.(`Saved "${name.trim()}" to library!`, 'success');
+          }
+          onClose();
+        }
+
+        return (
+          <div style={{ position:"fixed", inset:0, zIndex:1100, background:"rgba(0,0,0,0.78)",
+            display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <div style={{ background:"var(--bg-card)", borderRadius:10, width:440, maxWidth:"95vw",
+              border:"1px solid rgba(157,78,221,0.35)", overflow:"hidden" }}>
+              <div style={{ padding:"12px 16px", borderBottom:"1px solid rgba(255,255,255,0.1)",
+                display:"flex", alignItems:"center" }}>
+                <span style={{ flex:1, fontFamily:"'Rajdhani',sans-serif", fontSize:14, fontWeight:700,
+                  letterSpacing:2, textTransform:"uppercase", color:"var(--accent-light)" }}>
+                  {sourceSpellId ? "Update Spell in Library" : "Save to Spell Library"}
+                </span>
+                <button onClick={onClose}
+                  style={{ padding:"4px 9px", borderRadius:5, fontSize:14, cursor:"pointer",
+                    background:"transparent", border:"1px solid rgba(255,255,255,0.12)",
+                    color:"var(--text-muted)" }}>✕</button>
+              </div>
+              <div style={{ padding:16, display:"flex", flexDirection:"column", gap:12 }}>
+                <div>
+                  <label style={SL_LBL}>Spell Name</label>
+                  <input value={name} onChange={e=>setName(e.target.value)} style={SL_INP}
+                    placeholder="Enter name…" autoFocus/>
+                </div>
+                <div>
+                  <label style={SL_LBL}>Save As</label>
+                  <div style={{ display:"flex", gap:6 }}>
+                    {['rote','praxis','improvised'].map(t => (
+                      <button key={t} onClick={()=>setType(t)}
+                        style={{ flex:1, padding:"8px 0", borderRadius:6, fontSize:11, fontWeight:600,
+                          cursor:"pointer",
+                          border:`1px solid ${type===t?'rgba(157,78,221,0.5)':'rgba(255,255,255,0.1)'}`,
+                          background:type===t?'rgba(123,44,191,0.2)':'transparent',
+                          color:type===t?'var(--accent-light)':'var(--text-muted)' }}>
+                        {t==='improvised'?'Improv. Fav.':t.charAt(0).toUpperCase()+t.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {type==='rote' && (
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, padding:"10px 12px",
+                    background:"var(--bg-dark)", borderRadius:6, border:"1px solid rgba(42,157,143,0.2)" }}>
+                    <div>
+                      <label style={SL_LBL}>Mudra Skill</label>
+                      <select value={roteSkill} onChange={e=>setRoteSkill(e.target.value)} style={SL_INP}>
+                        {SL_SKILL_OPTS.map(s=><option key={s.key} value={s.key}>{s.lbl}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={SL_LBL}>Rote Source</label>
+                      <select value={roteCreator} onChange={e=>setRoteCreator(e.target.value)} style={SL_INP}>
+                        <option value="order">Order Rote</option>
+                        <option value="self">Your Design</option>
+                        <option value="grimoire">Grimoire</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div style={{ padding:"10px 16px", borderTop:"1px solid rgba(255,255,255,0.1)",
+                display:"flex", gap:8, justifyContent:"flex-end" }}>
+                <button onClick={onClose}
+                  style={{ padding:"8px 16px", borderRadius:6, fontSize:12, fontWeight:600,
+                    cursor:"pointer", background:"transparent",
+                    border:"1px solid rgba(255,255,255,0.12)", color:"var(--text-muted)" }}>
+                  Cancel
+                </button>
+                <button onClick={handleSave}
+                  style={{ padding:"8px 24px", borderRadius:6, fontSize:12, fontWeight:700,
+                    cursor:"pointer", border:"none",
+                    background:"linear-gradient(135deg,var(--accent),var(--accent-light))",
+                    color:"#fff" }}>
+                  {sourceSpellId ? "✔ Update" : "✚ Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // ── SLCompendiumView ─────────────────────────────────────────────────────
+      // Adapted from wizard.html CompendiumOverlay — tab layout, no close button
+      function SLCompendiumView({ character, compUser, compRole }) {
+        const [spells, setSpells]           = _sl_us([]);
+        const [loading, setLoading]         = _sl_us(true);
+        const [search, setSearch]           = _sl_us('');
+        const [filterBook, setFilterBook]   = _sl_us('all');
+        const [filterArc, setFilterArc]     = _sl_us('all');
+        const [expandedId, setExpandedId]   = _sl_us(null);
+        const [addingSpell, setAddingSpell] = _sl_us(null);
+        const [addType, setAddType]         = _sl_us('praxis');
+        const [roteSkill, setRoteSkill]     = _sl_us('occult');
+        const [roteCreator, setRoteCreator] = _sl_us('');
+        const [signBusy, setSignBusy]       = _sl_us(false);
+        const [addFeedback, setAddFeedback] = _sl_us({});
+
+        _sl_ue(() => {
+          setLoading(true);
+          const unsub = _slFs.collection('compendium')
+            .where('approved', '==', true)
+            .onSnapshot(snap => {
+              const items = [];
+              snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+              items.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+              setSpells(items);
+              setLoading(false);
+            }, err => { console.error('Compendium error:', err); setLoading(false); });
+          return () => unsub();
+        }, []);
+
+        function handleSignIn() {
+          setSignBusy(true);
+          const p = new firebase.auth.GoogleAuthProvider();
+          _slAuth.signInWithPopup(p).catch(e=>console.error(e)).finally(()=>setSignBusy(false));
+        }
+        function handleSignOut() { _slAuth.signOut(); }
+        function isAdded(spell, type) {
+          if (!character) return false;
+          const arr = type==='rote' ? (character.rotes||[])
+            : type==='praxis' ? (character.praxes||[])
+            : (character.improvisedFavorites||[]);
+          return arr.some(s => s.compendiumId === spell.id);
+        }
+        function anyAdded(spell) {
+          return isAdded(spell,'rote') || isAdded(spell,'praxis') || isAdded(spell,'favorite');
+        }
+        function openAdd(spell) {
+          setAddType('praxis'); setRoteSkill('occult'); setRoteCreator(''); setAddingSpell(spell);
+        }
+        function confirmAdd() {
+          if (!addingSpell || !character) return;
+          const sid = addingSpell.id;
+          const st = addType;
+          const params = {
+            compendiumId: addingSpell.id,
+            name: addingSpell.name,
+            primaryArcanum: (addingSpell.primaryArcanum||'prime').toLowerCase(),
+            primaryArcanumLevel: addingSpell.primaryArcanumLevel || 1,
+            secondaryArcanum: addingSpell.secondaryArcanum||null,
+            secondaryArcanumLevel: addingSpell.secondaryArcanumLevel||null,
+            practice: addingSpell.practice || "Compelling",
+            primaryFactor: addingSpell.primaryFactor || "potency",
+            withstand: addingSpell.withstand || "",
+            description: addingSpell.description || "",
+            reachOptions: addingSpell.reachOptions || [],
+            roteSkill: st==='rote' ? roteSkill : null,
+            roteCreator: st==='rote' ? (roteCreator||'order') : null,
+          };
+          const updatedChar = window.classicVanilla?.addSpell?.(st, params);
+          if (updatedChar) {
+            window.classicSpellLibBridge?.refresh?.(updatedChar);
+            window.classicVanilla?.showToast?.(`Added "${addingSpell.name}" as ${st}!`, 'success');
+          }
+          setAddFeedback(prev => ({...prev, [sid]: st}));
+          setAddingSpell(null);
+          setTimeout(() => setAddFeedback(prev => { const n={...prev}; delete n[sid]; return n; }), 3000);
+        }
+
+        const filtered = spells.filter(s => {
+          if (filterBook !== 'all' && s.sourceBook !== filterBook) return false;
+          if (filterArc  !== 'all' && (s.primaryArcanum||'').toLowerCase() !== filterArc.toLowerCase()) return false;
+          if (search) {
+            const q = search.toLowerCase();
+            if (!(s.name||'').toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
+          }
+          return true;
+        });
+        const roleBadgeColor = { admin:'#c73e1d', editor:'#2a9d8f', 'sub-editor':'#e9c46a', suggester:'#9d4edd' };
+
+        return (
+          <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0, position:"relative" }}>
+            {/* Auth + search row */}
+            <div style={{ padding:"8px 10px", display:"flex", gap:6, alignItems:"center", flexShrink:0,
+              borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
+              {compUser ? (
+                <div style={{ display:"flex", alignItems:"center", gap:6, marginLeft:"auto" }}>
+                  {compRole && compRole !== 'player' && (
+                    <span style={{ fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:.8,
+                      padding:"2px 6px", borderRadius:4,
+                      background:roleBadgeColor[compRole]?roleBadgeColor[compRole]+'33':'rgba(123,44,191,0.12)',
+                      color:roleBadgeColor[compRole]||'var(--accent-light)',
+                      border:`1px solid ${roleBadgeColor[compRole]||'rgba(157,78,221,0.35)'}44` }}>
+                      {compRole}
+                    </span>
+                  )}
+                  <button onClick={handleSignOut}
+                    style={{ padding:"3px 8px", borderRadius:5, fontSize:10, cursor:"pointer",
+                      background:"transparent", border:"1px solid rgba(255,255,255,0.12)",
+                      color:"var(--text-muted)" }}>
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <button onClick={handleSignIn} disabled={signBusy}
+                  style={{ padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
+                    cursor:signBusy?"not-allowed":"pointer", marginLeft:"auto",
+                    background:"rgba(66,133,244,0.15)", border:"1px solid rgba(66,133,244,0.4)",
+                    color:"#4285F4", opacity:signBusy?0.6:1 }}>
+                  {signBusy ? "…" : "🔑 Sign In"}
+                </button>
+              )}
+            </div>
+            {/* Filters */}
+            <div style={{ padding:"8px 10px", display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search spells…"
+                style={SL_INP}/>
+              <div style={{ display:"flex", gap:6 }}>
+                <select value={filterBook} onChange={e=>setFilterBook(e.target.value)}
+                  style={{ ...SL_INP, flex:1 }}>
+                  <option value="all">All Books</option>
+                  {Object.entries(SL_COMP_BOOKS).map(([k,v])=>(
+                    <option key={k} value={k}>{v.short}</option>
+                  ))}
+                </select>
+                <select value={filterArc} onChange={e=>setFilterArc(e.target.value)}
+                  style={{ ...SL_INP, flex:1 }}>
+                  <option value="all">All Arcana</option>
+                  {SL_ARCANA.map(a=><option key={a} value={a}>{capitalize(a)}</option>)}
+                </select>
+              </div>
+              <div style={{ fontSize:10, color:"var(--text-muted)" }}>
+                {loading ? "Loading…" : `${filtered.length} spell${filtered.length!==1?'s':''} found`}
+              </div>
+            </div>
+            {/* List */}
+            <div style={{ flex:1, overflowY:"auto", padding:"0 10px 10px" }}>
+              {loading && (
+                <div style={{ textAlign:"center", color:"var(--text-muted)", padding:40, fontSize:13 }}>
+                  Loading compendium…
+                </div>
+              )}
+              {!loading && filtered.length===0 && (
+                <div style={{ textAlign:"center", color:"var(--text-muted)", padding:40, fontSize:13 }}>
+                  No spells match your filters.
+                </div>
+              )}
+              {!loading && filtered.map(spell => {
+                const book = SL_COMP_BOOKS[spell.sourceBook];
+                const isExpanded = expandedId === spell.id;
+                const added = anyAdded(spell);
+                const justAdded = addFeedback[spell.id];
+                return (
+                  <div key={spell.id} style={{ marginBottom:7, borderRadius:8, overflow:"hidden",
+                    background:"var(--bg-card)",
+                    border:`1px solid ${isExpanded?'rgba(157,78,221,0.4)':'rgba(255,255,255,0.08)'}`,
+                    transition:"border-color .2s" }}>
+                    <div onClick={()=>setExpandedId(isExpanded?null:spell.id)}
+                      style={{ padding:"9px 11px", display:"flex", alignItems:"center", gap:7, cursor:"pointer" }}>
+                      {book && (
+                        <span style={{ fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:3,
+                          background:`${book.color}22`, color:book.color, border:`1px solid ${book.color}44`,
+                          textTransform:"uppercase", letterSpacing:.5, flexShrink:0 }}>
+                          {book.short}
+                        </span>
+                      )}
+                      <span style={{ fontWeight:600, fontSize:13,
+                        color:added?'var(--accent-light)':'var(--text)', flex:1 }}>
+                        {spell.name}
+                      </span>
+                      <span style={{ fontSize:10, color:"var(--text-muted)", flexShrink:0 }}>
+                        {spell.primaryArcanum} {spell.primaryArcanumLevel?'●'.repeat(spell.primaryArcanumLevel):''}
+                      </span>
+                      <span style={{ fontSize:11, color:"var(--text-muted)", flexShrink:0, marginLeft:3 }}>
+                        {isExpanded?'▲':'▼'}
+                      </span>
+                    </div>
+                    {isExpanded && (
+                      <div style={{ padding:"0 11px 11px", borderTop:"1px solid rgba(255,255,255,0.06)" }}>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:4, margin:"8px 0 6px" }}>
+                          {spell.practice && (
+                            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
+                              background:"rgba(123,44,191,0.12)", color:"var(--accent-light)",
+                              border:"1px solid rgba(157,78,221,0.3)" }}>{spell.practice}</span>
+                          )}
+                          {spell.primaryFactor && (
+                            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
+                              background:"rgba(42,157,143,0.12)", color:"var(--success)",
+                              border:"1px solid rgba(42,157,143,0.3)" }}>Factor: {spell.primaryFactor}</span>
+                          )}
+                          {spell.withstand && (
+                            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
+                              background:"rgba(199,62,29,0.1)", color:"var(--danger)",
+                              border:"1px solid rgba(199,62,29,0.25)" }}>Withstand: {spell.withstand}</span>
+                          )}
+                        </div>
+                        {spell.description && (
+                          <p style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.55, marginBottom:8 }}>
+                            {spell.description}
+                          </p>
+                        )}
+                        {spell.reachOptions && spell.reachOptions.length>0 && (
+                          <div style={{ marginBottom:8 }}>
+                            <div style={{ fontSize:10, color:"var(--accent-light)", fontWeight:600, marginBottom:3 }}>
+                              Reach Options
+                            </div>
+                            {spell.reachOptions.map((r,i)=>(
+                              <div key={i} style={{ fontSize:10, color:"var(--text-muted)", paddingLeft:8,
+                                borderLeft:"2px solid rgba(157,78,221,0.3)", marginBottom:2 }}>{r}</div>
+                            ))}
+                          </div>
+                        )}
+                        {spell.optionalArcana && spell.optionalArcana.length>0 && (
+                          <div style={{ marginBottom:8 }}>
+                            <div style={{ fontSize:10, color:"var(--warning)", fontWeight:600, marginBottom:3 }}>
+                              Optional Arcana
+                            </div>
+                            {spell.optionalArcana.map((oa,i)=>(
+                              <div key={i} style={{ fontSize:10, color:"var(--text-muted)", paddingLeft:8,
+                                borderLeft:"2px solid rgba(233,196,106,0.3)", marginBottom:2 }}>
+                                {oa.arcanum} {oa.level?'●'.repeat(oa.level):''}{oa.effect?` — ${oa.effect}`:''}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {character ? (
+                          justAdded ? (
+                            <div style={{ textAlign:"center", fontSize:11, color:"var(--success)", padding:"6px 0" }}>
+                              ✓ Added as {justAdded}!
+                            </div>
+                          ) : (
+                            <button onClick={()=>openAdd(spell)}
+                              style={{ width:"100%", padding:"8px 0", borderRadius:6, fontSize:12, fontWeight:600,
+                                cursor:"pointer", border:"none",
+                                background:"linear-gradient(135deg,var(--accent),var(--accent-light))",
+                                color:"#fff" }}>
+                              {added ? "✚ Add Again" : "✚ Add to Grimoire"}
+                            </button>
+                          )
+                        ) : (
+                          <div style={{ textAlign:"center", fontSize:11, color:"var(--text-muted)",
+                            padding:"6px 0", fontStyle:"italic" }}>
+                            Load a character to add spells
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Add drawer */}
+            {addingSpell && (
+              <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:10,
+                background:"var(--bg-card)", borderTop:"2px solid rgba(157,78,221,0.45)",
+                padding:"14px 16px 18px" }}>
+                <div style={{ fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:10 }}>
+                  Add "{addingSpell.name}"
+                </div>
+                <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+                  {['rote','praxis','favorite'].map(t => {
+                    const already = isAdded(addingSpell, t);
+                    return (
+                      <button key={t} onClick={()=>!already && setAddType(t)}
+                        style={{ flex:1, padding:"7px 0", borderRadius:6, fontSize:11, fontWeight:600,
+                          cursor:already?"not-allowed":"pointer",
+                          border:`1px solid ${addType===t?'rgba(157,78,221,0.5)':'rgba(255,255,255,0.1)'}`,
+                          background:already?'rgba(123,44,191,0.2)':addType===t?'rgba(123,44,191,0.15)':'transparent',
+                          color:already?'var(--accent-light)':addType===t?'var(--accent-light)':'var(--text-muted)',
+                          opacity:already?0.6:1 }}>
+                        {already?"✓ ":""}{t.charAt(0).toUpperCase()+t.slice(1)}
+                      </button>
+                    );
+                  })}
+                </div>
+                {addType==='rote' && (
+                  <div style={{ marginBottom:10 }}>
+                    <select value={roteSkill} onChange={e=>setRoteSkill(e.target.value)}
+                      style={{ ...SL_INP, marginBottom:6 }}>
+                      {SL_SKILL_OPTS.map(s=><option key={s.key} value={s.key}>{s.lbl}</option>)}
+                    </select>
+                    <input value={roteCreator} onChange={e=>setRoteCreator(e.target.value)}
+                      placeholder="Creator / Order (optional)"
+                      style={SL_INP}/>
+                  </div>
+                )}
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={()=>setAddingSpell(null)}
+                    style={{ flex:1, padding:"9px 0", borderRadius:6, fontSize:12, fontWeight:600,
+                      cursor:"pointer", background:"transparent",
+                      border:"1px solid rgba(255,255,255,0.12)", color:"var(--text-muted)" }}>
+                    Cancel
+                  </button>
+                  <button onClick={confirmAdd}
+                    style={{ flex:2, padding:"9px 0", borderRadius:6, fontSize:12, fontWeight:600,
+                      cursor:"pointer", border:"none",
+                      background:"linear-gradient(135deg,var(--accent),var(--accent-light))",
+                      color:"#fff" }}>
+                    ✓ Confirm
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // ── ClassicSpellLibraryDrawer ─────────────────────────────────────────────
+      function ClassicSpellLibraryDrawer() {
+        const [character, setCharacter]   = _sl_us(null);
+        const [tab, setTab]               = _sl_us('rotes'); // 'rotes'|'praxes'|'improvised'|'compendium'
+        const [viewMode, setViewMode]     = _sl_us('grid');  // 'grid'|'browse'
+        const [editorSpell, setEditorSpell] = _sl_us(null);  // spell being edited (null = closed)
+        const [saveModal, setSaveModal]   = _sl_us(null);    // { state, sourceSpellId } | null
+        const [compUser, setCompUser]     = _sl_us(null);
+        const [compRole, setCompRole]     = _sl_us(null);
+
+        // Auth listener for compendium
+        _sl_ue(() => {
+          const unsub = _slAuth.onAuthStateChanged(async user => {
+            setCompUser(user || null);
+            if (user) {
+              try {
+                const doc = await _slFs.collection('roles').doc(user.uid).get();
+                setCompRole(doc.exists ? (doc.data().role || 'player') : 'player');
+              } catch { setCompRole('player'); }
+            } else {
+              setCompRole(null);
+            }
+          });
+          return () => unsub();
+        }, []);
+
+        // Bridge setup
+        _sl_ue(() => {
+          window.classicSpellLibBridge = {
+            refresh: (char) => setCharacter(char ? {...char} : null),
+            openSaveToLibrary: (state, sourceSpellId) => setSaveModal({ state, sourceSpellId }),
+            getCurrentTab: () => tab,
+            switchTab: (t) => setTab(t),
+          };
+          // Init with whatever character is already loaded
+          const initChar = window.currentCharacter || null;
+          if (initChar) setCharacter({...initChar});
+          return () => { delete window.classicSpellLibBridge; };
+        }, []);
+
+        // Keep getCurrentTab fresh without re-registering bridge
+        _sl_ue(() => {
+          if (window.classicSpellLibBridge) {
+            window.classicSpellLibBridge.getCurrentTab = () => tab;
+          }
+        }, [tab]);
+
+        // Spell lists
+        const rotes      = character?.rotes || [];
+        const praxes     = character?.praxes || [];
+        const improvised = character?.improvisedFavorites || [];
+        const tabSpells  = tab==='rotes' ? rotes : tab==='praxes' ? praxes : tab==='improvised' ? improvised : [];
+
+        // ── Handlers ──
+        function handleLoad(spell) {
+          window.classicVanilla?.loadSpell?.(spell);
+        }
+        function handleEdit(spell) {
+          setEditorSpell({ ...spell });
+        }
+        function handleNew() {
+          setEditorSpell({
+            name:"New Spell", type: tab==='rotes'?'rote':tab==='praxes'?'praxis':'improvised',
+            primaryArcanum:"prime", primaryArcanumLevel:1,
+          });
+        }
+        function handleDelete(spell) {
+          if (!confirm(`Delete "${spell.name}"?`)) return;
+          const updatedChar = window.classicVanilla?.deleteSpell?.(spell.id);
+          if (updatedChar) {
+            setCharacter({...updatedChar});
+            window.classicVanilla?.showToast?.(`Deleted "${spell.name}"`, 'info');
+          }
+        }
+        function handleEditorSave(params) {
+          let updatedChar;
+          if (params.id) {
+            updatedChar = window.classicVanilla?.updateSpell?.(params.id, params, params.type);
+          } else {
+            updatedChar = window.classicVanilla?.addSpell?.(params.type, params);
+            // Switch to matching tab
+            const newTab = params.type==='rote'?'rotes':params.type==='praxis'?'praxes':'improvised';
+            setTab(newTab);
+          }
+          if (updatedChar) {
+            setCharacter({...updatedChar});
+            window.classicVanilla?.showToast?.(`Saved "${params.name}"`, 'success');
+          }
+          setEditorSpell(null);
+        }
+        function handleExport() {
+          window.classicVanilla?.exportSpellLibrary?.();
+        }
+
+        // ── Tabs config ──
+        const tabDefs = [
+          { key:'rotes',      label:'Rotes',      count:rotes.length },
+          { key:'praxes',     label:'Praxes',     count:praxes.length },
+          { key:'improvised', label:'Improvised',  count:improvised.length },
+          { key:'compendium', label:'📖 Compendium', count:null },
+        ];
+
+        return (
+          <div style={{ background:"var(--bg-card)", borderRadius:8,
+            border:"1px solid rgba(255,255,255,0.08)", overflow:"hidden",
+            display:"flex", flexDirection:"column", height:"100%" }}>
+
+            {/* Tab bar */}
+            <div style={{ display:"flex", alignItems:"center", borderBottom:"1px solid rgba(255,255,255,0.08)",
+              padding:"0 8px", flexShrink:0, gap:2 }}>
+              {tabDefs.map(td => (
+                <button key={td.key} onClick={()=>setTab(td.key)}
+                  style={{ padding:"9px 12px", fontSize:12, fontWeight:600, cursor:"pointer",
+                    background:"transparent", border:"none",
+                    borderBottom:`2px solid ${tab===td.key?'var(--accent-light)':'transparent'}`,
+                    color:tab===td.key?'var(--accent-light)':'var(--text-muted)',
+                    transition:"color .15s, border-color .15s", whiteSpace:"nowrap" }}>
+                  {td.label}
+                  {td.count !== null && (
+                    <span style={{ marginLeft:5, fontSize:10, padding:"1px 5px", borderRadius:8,
+                      background:tab===td.key?'rgba(157,78,221,0.2)':'rgba(255,255,255,0.06)',
+                      color:tab===td.key?'var(--accent-light)':'var(--text-muted)' }}>
+                      {td.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+              {/* Spacer + right controls */}
+              <div style={{ flex:1 }}/>
+              {tab !== 'compendium' && (
+                <>
+                  <button onClick={()=>setViewMode(m=>m==='grid'?'browse':'grid')}
+                    title={viewMode==='grid'?'Switch to Browse view':'Switch to Grid view'}
+                    style={{ padding:"5px 8px", borderRadius:5, fontSize:13, cursor:"pointer",
+                      background:"transparent", border:"1px solid rgba(255,255,255,0.1)",
+                      color:"var(--text-muted)", marginRight:4 }}>
+                    {viewMode==='grid' ? '⊞' : '❐'}
+                  </button>
+                  <button onClick={handleExport}
+                    title="Export spell library to JSON"
+                    style={{ padding:"5px 8px", borderRadius:5, fontSize:11, cursor:"pointer",
+                      background:"transparent", border:"1px solid rgba(255,255,255,0.1)",
+                      color:"var(--text-muted)", marginRight:4 }}>
+                    ⬇ Export
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* No character warning */}
+            {!character && tab !== 'compendium' && (
+              <div style={{ padding:"16px 12px", textAlign:"center",
+                color:"var(--text-muted)", fontSize:13, fontStyle:"italic" }}>
+                Load a character to manage your spell library.
+              </div>
+            )}
+
+            {/* Content area */}
+            {(character || tab === 'compendium') && (
+              <div style={{ flex:1, minHeight:0, position:"relative" }}>
+                {tab === 'compendium' ? (
+                  <SLCompendiumView character={character} compUser={compUser} compRole={compRole}/>
+                ) : viewMode === 'grid' ? (
+                  <SLGridView spells={tabSpells} character={character} tabKey={tab}
+                    onLoad={handleLoad} onEdit={handleEdit} onDelete={handleDelete} onNew={handleNew}/>
+                ) : (
+                  <SLBrowseView spells={tabSpells} character={character} tabKey={tab}
+                    onLoad={handleLoad} onEdit={handleEdit} onDelete={handleDelete} onNew={handleNew}/>
+                )}
+              </div>
+            )}
+
+            {/* Modals */}
+            {editorSpell && (
+              <SLSpellEditorModal spell={editorSpell}
+                onSave={handleEditorSave} onClose={()=>setEditorSpell(null)}/>
+            )}
+            {saveModal && (
+              <SLSaveToLibModal state={saveModal.state} sourceSpellId={saveModal.sourceSpellId}
+                character={character} onClose={()=>setSaveModal(null)}/>
+            )}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('classic-spelllib-root')).render(<ClassicSpellLibraryDrawer/>);
     </script>
 
     <!-- Service Worker Registration -->
