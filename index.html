@@ -3193,6 +3193,7 @@
             
             // Main calculation function
             function calculate() {
+                if (!document.getElementById('gnosis')) return; // React SpellForm not yet mounted
                 const gnosis = parseInt(document.getElementById('gnosis').value) || 1;
                 let arcanumDots = parseInt(document.getElementById('arcanumDots').value) || 1;
                 let castingMethod = document.getElementById('castingMethod').value;
@@ -6269,16 +6270,7 @@
                 }
             }
             
-            // Discord buttons + save-to-library are now wired via React onClick (Phase 4)
-            // Initialize Save to Library modal close handlers
-            document.getElementById('saveLibModalClose').addEventListener('click', closeSaveToLibrary);
-            document.getElementById('btnCancelSaveLib').addEventListener('click', closeSaveToLibrary);
-            document.getElementById('btnConfirmSaveLib').addEventListener('click', confirmSaveToLibrary);
-            
-            // Toggle rote section visibility in Save to Library modal
-            document.getElementById('saveLibType').addEventListener('change', function() {
-                document.getElementById('saveLibRoteSection').style.display = this.value === 'rote' ? 'block' : 'none';
-            });
+            // Save to Library modal is now owned by React ClassicSpellLibraryDrawer (Phase 6)
             
             // Mana/health buttons removed — now handled by React (classic-header-root)
             
