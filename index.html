@@ -2721,6 +2721,10 @@
             vertical-align: middle;
         }
     </style>
+  <!-- React 18 + Babel (Phase 1 migration) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 </head>
 <body>
     <div style="position: fixed;
@@ -2744,132 +2748,11 @@
 </div>
     <div class="container">
         <!-- Character Header -->
-        <div class="character-header" id="characterHeader">
-            <div class="character-info">
-                <span class="character-name" id="headerCharacterName">No Character Loaded</span>
-                <span class="character-path" id="headerCharacterPath"></span>
-            </div>
-            <div class="character-controls">
-                <button class="btn-small" id="btnNewCharacter">New</button>
-                <button class="btn-small" id="btnEditCharacter">Edit</button>
-                <button class="btn-small" id="btnLoadCharacter">Load</button>
-                <button class="btn-small btn-primary" id="btnSaveCharacter">Save</button>
-                <input type="file" id="fileInput" accept=".json" style="display: none;">
-            </div>
-        </div>
-        <div class="mana-adjuster" id="manaAdjuster" style="display: none;">
-            <span class="mana-adj-label">⬡ Mana</span>
-            <button class="mana-adj-btn" id="btnManaDown" title="Decrease mana">−</button>
-            <span class="mana-adj-value" id="manaAdjValue">0</span>
-            <span style="color: var(--text-muted); font-size: 0.8em;">/</span>
-            <span style="color: var(--text-muted); font-size: 0.8em;" id="manaAdjMax">10</span>
-            <button class="mana-adj-btn" id="btnManaUp" title="Increase mana">+</button>
-            <span class="mana-adj-info" id="manaAdjInfo">per turn: 1</span>
-        </div>
-        <div class="mana-adjuster" id="healthAdjuster" style="display: none; flex-wrap: wrap;">
-            <span class="mana-adj-label">♥ Health</span>
-            <span class="mana-adj-value" id="healthDisplay">7/7</span>
-            <span id="healthWoundPen" style="color: var(--success); font-size: 0.8em; margin-left: 4px;"></span>
-            <span style="flex-basis:100%;height:0;"></span>
-            <div id="healthTrackDisplay" style="display:flex; gap:2px; flex:1; margin:4px 0;"></div>
-            <span style="flex-basis:100%;height:0;"></span>
-            <button class="mana-adj-btn" id="btnHealthBashing" title="Deal bashing" style="font-size:0.7em; width:auto; padding:2px 8px;">+/</button>
-            <button class="mana-adj-btn" id="btnHealthLethal" title="Deal lethal" style="font-size:0.7em; width:auto; padding:2px 8px;">+X</button>
-            <button class="mana-adj-btn" id="btnHealthAgg" title="Deal aggravated" style="font-size:0.7em; width:auto; padding:2px 8px;">+*</button>
-            <button class="mana-adj-btn" id="btnHealthHeal" title="Heal rightmost" style="font-size:0.7em; width:auto; padding:2px 8px; color:var(--success); border-color:var(--success);">Heal</button>
-        </div>
+        <!-- React character header (Phase 1 migration) -->
+        <div id="classic-header-root"></div>
         
-        <!-- Scene Tracker -->
-        <div class="scene-tracker-card" id="sceneTrackerCard">
-            <div class="scene-header-bar" id="sceneToggleBar">
-                <span class="scene-header-title">
-                    🎭 Scene Tracker
-                    <span id="sceneConnDot" class="scene-connected-dot" style="display:none;"></span>
-                </span>
-                <span class="scene-header-status" id="sceneHeaderStatus"
-                    style="background: rgba(255,255,255,0.08); color: var(--text-muted);">
-                    Not connected
-                </span>
-            </div>
-            <div class="scene-body" id="sceneBody">
-                <div id="sceneError" style="display:none; padding:8px 12px; border-radius:8px; margin-bottom:12px;
-                    background:rgba(199,62,29,0.15); border:1px solid var(--danger); color:var(--danger); font-size:0.85em;"></div>
-
-                <!-- Mode Chooser -->
-                <div id="sceneModeChooser">
-                    <button class="scene-mode-btn" id="btnSceneCreateRoom">
-                        <div class="label" style="color:var(--accent-light);">Create Room (Storyteller)</div>
-                        <div class="sub">Generate a code and manage scenes for your players</div>
-                    </button>
-                    <button class="scene-mode-btn" id="btnSceneJoinMode">
-                        <div class="label" style="color:var(--success);">Join Room (Player)</div>
-                        <div class="sub">Enter a room code from your Storyteller</div>
-                    </button>
-                </div>
-
-                <!-- Join Form -->
-                <div id="sceneJoinForm" style="display:none;">
-                    <p style="color:var(--text-muted); font-size:0.9em; margin-bottom:12px;">Enter the room code from your Storyteller:</p>
-                    <div style="display:flex; gap:8px; margin-bottom:12px;">
-                        <input type="text" id="sceneJoinInput" maxlength="6" placeholder="CODE"
-                            style="flex:1; text-align:center; font-family:monospace; font-size:1.4em; letter-spacing:6px;
-                            padding:10px; border-radius:8px; background:var(--bg-dark); border:1px solid var(--accent);
-                            color:var(--text); text-transform:uppercase;">
-                        <button id="btnSceneJoin" style="padding:10px 20px; border-radius:8px; border:none;
-                            background:var(--success); color:#fff; font-weight:bold; cursor:pointer; font-size:1em;">Join</button>
-                    </div>
-                    <button id="btnSceneJoinBack" style="background:none; border:none; color:var(--text-muted);
-                        font-size:0.85em; cursor:pointer;">← Back</button>
-                </div>
-
-                <!-- ST View -->
-                <div id="sceneSTView" style="display:none;">
-                    <div class="scene-room-code">
-                        <div style="font-size:0.7em; color:var(--text-muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">Room Code</div>
-                        <div class="code" id="sceneSTCode"></div>
-                        <div style="font-size:0.8em; color:var(--text-muted); margin-top:6px;">Share this code with your players</div>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                        <span id="sceneSTDot" class="scene-status-dot" style="background:var(--text-muted);"></span>
-                        <span id="sceneSTStatusText" style="font-size:0.9em; font-weight:bold; color:var(--text-muted);">No active scene</span>
-                    </div>
-                    <div class="scene-controls">
-                        <button id="btnSceneToggle" style="background:var(--success); color:#fff; border:none;">Start Scene</button>
-                        <button id="btnSceneReset" style="background:transparent; color:var(--text-muted); border:1px solid rgba(255,255,255,0.2); opacity:0.4;" disabled>Reset Counters</button>
-                    </div>
-                    <h3 style="color:var(--accent-light); font-size:0.9em; margin-bottom:10px;">Connected Players</h3>
-                    <div id="sceneSTPlayers" style="font-size:0.9em; color:var(--text-muted);">No players connected yet</div>
-                    <button class="scene-disconnect-btn" id="btnSceneSTClose">Close Room</button>
-                </div>
-
-                <!-- Player View -->
-                <div id="scenePlayerView" style="display:none;">
-                    <div class="scene-status-banner" id="scenePlayerBanner"
-                        style="background:var(--bg-dark); border:1px solid rgba(255,255,255,0.1);">
-                        <span class="scene-status-dot" id="scenePlayerDot" style="background:var(--text-muted);"></span>
-                        <span id="scenePlayerStatusText" style="font-size:0.9em; font-weight:bold; color:var(--text-muted);">No active scene</span>
-                        <span id="scenePlayerRoomCode" style="margin-left:auto; font-family:monospace; font-size:0.85em; color:var(--text-muted);"></span>
-                    </div>
-                    <div class="scene-paradox-counter">
-                        <div>
-                            <div class="scene-paradox-big" id="scenePlayerRollCount">0</div>
-                            <div style="font-size:0.7em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; text-align:center;">Rolls</div>
-                        </div>
-                        <div style="flex:1;">
-                            <div style="font-size:0.85em; color:var(--text-muted); margin-bottom:4px;">Next spell modifier</div>
-                            <div id="scenePlayerNextMod" style="font-size:1.4em; font-weight:bold;">+0 dice</div>
-                            <div id="scenePlayerNextHint" style="font-size:0.8em; color:var(--text-muted); margin-top:2px;">No penalty yet</div>
-                        </div>
-                    </div>
-                    <div id="scenePlayerSTNotice" class="scene-st-notice" style="display:none;">
-                        <div id="scenePlayerSTAdj" style="font-weight:bold;"></div>
-                        <div id="scenePlayerSTNote" style="font-size:0.85em; opacity:0.8; margin-top:2px;"></div>
-                    </div>
-                    <div id="scenePlayerLog" style="margin-top:12px;"></div>
-                    <button class="scene-disconnect-btn" id="btnScenePlayerLeave">Leave Room</button>
-                </div>
-            </div>
-        </div>
+        <!-- Scene Tracker (Phase 2: React) -->
+        <div id="classic-scene-root"></div>
 
         <h1>⟡ Spell Factor Calculator ⟡</h1>
         
@@ -3609,7 +3492,7 @@
         return code;
       }
       function sceneGetRef(roomCode) {
-        return _fbDb.ref("rooms/" + roomCode);
+        return _fbDb.ref("sessions/" + roomCode);
       }
       function sceneCreateRoom(roomCode, stName) {
         return sceneGetRef(roomCode).set({
@@ -3673,12 +3556,22 @@
       function scenePushStats(roomCode, playerId, character) {
         if (!roomCode || !playerId || !character) return;
         var h = character.health || { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+        var wp = character.willpower || { current: 5, max: 5 };
+        var spells = (character.activeSpells || [])
+          .filter(function(s) { return !s.isRelinquished; })
+          .map(function(s) { return {
+            id: s.id || "", name: s.name || "Unnamed",
+            arcanum: s.arcanum || "prime", arcanumLevel: s.arcanumLevel || 1,
+            potency: s.potency || 1, duration: s.duration || "—",
+            castMethod: s.castMethod || "improvised",
+          }; });
         sceneGetRef(roomCode).child("players/" + playerId + "/stats").update({
           gnosis: character.gnosis || 1,
           wisdom: character.wisdom || 7,
+          willpower: { current: wp.current != null ? wp.current : 5, max: wp.max || 5 },
           mana: { current: character.mana?.current ?? 0, max: character.mana?.max ?? 10 },
           health: { max: h.max || 7, bashing: h.bashing || 0, lethal: h.lethal || 0, aggravated: h.aggravated || 0 },
-          activeSpells: (character.activeSpells || []).length,
+          activeSpells: spells,
           maxActiveSpells: character.gnosis || 1,
         });
       }
@@ -4611,17 +4504,12 @@
             // Initialize character system
             function initCharacterSystem() {
                 updateCharacterHeader();
-                
-                // Button event listeners
-                document.getElementById('btnNewCharacter').addEventListener('click', newCharacter);
-                document.getElementById('btnEditCharacter').addEventListener('click', openCharacterEditor);
-                document.getElementById('btnLoadCharacter').addEventListener('click', () => document.getElementById('fileInput').click());
-                document.getElementById('btnSaveCharacter').addEventListener('click', saveCharacter);
+
+                // Spell results + active spells (still vanilla)
                 document.getElementById('btnSetActive').addEventListener('click', setSpellAsActive);
                 document.getElementById('activeSpellsManageLink').addEventListener('click', openCharacterEditor);
-                document.getElementById('fileInput').addEventListener('change', handleFileLoad);
-                
-                // Modal controls
+
+                // Character editor modal controls
                 document.getElementById('modalClose').addEventListener('click', closeCharacterEditor);
                 document.getElementById('btnCancelEdit').addEventListener('click', closeCharacterEditor);
                 document.getElementById('btnApplyCharacter').addEventListener('click', applyCharacterChanges);
@@ -4652,48 +4540,14 @@
             
             // Update header display
             function updateCharacterHeader() {
-                const nameEl = document.getElementById('headerCharacterName');
-                const pathEl = document.getElementById('headerCharacterPath');
-                const manaAdj = document.getElementById('manaAdjuster');
-                const healthAdj = document.getElementById('healthAdjuster');
-                
-                if (currentCharacter) {
-                    nameEl.textContent = currentCharacter.name || 'Unnamed Mage';
-                    const pathData = PATHS[currentCharacter.path];
-                    const orderData = ORDERS[currentCharacter.order];
-                    pathEl.textContent = `${pathData ? pathData.label : ''} ${orderData ? orderData.label : ''}`.trim();
-                    
-                    // Show mana + health adjusters
-                    manaAdj.style.display = 'flex';
-                    healthAdj.style.display = 'flex';
-                    updateManaAdjusterDisplay();
-                    updateHealthAdjusterDisplay();
-                } else {
-                    nameEl.textContent = 'No Character Loaded';
-                    pathEl.textContent = 'Click "New" or "Load" to begin';
-                    manaAdj.style.display = 'none';
-                    healthAdj.style.display = 'none';
-                }
-                
-                // Also refresh spell library
-                if (typeof renderSpellLibrary === 'function') {
-                    renderSpellLibrary();
-                }
-                
-                // Refresh Clash of Wills arcanum list
-                if (typeof populateClashArcanum === 'function') {
-                    populateClashArcanum();
-                }
+                // Push to React; also refresh dependent vanilla sections
+                if (window.classicBridge) window.classicBridge.setCharacter(currentCharacter);
+                if (typeof renderSpellLibrary === 'function') renderSpellLibrary();
+                if (typeof populateClashArcanum === 'function') populateClashArcanum();
             }
-            
+
             function updateManaAdjusterDisplay() {
-                if (!currentCharacter) return;
-                const manaC = currentCharacter.mana.current;
-                const manaM = currentCharacter.mana.max;
-                const manaPerTurn = getManaPerTurn(currentCharacter.gnosis);
-                document.getElementById('manaAdjValue').textContent = manaC;
-                document.getElementById('manaAdjMax').textContent = manaM;
-                document.getElementById('manaAdjInfo').textContent = `per turn: ${manaPerTurn}`;
+                // Display now owned by React (classic-header-root)
             }
             
             function adjustCharacterMana(delta) {
@@ -4709,27 +4563,7 @@
             }
 
             function updateHealthAdjusterDisplay() {
-                if (!currentCharacter) return;
-                if (!currentCharacter.health) currentCharacter.health = { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
-                var h = currentCharacter.health;
-                var filled = h.bashing + h.lethal + h.aggravated;
-                var empty = Math.max(0, h.max - filled);
-                var wp = filled >= h.max ? -3 : filled >= h.max - 1 ? -2 : filled >= h.max - 2 ? -1 : 0;
-                document.getElementById('healthDisplay').textContent = empty + '/' + h.max;
-                var wpEl = document.getElementById('healthWoundPen');
-                wpEl.textContent = wp < 0 ? 'Wound: ' + wp : '';
-                wpEl.style.color = wp < 0 ? 'var(--danger)' : 'var(--success)';
-                // Render track
-                var trackEl = document.getElementById('healthTrackDisplay');
-                var html = '';
-                for (var i = 0; i < h.max; i++) {
-                    var sym = '', bg = 'var(--bg-dark)', fg = 'var(--text-muted)', bd = 'rgba(255,255,255,0.1)';
-                    if (i < h.aggravated) { sym = '*'; bg = 'rgba(199,62,29,0.2)'; fg = 'var(--danger)'; bd = 'var(--danger)'; }
-                    else if (i < h.aggravated + h.lethal) { sym = 'X'; bg = 'rgba(233,196,106,0.15)'; fg = 'var(--warning)'; bd = 'var(--warning)'; }
-                    else if (i < filled) { sym = '/'; bg = 'var(--bg-card)'; fg = 'var(--text)'; bd = 'rgba(255,255,255,0.2)'; }
-                    html += '<div style="flex:1;text-align:center;padding:3px 0;border-radius:3px;background:' + bg + ';border:1px solid ' + bd + ';font-size:11px;font-weight:bold;color:' + fg + ';min-width:0;">' + (sym || '&nbsp;') + '</div>';
-                }
-                trackEl.innerHTML = html;
+                // Display now owned by React (classic-header-root)
             }
 
             function dealHealthDamage(type) {
@@ -5226,6 +5060,9 @@
                     updateCharacterHeader();
                     applyCharacterToForm();
                     alert(`Character "${currentCharacter.name}" loaded successfully!`);
+                    if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                        scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                    }
                 } catch (e) {
                     alert('Failed to load character: ' + e.message);
                 }
@@ -7289,13 +7126,7 @@
                 document.getElementById('saveLibRoteSection').style.display = this.value === 'rote' ? 'block' : 'none';
             });
             
-            // Mana adjuster buttons
-            document.getElementById('btnManaUp').addEventListener('click', function() { adjustCharacterMana(1); });
-            document.getElementById('btnManaDown').addEventListener('click', function() { adjustCharacterMana(-1); });
-            document.getElementById('btnHealthBashing').addEventListener('click', function() { dealHealthDamage('bashing'); });
-            document.getElementById('btnHealthLethal').addEventListener('click', function() { dealHealthDamage('lethal'); });
-            document.getElementById('btnHealthAgg').addEventListener('click', function() { dealHealthDamage('aggravated'); });
-            document.getElementById('btnHealthHeal').addEventListener('click', function() { healHealth(); });
+            // Mana/health buttons removed — now handled by React (classic-header-root)
             
             // Reset mana deducted flag when spell parameters change
             ['castingMethod','arcanumDots','spellRequirement','gnosis','potency','advancedPotency',
@@ -7311,16 +7142,15 @@
             initCharacterSystem();
             
             // =================================================================
-            // SCENE TRACKER
+            // SCENE TRACKER (Phase 2: React — ClassicSceneTracker owns Firebase)
+            // These closure vars are updated via window.classicVanilla.onSceneChange
+            // so sceneUpdatePrevParadox() can still read them.
             // =================================================================
 
-            var sceneMode = null;       // null | 'st' | 'player' | 'joining'
+            var sceneMode = null;       // null | 'st' | 'player'
             var sceneRoomCode = '';
-            var sceneActive = false;
-            var sceneNumber = 0;
             var scenePlayers = {};
-            var sceneListener = null;
-            var sceneMyPlayerId = null;  // Cached for consistency within a session
+            var sceneMyPlayerId = null;
 
             function sceneGetPlayerId() {
                 if (sceneMyPlayerId) return sceneMyPlayerId;
@@ -7336,122 +7166,7 @@
                 return pathData;
             }
 
-            function sceneAttachListener(code) {
-                sceneDetachListener();
-                var ref = sceneGetRef(code);
-                sceneListener = { ref: ref, cb: ref.on('value', function(snap) {
-                    var data = snap.val();
-                    if (!data || data.closed) {
-                        sceneForgetRoom();
-                        sceneMode = null;
-                        sceneRoomCode = '';
-                        sceneActive = false;
-                        scenePlayers = {};
-                        sceneShowError('Room was closed by the Storyteller');
-                        sceneRenderUI();
-                        return;
-                    }
-                    sceneActive = !!data.sceneActive;
-                    sceneNumber = data.sceneNumber || 0;
-                    scenePlayers = data.players || {};
-                    sceneRenderUI();
-                    sceneUpdatePrevParadox();
-                }) };
-            }
-
-            function sceneDetachListener() {
-                if (sceneListener) {
-                    sceneListener.ref.off('value', sceneListener.cb);
-                    sceneListener = null;
-                }
-            }
-
-            function sceneShowError(msg) {
-                var el = document.getElementById('sceneError');
-                if (msg) { el.textContent = msg; el.style.display = 'block'; }
-                else { el.style.display = 'none'; }
-            }
-
-            // ── ST Actions ──
-            function sceneCreateRoomAction() {
-                var code = sceneGenerateCode();
-                sceneRoomCode = code;
-                sceneMode = 'st';
-                sceneShowError('');
-                sceneCreateRoom(code, sceneGetPlayerName()).then(function() {
-                    sceneAttachListener(code);
-                    sceneRememberRoom(code, 'st');
-                    sceneRenderUI();
-                }).catch(function(e) { sceneShowError('Failed to create room: ' + e.message); });
-            }
-
-            function sceneToggleAction() {
-                if (sceneActive) {
-                    sceneSetActive(sceneRoomCode, false);
-                    sceneResetAllPlayers(sceneRoomCode);
-                } else {
-                    sceneIncrementNumber(sceneRoomCode);
-                    sceneSetActive(sceneRoomCode, true);
-                    sceneResetAllPlayers(sceneRoomCode);
-                }
-            }
-
-            function sceneResetAction() {
-                sceneResetAllPlayers(sceneRoomCode);
-            }
-
-            window.sceneSTAdjust = function(pid, delta) {
-                var p = scenePlayers[pid];
-                if (!p) return;
-                sceneSetPlayerAdjustment(sceneRoomCode, pid, (p.stAdjustment || 0) + delta, p.stNote || '');
-            };
-
-            window.sceneSTSetNote = function(pid, note) {
-                var p = scenePlayers[pid];
-                if (!p) return;
-                sceneSetPlayerAdjustment(sceneRoomCode, pid, p.stAdjustment || 0, note);
-            };
-
-            // ── Player Actions ──
-            function sceneJoinAction() {
-                var code = document.getElementById('sceneJoinInput').value.trim().toUpperCase();
-                if (code.length < 3) { sceneShowError('Enter a valid room code'); return; }
-                sceneShowError('');
-                sceneRoomCode = code;
-                sceneMyPlayerId = null; // Reset so a fresh ID is derived from current character
-                sceneGetRef(code).once('value').then(function(snap) {
-                    if (!snap.exists()) { sceneShowError('Room not found'); return; }
-                    sceneMode = 'player';
-                    var pid = sceneGetPlayerId();
-                    sceneJoinRoom(code, pid, sceneGetPlayerName(), sceneGetPlayerPath());
-                    if (currentCharacter) scenePushStats(code, pid, currentCharacter);
-                    sceneAttachListener(code);
-                    sceneRememberRoom(code, 'player');
-                    sceneRenderUI();
-                }).catch(function(e) { sceneShowError('Failed to join: ' + e.message); });
-            }
-
-            // ── Disconnect ──
-            function sceneDisconnectAction() {
-                if (sceneMode === 'player') {
-                    sceneLeaveRoom(sceneRoomCode, sceneGetPlayerId());
-                } else if (sceneMode === 'st' && sceneRoomCode) {
-                    sceneGetRef(sceneRoomCode).update({ closed: true, sceneActive: false });
-                    setTimeout(function() { sceneGetRef(sceneRoomCode).remove(); }, 5000);
-                }
-                sceneDetachListener();
-                sceneForgetRoom();
-                sceneMode = null;
-                sceneRoomCode = '';
-                sceneActive = false;
-                scenePlayers = {};
-                sceneMyPlayerId = null;
-                sceneShowError('');
-                sceneRenderUI();
-                sceneUpdatePrevParadox();
-            }
-
-            // ── Auto-fill prevParadox ──
+            // ── Auto-fill prevParadox (called by onSceneChange after closure vars are updated) ──
             function sceneUpdatePrevParadox() {
                 var input = document.getElementById('previousParadoxRolls');
                 var autoRow = document.getElementById('prevParadoxAutoRow');
@@ -7476,291 +7191,6 @@
                 }
             }
 
-            // ── Connection badge ──
-            function sceneUpdateBadge() {
-                var dot = document.getElementById('sceneConnDot');
-                var headerStatus = document.getElementById('sceneHeaderStatus');
-                var connected = sceneMode === 'st' || sceneMode === 'player';
-                dot.style.display = connected ? 'inline-block' : 'none';
-                if (connected) {
-                    if (sceneActive) {
-                        headerStatus.textContent = 'Scene ' + sceneNumber + ' active';
-                        headerStatus.style.background = 'rgba(42,157,143,0.2)';
-                        headerStatus.style.color = 'var(--success)';
-                    } else {
-                        headerStatus.textContent = sceneMode === 'st' ? 'Room open' : 'Connected';
-                        headerStatus.style.background = 'rgba(42,157,143,0.1)';
-                        headerStatus.style.color = 'var(--success)';
-                    }
-                } else {
-                    headerStatus.textContent = 'Not connected';
-                    headerStatus.style.background = 'rgba(255,255,255,0.08)';
-                    headerStatus.style.color = 'var(--text-muted)';
-                }
-            }
-
-            // ── Render UI ──
-            function sceneRenderUI() {
-                var chooser    = document.getElementById('sceneModeChooser');
-                var joinForm   = document.getElementById('sceneJoinForm');
-                var stView     = document.getElementById('sceneSTView');
-                var playerView = document.getElementById('scenePlayerView');
-
-                chooser.style.display    = 'none';
-                joinForm.style.display   = 'none';
-                stView.style.display     = 'none';
-                playerView.style.display = 'none';
-
-                if (!sceneMode) {
-                    chooser.style.display = 'block';
-                } else if (sceneMode === 'joining') {
-                    joinForm.style.display = 'block';
-                } else if (sceneMode === 'st') {
-                    stView.style.display = 'block';
-                    sceneRenderSTView();
-                } else if (sceneMode === 'player') {
-                    playerView.style.display = 'block';
-                    sceneRenderPlayerView();
-                }
-
-                sceneUpdateBadge();
-            }
-
-            function sceneRenderSTView() {
-                document.getElementById('sceneSTCode').textContent = sceneRoomCode;
-
-                var dot = document.getElementById('sceneSTDot');
-                var text = document.getElementById('sceneSTStatusText');
-                var toggleBtn = document.getElementById('btnSceneToggle');
-                var resetBtn = document.getElementById('btnSceneReset');
-
-                if (sceneActive) {
-                    dot.style.background = 'var(--success)';
-                    text.style.color = 'var(--success)';
-                    text.textContent = 'Scene ' + sceneNumber + ' active';
-                    toggleBtn.textContent = 'End Scene';
-                    toggleBtn.style.background = 'var(--danger)';
-                    resetBtn.disabled = false;
-                    resetBtn.style.opacity = '1';
-                } else {
-                    dot.style.background = 'var(--text-muted)';
-                    text.style.color = 'var(--text-muted)';
-                    text.textContent = 'No active scene';
-                    toggleBtn.textContent = 'Start Scene';
-                    toggleBtn.style.background = 'var(--success)';
-                    resetBtn.disabled = true;
-                    resetBtn.style.opacity = '0.4';
-                }
-
-                var container = document.getElementById('sceneSTPlayers');
-                var entries = Object.entries(scenePlayers);
-                if (entries.length === 0) {
-                    container.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-muted);">No players connected yet</div>';
-                    return;
-                }
-                var html = '';
-                entries.forEach(function(pair) {
-                    var pid = pair[0], p = pair[1];
-                    var eff = Math.max(0, (p.paradoxRolls || 0) + (p.stAdjustment || 0));
-                    var s = p.stats || {};
-                    var sh = s.health || {};
-                    var shFilled = (sh.bashing||0)+(sh.lethal||0)+(sh.aggravated||0);
-                    var shMax = sh.max || 7;
-                    var shWound = shFilled >= shMax ? -3 : shFilled >= shMax-1 ? -2 : shFilled >= shMax-2 ? -1 : 0;
-                    var hasStats = s.gnosis !== undefined;
-
-                    html += '<div style="padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.06);">';
-
-                    // Name row with paradox badge
-                    html += '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">';
-                    html += '<div><span class="scene-player-name">' + (p.name || pid) + '</span>';
-                    if (p.path) html += '<span class="scene-player-path">' + p.path + '</span>';
-                    html += '</div>';
-                    if (sceneActive) {
-                        var pdxBg = eff > 0 ? 'rgba(199,62,29,0.15)' : 'rgba(42,157,143,0.15)';
-                        var pdxClr = eff > 0 ? 'var(--danger)' : 'var(--success)';
-                        html += '<span style="font-size:0.75em; font-weight:bold; padding:2px 8px; border-radius:4px; background:' + pdxBg + '; color:' + pdxClr + ';">' + (eff > 0 ? eff + ' paradox (+' + eff + ')' : '0 paradox') + '</span>';
-                    }
-                    html += '</div>';
-
-                    // Stats grid
-                    if (hasStats) {
-                        var manaClr = (s.mana?.current??0) < 3 ? 'var(--danger)' : (s.mana?.current??0) < (s.mana?.max??10)/2 ? 'var(--warning)' : 'var(--text)';
-                        var spellClr = (s.activeSpells||0) >= (s.maxActiveSpells||1) ? 'var(--warning)' : 'var(--text)';
-                        var wisClr = (s.wisdom||7) <= 4 ? 'var(--warning)' : 'var(--text)';
-                        html += '<div style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin-bottom:6px;">';
-                        html += '<div style="text-align:center; padding:6px 2px; background:var(--bg-dark); border-radius:4px;"><div style="font-size:1em; font-weight:bold;">' + (s.gnosis||1) + '</div><div style="font-size:0.65em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Gnosis</div></div>';
-                        html += '<div style="text-align:center; padding:6px 2px; background:var(--bg-dark); border-radius:4px;"><div style="font-size:1em; font-weight:bold; color:' + wisClr + ';">' + (s.wisdom||7) + '</div><div style="font-size:0.65em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Wisdom</div></div>';
-                        html += '<div style="text-align:center; padding:6px 2px; background:var(--bg-dark); border-radius:4px;"><div style="font-size:1em; font-weight:bold; color:' + manaClr + ';">' + (s.mana?.current??0) + '<span style="font-size:0.7em; color:var(--text-muted);">/' + (s.mana?.max??10) + '</span></div><div style="font-size:0.65em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Mana</div></div>';
-                        html += '<div style="text-align:center; padding:6px 2px; background:var(--bg-dark); border-radius:4px;"><div style="font-size:1em; font-weight:bold; color:' + spellClr + ';">' + (s.activeSpells||0) + '<span style="font-size:0.7em; color:var(--text-muted);">/' + (s.maxActiveSpells||1) + '</span></div><div style="font-size:0.65em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Spells</div></div>';
-                        html += '</div>';
-
-                        // Health track
-                        html += '<div style="margin-bottom:6px;">';
-                        html += '<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:3px;">';
-                        html += '<span style="font-size:0.7em; color:var(--text-muted);">Health</span>';
-                        html += '<span style="font-size:0.7em; color:' + (shWound < 0 ? 'var(--danger)' : 'var(--success)') + ';">';
-                        html += shWound < 0 ? 'Wound: ' + shWound : 'No wound penalty';
-                        if (shFilled >= shMax && (sh.lethal||0) > 0) html += ' · Bleeding out!';
-                        html += '</span></div>';
-                        html += '<div style="display:flex; gap:2px;">';
-                        for (var bi = 0; bi < shMax; bi++) {
-                            var sym = '', bg = 'var(--bg-dark)', fg = 'var(--text-muted)', bd = 'rgba(255,255,255,0.1)';
-                            if (bi < (sh.aggravated||0)) { sym = '*'; bg = 'rgba(199,62,29,0.2)'; fg = 'var(--danger)'; bd = 'var(--danger)'; }
-                            else if (bi < (sh.aggravated||0)+(sh.lethal||0)) { sym = 'X'; bg = 'rgba(233,196,106,0.15)'; fg = 'var(--warning)'; bd = 'var(--warning)'; }
-                            else if (bi < shFilled) { sym = '/'; bg = 'var(--bg-card)'; fg = 'var(--text)'; bd = 'rgba(255,255,255,0.2)'; }
-                            html += '<div style="flex:1;text-align:center;padding:3px 0;border-radius:2px;background:' + bg + ';border:1px solid ' + bd + ';font-size:0.75em;font-weight:bold;color:' + fg + ';min-width:0;">' + (sym || '&nbsp;') + '</div>';
-                        }
-                        html += '</div></div>';
-                    }
-
-                    // Paradox log chips
-                    if (sceneActive && p.paradoxLog && p.paradoxLog.length > 0) {
-                        html += '<div style="padding:0 0 6px;">';
-                        p.paradoxLog.forEach(function(entry, li) {
-                            html += '<span class="scene-log-chip">' + entry.spell + (li > 0 ? ' (+' + li + ')' : '') + '</span>';
-                        });
-                        html += '</div>';
-                    }
-
-                    // ST Adjustment
-                    if (sceneActive) {
-                        var adj = p.stAdjustment || 0;
-                        html += '<div class="scene-adj-row">';
-                        html += '<div class="scene-adj-controls">';
-                        html += '<span style="font-size:0.8em; color:var(--text-muted);">ST adjustment</span>';
-                        html += '<div style="display:flex; align-items:center; gap:6px;">';
-                        html += '<button class="scene-adj-btn" onclick="sceneSTAdjust(\'' + pid + '\',-1)">−</button>';
-                        html += '<span class="scene-adj-val" style="color:' + (adj !== 0 ? 'var(--warning)' : 'var(--text-muted)') + ';">' + (adj >= 0 ? '+' : '') + adj + '</span>';
-                        html += '<button class="scene-adj-btn" onclick="sceneSTAdjust(\'' + pid + '\',1)">+</button>';
-                        html += '</div></div>';
-                        html += '<input class="scene-adj-note" type="text" placeholder="Reason (visible to player)" value="' + (p.stNote || '').replace(/"/g, '&quot;') + '" onchange="sceneSTSetNote(\'' + pid + '\',this.value)">';
-                        html += '</div>';
-                    }
-
-                    html += '</div>';
-                });
-                container.innerHTML = html;
-            }
-
-            function sceneRenderPlayerView() {
-                var pid = sceneGetPlayerId();
-                var myData = scenePlayers[pid];
-                var rolls = myData?.paradoxRolls || 0;
-                var adj = myData?.stAdjustment || 0;
-                var eff = Math.max(0, rolls + adj);
-
-                // Status banner
-                var banner = document.getElementById('scenePlayerBanner');
-                var dot = document.getElementById('scenePlayerDot');
-                var text = document.getElementById('scenePlayerStatusText');
-                document.getElementById('scenePlayerRoomCode').textContent = sceneRoomCode;
-
-                if (sceneActive) {
-                    banner.style.background = 'rgba(42,157,143,0.1)';
-                    banner.style.border = '1px solid rgba(42,157,143,0.3)';
-                    dot.style.background = 'var(--success)';
-                    text.style.color = 'var(--success)';
-                    text.textContent = 'Scene ' + sceneNumber + ' active';
-                } else {
-                    banner.style.background = 'var(--bg-dark)';
-                    banner.style.border = '1px solid rgba(255,255,255,0.1)';
-                    dot.style.background = 'var(--text-muted)';
-                    text.style.color = 'var(--text-muted)';
-                    text.textContent = 'No active scene';
-                }
-
-                // Paradox counter
-                document.getElementById('scenePlayerRollCount').textContent = rolls;
-                var modEl = document.getElementById('scenePlayerNextMod');
-                var hintEl = document.getElementById('scenePlayerNextHint');
-                modEl.textContent = '+' + eff + ' dice';
-                modEl.style.color = eff > 0 ? 'var(--danger)' : 'var(--text)';
-                hintEl.textContent = eff > 0 ? 'Added to next Paradox roll' : 'No penalty yet';
-
-                // ST adjustment notice
-                var noticeEl = document.getElementById('scenePlayerSTNotice');
-                if (adj !== 0) {
-                    noticeEl.style.display = 'block';
-                    document.getElementById('scenePlayerSTAdj').textContent = 'ST adjustment: ' + (adj >= 0 ? '+' : '') + adj;
-                    document.getElementById('scenePlayerSTNote').textContent = myData?.stNote || '';
-                    document.getElementById('scenePlayerSTNote').style.display = myData?.stNote ? 'block' : 'none';
-                } else {
-                    noticeEl.style.display = 'none';
-                }
-
-                // Paradox log
-                var logEl = document.getElementById('scenePlayerLog');
-                var log = myData?.paradoxLog || [];
-                if (log.length > 0) {
-                    var logHtml = '<div style="font-size:0.7em; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Paradox log</div>';
-                    log.forEach(function(entry, i) {
-                        logHtml += '<div style="display:flex; align-items:center; justify-content:space-between; padding:4px 0; border-bottom:' + (i < log.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none') + ';">';
-                        logHtml += '<span style="font-size:0.85em;">' + entry.spell + ' <span style="color:var(--text-muted); font-size:0.9em;">' + (entry.paradoxDice === 'Chance' ? 'Chance die' : entry.paradoxDice + ' dice') + '</span></span>';
-                        if (i > 0) logHtml += '<span style="font-size:0.8em; color:var(--danger); font-weight:bold;">+' + i + '</span>';
-                        logHtml += '</div>';
-                    });
-                    logEl.innerHTML = logHtml;
-                } else {
-                    logEl.innerHTML = '';
-                }
-            }
-
-            // ── Event Listeners ──
-            document.getElementById('sceneToggleBar').addEventListener('click', function() {
-                document.getElementById('sceneBody').classList.toggle('open');
-            });
-            document.getElementById('btnSceneCreateRoom').addEventListener('click', sceneCreateRoomAction);
-            document.getElementById('btnSceneJoinMode').addEventListener('click', function() {
-                sceneMode = 'joining';
-                sceneShowError('');
-                sceneRenderUI();
-            });
-            document.getElementById('btnSceneJoinBack').addEventListener('click', function() {
-                sceneMode = null;
-                sceneShowError('');
-                sceneRenderUI();
-            });
-            document.getElementById('btnSceneJoin').addEventListener('click', sceneJoinAction);
-            document.getElementById('sceneJoinInput').addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') sceneJoinAction();
-            });
-            document.getElementById('btnSceneToggle').addEventListener('click', sceneToggleAction);
-            document.getElementById('btnSceneReset').addEventListener('click', sceneResetAction);
-            document.getElementById('btnSceneSTClose').addEventListener('click', sceneDisconnectAction);
-            document.getElementById('btnScenePlayerLeave').addEventListener('click', sceneDisconnectAction);
-
-            // ── Auto-reconnect on load ──
-            (function() {
-                var saved = sceneRecallRoom();
-                if (saved && saved.code) {
-                    if (saved.role === 'st') {
-                        sceneMode = 'st';
-                        sceneRoomCode = saved.code;
-                        sceneAttachListener(saved.code);
-                    } else {
-                        sceneRoomCode = saved.code;
-                        sceneGetRef(saved.code).once('value').then(function(snap) {
-                            if (!snap.exists() || snap.val().closed) {
-                                sceneForgetRoom();
-                                sceneRenderUI();
-                                return;
-                            }
-                            sceneMode = 'player';
-                            var pid = sceneGetPlayerId();
-                            var playerRef = sceneGetRef(saved.code).child('players/' + pid);
-                            // Use update() to preserve existing paradoxRolls instead of resetting via set()
-                            playerRef.update({ name: sceneGetPlayerName(), path: sceneGetPlayerPath() });
-                            playerRef.onDisconnect().remove();
-                            if (currentCharacter) scenePushStats(saved.code, pid, currentCharacter);
-                            sceneAttachListener(saved.code);
-                            sceneRenderUI();
-                        });
-                    }
-                }
-                sceneRenderUI();
-            })();
-
             // ── Compendium bridge API ─────────────────────────────────────────
             // Exposes controlled access to index.html internals for spellCompendium.js
             window.spellLibraryAPI = {
@@ -7776,6 +7206,36 @@
 
             // Initialise the compendium module now that all DOM + state is ready
             if (window.initCompendium) window.initCompendium();
+
+            // ── React ↔ Vanilla bridge (callbacks React components call into) ──
+            window.classicVanilla = {
+                onCharacterLoad: function(char) {
+                    applyCharacterToForm();
+                    if (typeof renderSpellLibrary === 'function') renderSpellLibrary();
+                    if (typeof populateClashArcanum === 'function') populateClashArcanum();
+                    saveCharacterToLocalStorage();
+                },
+                onStatChange: function(char) {
+                    updateManaSummary();
+                    if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                        scenePushStats(sceneRoomCode, sceneGetPlayerId(), char);
+                    }
+                },
+                onNew:  function() { newCharacter(); },
+                onEdit: function() { openCharacterEditor(); },
+                onSave: function() { saveCharacter(); },
+                onSceneToggle: function() {
+                    var card = document.getElementById('sceneTrackerCard');
+                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                },
+                onSceneChange: function(data) {
+                    sceneMode        = data.mode    || null;
+                    sceneRoomCode    = data.code    || '';
+                    sceneMyPlayerId  = data.pid     || null;
+                    scenePlayers     = data.players || {};
+                    sceneUpdatePrevParadox();
+                },
+            };
 
             // Run initial calculation
             calculate();
@@ -8824,6 +8284,708 @@
             </div>
         </div>
     </div>
+
+    <!-- ── React Character Header (Phase 1 migration) ─────────────────────── -->
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
+
+      const MANA_PT = {1:1,2:1,3:1,4:2,5:2,6:3,7:3,8:4,9:4,10:5};
+
+      const chip = {
+        padding:"4px 10px", borderRadius:5, fontSize:"0.85em", fontWeight:600,
+        cursor:"pointer", background:"transparent", color:"var(--text)",
+        border:"1px solid rgba(255,255,255,0.18)", transition:"border-color .15s",
+      };
+      const panel = {
+        padding:"8px 16px", borderTop:"1px solid rgba(255,255,255,0.07)",
+        display:"flex", alignItems:"center", gap:8, flexWrap:"wrap",
+      };
+      const adjBtn = {
+        width:28, height:28, borderRadius:6, fontSize:16, cursor:"pointer",
+        background:"transparent", border:"1px solid rgba(255,255,255,0.2)",
+        color:"var(--text)", display:"flex", alignItems:"center",
+        justifyContent:"center", padding:0,
+      };
+
+      function ClassicCharacterHeader({
+        character, onLoad, onSave, onNew, onEdit,
+        onManaChange, onHealthChange, onWillpowerChange, onSceneToggle, sceneConnected,
+      }) {
+        const fileRef  = useRef(null);
+        const [open, setOpen] = useState(null); // 'mana'|'health'|'wp'|null
+
+        const manaC = character?.mana?.current ?? 0;
+        const manaM = character?.mana?.max     ?? 10;
+        const mpt   = MANA_PT[character?.gnosis] || 1;
+        const wpC   = character?.willpower?.current ?? 0;
+        const wpM   = character?.willpower?.max     ?? 5;
+        const hp    = character?.health || {max:7,bashing:0,lethal:0,aggravated:0};
+        const filled = hp.bashing + hp.lethal + hp.aggravated;
+        const empty  = Math.max(0, hp.max - filled);
+        const wound  = filled >= hp.max ? -3 : filled >= hp.max-1 ? -2 : filled >= hp.max-2 ? -1 : 0;
+
+        function loadFile(e) {
+          const f = e.target.files[0]; if (!f) return;
+          const r = new FileReader();
+          r.onload = ev => { try { onLoad(JSON.parse(ev.target.result)); } catch { alert("Invalid JSON file."); } };
+          r.readAsText(f); e.target.value = "";
+        }
+
+        function toggle(name) { setOpen(o => o === name ? null : name); }
+
+        function dealDmg(key) {
+          const h = {...hp};
+          if (filled >= h.max) {
+            if (key==="bashing"||key==="lethal") {
+              if (h.bashing>0){h.bashing--;h.lethal++;} else if(h.lethal>0){h.lethal--;h.aggravated++;}
+            } else {
+              if (h.lethal>0){h.lethal--;h.aggravated++;} else if(h.bashing>0){h.bashing--;h.aggravated++;}
+            }
+          } else { h[key]++; }
+          onHealthChange(h);
+        }
+
+        function heal() {
+          const h = {...hp};
+          if(h.bashing>0)h.bashing--; else if(h.lethal>0)h.lethal--; else if(h.aggravated>0)h.aggravated--;
+          onHealthChange(h);
+        }
+
+        const pathLabel  = character?.path  ? (PATHS[character.path]?.label  || character.path)  : "";
+        const orderLabel = character?.order ? (ORDERS[character.order]?.label || character.order) : "";
+        const subtitle   = [pathLabel, orderLabel, character?.gnosis ? `Gnosis ${character.gnosis}` : ""].filter(Boolean).join(" · ");
+
+        return (
+          <div style={{background:"var(--bg-card)",borderRadius:8,marginBottom:20}}>
+            {/* ── Main bar ── */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
+              padding:"12px 16px",flexWrap:"wrap",gap:10}}>
+
+              {/* Character identity */}
+              <div style={{display:"flex",flexDirection:"column",gap:3,minWidth:0}}>
+                {character ? (
+                  <>
+                    <span style={{fontSize:"1.15em",fontWeight:"bold",color:"var(--accent-light)"}}>
+                      {character.shadowName || character.name}
+                      {character.shadowName && (
+                        <span style={{color:"var(--text-muted)",fontSize:"0.8em",marginLeft:6}}>
+                          ({character.name})
+                        </span>
+                      )}
+                    </span>
+                    <span style={{fontSize:"0.85em",color:"var(--text-muted)"}}>{subtitle}</span>
+                  </>
+                ) : (
+                  <span style={{color:"var(--text-muted)"}}>No Character Loaded — click New or Load</span>
+                )}
+              </div>
+
+              {/* Stat chips */}
+              {character && (
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                  <button onClick={()=>toggle('mana')} style={{...chip,
+                    color:manaC<3?"var(--danger)":"var(--warning)",
+                    borderColor:open==='mana'?"var(--accent-light)":"rgba(255,255,255,0.18)"}}>
+                    ⬡ {manaC}/{manaM} Mana
+                  </button>
+                  <button onClick={()=>toggle('health')} style={{...chip,
+                    color:filled>0?(wound<=-2?"var(--danger)":"var(--warning)"):"var(--success)",
+                    borderColor:open==='health'?"var(--accent-light)":"rgba(255,255,255,0.18)"}}>
+                    ♥ {empty}/{hp.max} HP{wound<0?` (${wound})`:""}
+                  </button>
+                  <button onClick={()=>toggle('wp')} style={{...chip,
+                    color:wpC<=1?"var(--danger)":wpC<=2?"var(--warning)":"#6ec6f5",
+                    borderColor:open==='wp'?"var(--accent-light)":"rgba(255,255,255,0.18)"}}>
+                    ◈ {wpC}/{wpM} WP
+                  </button>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                <input type="file" accept=".json" ref={fileRef} onChange={loadFile} style={{display:"none"}}/>
+                <button className="btn-small" onClick={onNew}>New</button>
+                <button className="btn-small" onClick={onEdit} disabled={!character}>Edit</button>
+                <button className="btn-small" onClick={()=>fileRef.current?.click()}>Load</button>
+                <button className="btn-small btn-primary" onClick={onSave} disabled={!character}>Save</button>
+                <button className="btn-small" onClick={onSceneToggle}
+                  style={{position:"relative",
+                    background:sceneConnected?"rgba(42,157,143,0.25)":"",
+                    borderColor:sceneConnected?"var(--success)":"",
+                    color:sceneConnected?"var(--success)":""}}>
+                  🎭 Scene
+                  {sceneConnected && (
+                    <span style={{position:"absolute",top:-3,right:-3,width:8,height:8,
+                      borderRadius:"50%",background:"var(--success)",border:"2px solid var(--bg-card)"}}/>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* ── Mana panel ── */}
+            {character && open==='mana' && (
+              <div style={panel}>
+                <span style={{color:"var(--text-muted)",fontSize:"0.85em"}}>Adjust mana</span>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:"auto"}}>
+                  <button style={adjBtn} onClick={()=>onManaChange(Math.max(0,manaC-1))}>−</button>
+                  <span style={{fontSize:16,fontWeight:700,color:"var(--warning)",minWidth:28,textAlign:"center"}}>{manaC}</span>
+                  <button style={adjBtn} onClick={()=>onManaChange(Math.min(manaM,manaC+1))}>+</button>
+                  <span style={{color:"var(--text-muted)",fontSize:"0.8em"}}>/ {manaM} · per turn: {mpt}</span>
+                </div>
+              </div>
+            )}
+
+            {/* ── WP panel ── */}
+            {character && open==='wp' && (
+              <div style={panel}>
+                <span style={{color:"var(--text-muted)",fontSize:"0.85em"}}>Adjust willpower</span>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginLeft:"auto"}}>
+                  <button style={adjBtn} onClick={()=>onWillpowerChange(Math.max(0,wpC-1))}>−</button>
+                  <span style={{fontSize:16,fontWeight:700,color:"#6ec6f5",minWidth:28,textAlign:"center"}}>{wpC}</span>
+                  <button style={adjBtn} onClick={()=>onWillpowerChange(Math.min(wpM,wpC+1))}>+</button>
+                  <span style={{color:"var(--text-muted)",fontSize:"0.8em"}}>/ {wpM}</span>
+                </div>
+              </div>
+            )}
+
+            {/* ── Health panel ── */}
+            {character && open==='health' && (
+              <div style={{...panel,flexDirection:"column",alignItems:"stretch",gap:8}}>
+                <div style={{display:"flex",gap:2}}>
+                  {Array.from({length:hp.max}).map((_,i)=>{
+                    let sym="",bg="var(--bg-dark)",fg="var(--text-muted)",bd="rgba(255,255,255,0.1)";
+                    if(i<hp.aggravated){sym="*";bg="rgba(199,62,29,0.2)";fg="var(--danger)";bd="var(--danger)";}
+                    else if(i<hp.aggravated+hp.lethal){sym="X";bg="rgba(233,196,106,0.15)";fg="var(--warning)";bd="var(--warning)";}
+                    else if(i<filled){sym="/";bg="var(--bg-card)";fg="var(--text)";bd="rgba(255,255,255,0.2)";}
+                    return <div key={i} style={{flex:1,textAlign:"center",padding:"3px 0",borderRadius:3,
+                      background:bg,border:`1px solid ${bd}`,fontSize:12,fontWeight:700,color:fg,minWidth:0}}>
+                      {sym||"\u00A0"}
+                    </div>;
+                  })}
+                </div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                  <span style={{color:"var(--text-muted)",fontSize:"0.8em"}}>Deal:</span>
+                  {[["Bashing","/","bashing"],["Lethal","X","lethal"],["Agg","*","aggravated"]].map(([lbl,sym,key])=>(
+                    <button key={key} onClick={()=>dealDmg(key)}
+                      style={{padding:"3px 10px",borderRadius:5,fontSize:"0.8em",fontWeight:700,cursor:"pointer",
+                        background:"transparent",
+                        border:`1px solid ${key==="aggravated"?"var(--danger)":key==="lethal"?"var(--warning)":"rgba(255,255,255,0.2)"}`,
+                        color:key==="aggravated"?"var(--danger)":key==="lethal"?"var(--warning)":"var(--text)"}}>
+                      +{sym} {lbl}
+                    </button>
+                  ))}
+                  <button onClick={heal}
+                    style={{padding:"3px 10px",borderRadius:5,fontSize:"0.8em",fontWeight:700,cursor:"pointer",
+                      background:"transparent",border:"1px solid var(--success)",color:"var(--success)",marginLeft:"auto"}}>
+                    Heal →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // ── App root ────────────────────────────────────────────────────────────
+      function ClassicHeaderApp() {
+        const [character,    setCharacter]    = useState(null);
+        const [sceneConn,    setSceneConn]    = useState(false);
+
+        useEffect(() => {
+          window.classicBridge = {
+            setCharacter:     (c) => setCharacter(c ? {...c} : null),
+            setSceneConnected:(v) => setSceneConn(!!v),
+          };
+          if (window.currentCharacter) setCharacter({...window.currentCharacter});
+          return () => { delete window.classicBridge; };
+        }, []);
+
+        function handleLoad(char) {
+          window.currentCharacter = char;
+          setCharacter({...char});
+          window.classicVanilla?.onCharacterLoad(char);
+        }
+        function handleManaChange(v) {
+          if (!character) return;
+          character.mana.current = v;
+          window.currentCharacter = character;
+          setCharacter({...character});
+          window.classicVanilla?.onStatChange(character);
+        }
+        function handleHealthChange(h) {
+          if (!character) return;
+          character.health = h;
+          window.currentCharacter = character;
+          setCharacter({...character});
+          window.classicVanilla?.onStatChange(character);
+        }
+        function handleWillpowerChange(v) {
+          if (!character) return;
+          if (!character.willpower) character.willpower = {current:v,max:5};
+          character.willpower.current = v;
+          window.currentCharacter = character;
+          setCharacter({...character});
+          window.classicVanilla?.onStatChange(character);
+        }
+
+        return (
+          <ClassicCharacterHeader
+            character={character}
+            sceneConnected={sceneConn}
+            onLoad={handleLoad}
+            onSave={()=>window.classicVanilla?.onSave()}
+            onNew={()=>window.classicVanilla?.onNew()}
+            onEdit={()=>window.classicVanilla?.onEdit()}
+            onManaChange={handleManaChange}
+            onHealthChange={handleHealthChange}
+            onWillpowerChange={handleWillpowerChange}
+            onSceneToggle={()=>window.classicVanilla?.onSceneToggle()}
+          />
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('classic-header-root')).render(<ClassicHeaderApp/>);
+    </script>
+
+    <!-- ── React Scene Tracker (Phase 2 migration) ───────────────────────── -->
+    <script type="text/babel">
+      const { useState: _useState, useEffect: _useEffect, useRef: _useRef } = React;
+
+      function ClassicSceneTracker() {
+        const [isOpen,      setIsOpen]      = _useState(true);
+        const [mode,        setMode]        = _useState(null); // null|'st'|'player'|'joining'
+        const [code,        setCode]        = _useState('');
+        const [joinInput,   setJoinInput]   = _useState('');
+        const [sceneActive, setSceneActive] = _useState(false);
+        const [sceneNum,    setSceneNum]    = _useState(0);
+        const [players,     setPlayers]     = _useState({});
+        const [myTilts,     setMyTilts]     = _useState([]);
+        const [error,       setError]       = _useState('');
+
+        const listenerRef  = _useRef(null);
+        const stEditAtRef  = _useRef(0);
+        const modeRef      = _useRef(null);
+        const codeRef      = _useRef('');
+        const pidRef       = _useRef(null);
+
+        function getPid() {
+          if (pidRef.current) return pidRef.current;
+          const char = window.currentCharacter;
+          const name = char?.shadowName || char?.name || 'player_' + Math.random().toString(36).slice(2,8);
+          pidRef.current = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+          return pidRef.current;
+        }
+        function getPlayerName() {
+          const char = window.currentCharacter;
+          return char?.shadowName || char?.name || 'Unknown Mage';
+        }
+        function getPlayerPath() {
+          const char = window.currentCharacter;
+          if (!char?.path) return '';
+          return (typeof PATHS !== 'undefined' && PATHS[char.path]) ? PATHS[char.path].label : char.path;
+        }
+
+        function notifyVanilla(m, c, pid, pls) {
+          window.classicVanilla?.onSceneChange({ mode: m, code: c, pid, players: pls });
+        }
+
+        function detachListener() {
+          if (listenerRef.current) {
+            listenerRef.current.ref.off('value', listenerRef.current.cb);
+            listenerRef.current = null;
+          }
+        }
+
+        function attachListener(roomCode) {
+          detachListener();
+          const ref = sceneGetRef(roomCode);
+          const cb = ref.on('value', function(snap) {
+            const data = snap.val();
+            if (!data || data.meta?.closed || data.closed) {
+              detachListener();
+              sceneForgetRoom();
+              setMode(null); setCode(''); setSceneActive(false);
+              setPlayers({}); setMyTilts([]); stEditAtRef.current = 0; pidRef.current = null;
+              modeRef.current = null; codeRef.current = '';
+              setError('Room was closed by the Storyteller');
+              notifyVanilla(null, '', null, {});
+              window.classicBridge?.setSceneConnected(false);
+              return;
+            }
+            const pls = data.players || {};
+            setSceneActive(!!data.sceneActive);
+            setSceneNum(data.sceneNumber || 0);
+            setPlayers(pls);
+
+            const pid = getPid();
+            const myP = pls[pid];
+
+            // stEdit detection
+            if (myP?.stEdit?.editedAt && myP.stEdit.editedAt !== stEditAtRef.current) {
+              stEditAtRef.current = myP.stEdit.editedAt;
+              const edit = myP.stEdit.stats;
+              if (edit && window.currentCharacter) {
+                const char = window.currentCharacter;
+                if (edit.health)    char.health    = {...(char.health    || {}), ...edit.health};
+                if (edit.mana)      char.mana      = {...(char.mana      || {}), ...edit.mana};
+                if (edit.willpower) char.willpower = {...(char.willpower || {}), ...edit.willpower};
+                window.classicBridge?.setCharacter({...char});
+                if (typeof saveCharacterToLocalStorage === 'function') saveCharacterToLocalStorage();
+                setTimeout(() => scenePushStats(roomCode, pid, char), 100);
+              }
+            }
+
+            setMyTilts(myP?.tilts || []);
+            window.classicBridge?.setSceneConnected(true);
+            notifyVanilla(modeRef.current, roomCode, pid, pls);
+          });
+          listenerRef.current = { ref, cb };
+        }
+
+        // Auto-reconnect on mount
+        _useEffect(() => {
+          const saved = sceneRecallRoom();
+          if (saved?.code) {
+            if (saved.role === 'st') {
+              modeRef.current = 'st'; codeRef.current = saved.code;
+              setMode('st'); setCode(saved.code);
+              attachListener(saved.code);
+            } else {
+              codeRef.current = saved.code;
+              setCode(saved.code);
+              sceneGetRef(saved.code).once('value').then(snap => {
+                if (!snap.exists() || snap.val().closed || snap.val().meta?.closed) {
+                  sceneForgetRoom(); return;
+                }
+                modeRef.current = 'player';
+                setMode('player');
+                const pid = getPid();
+                const pRef = sceneGetRef(saved.code).child('players/' + pid);
+                pRef.update({ name: getPlayerName(), path: getPlayerPath() });
+                pRef.onDisconnect().remove();
+                if (window.currentCharacter) scenePushStats(saved.code, pid, window.currentCharacter);
+                attachListener(saved.code);
+              });
+            }
+          }
+          return () => detachListener();
+        }, []);
+
+        function createRoom() {
+          const roomCode = sceneGenerateCode();
+          setError('');
+          sceneCreateRoom(roomCode, getPlayerName()).then(() => {
+            modeRef.current = 'st'; codeRef.current = roomCode;
+            setCode(roomCode); setMode('st');
+            sceneRememberRoom(roomCode, 'st');
+            attachListener(roomCode);
+            notifyVanilla('st', roomCode, getPid(), {});
+            window.classicBridge?.setSceneConnected(true);
+          }).catch(e => setError('Failed to create room: ' + e.message));
+        }
+
+        function joinRoom() {
+          const roomCode = joinInput.trim().toUpperCase();
+          if (roomCode.length < 3) { setError('Enter a valid room code'); return; }
+          setError('');
+          pidRef.current = null;
+          sceneGetRef(roomCode).once('value').then(snap => {
+            if (!snap.exists()) { setError('Room not found'); return; }
+            const pid = getPid();
+            modeRef.current = 'player'; codeRef.current = roomCode;
+            setCode(roomCode); setMode('player');
+            sceneJoinRoom(roomCode, pid, getPlayerName(), getPlayerPath());
+            if (window.currentCharacter) scenePushStats(roomCode, pid, window.currentCharacter);
+            sceneRememberRoom(roomCode, 'player');
+            attachListener(roomCode);
+            notifyVanilla('player', roomCode, pid, {});
+            window.classicBridge?.setSceneConnected(true);
+          }).catch(e => setError('Failed to join: ' + e.message));
+        }
+
+        function disconnect() {
+          const m = modeRef.current, c = codeRef.current;
+          if (m === 'player') sceneLeaveRoom(c, getPid());
+          else if (m === 'st' && c) {
+            sceneGetRef(c).update({ closed: true, sceneActive: false });
+            setTimeout(() => sceneGetRef(c).remove(), 5000);
+          }
+          detachListener(); sceneForgetRoom();
+          modeRef.current = null; codeRef.current = ''; pidRef.current = null; stEditAtRef.current = 0;
+          setMode(null); setCode(''); setSceneActive(false); setPlayers({});
+          setMyTilts([]); setError('');
+          notifyVanilla(null, '', null, {});
+          window.classicBridge?.setSceneConnected(false);
+        }
+
+        function toggleScene() {
+          if (sceneActive) {
+            sceneSetActive(code, false);
+            sceneResetAllPlayers(code);
+          } else {
+            sceneIncrementNumber(code);
+            sceneSetActive(code, true);
+            sceneResetAllPlayers(code);
+          }
+        }
+
+        // ── ST player row ──
+        function PlayerRow({ pid, p }) {
+          const eff = Math.max(0, (p.paradoxRolls||0) + (p.stAdjustment||0));
+          const s = p.stats || {};
+          const sh = s.health || {};
+          const shFill = (sh.bashing||0)+(sh.lethal||0)+(sh.aggravated||0);
+          const shMax  = sh.max || 7;
+          const wound  = shFill >= shMax ? -3 : shFill >= shMax-1 ? -2 : shFill >= shMax-2 ? -1 : 0;
+          const hasStats = s.gnosis !== undefined;
+          const manaClr = (s.mana?.current??0) < 3 ? 'var(--danger)' : (s.mana?.current??0) < (s.mana?.max??10)/2 ? 'var(--warning)' : 'var(--text)';
+          const wisClr  = (s.wisdom||7) <= 4 ? 'var(--warning)' : 'var(--text)';
+          const wpC = s.willpower?.current ?? 5, wpM = s.willpower?.max ?? 5;
+
+          return (
+            <div style={{padding:'12px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
+                <div>
+                  <span className="scene-player-name">{p.name || pid}</span>
+                  {p.path && <span className="scene-player-path">{p.path}</span>}
+                </div>
+                {sceneActive && (
+                  <span style={{fontSize:'0.75em', fontWeight:'bold', padding:'2px 8px', borderRadius:4,
+                    background: eff>0 ? 'rgba(199,62,29,0.15)' : 'rgba(42,157,143,0.15)',
+                    color: eff>0 ? 'var(--danger)' : 'var(--success)'}}>
+                    {eff>0 ? `${eff} paradox (+${eff})` : '0 paradox'}
+                  </span>
+                )}
+              </div>
+              {hasStats && <>
+                <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:4, marginBottom:6}}>
+                  {[['Gnosis',s.gnosis||1,'var(--text)'],['Wisdom',s.wisdom||7,wisClr],
+                    ['Mana',`${s.mana?.current??0}/${s.mana?.max??10}`,manaClr],
+                    ['WP',`${wpC}/${wpM}`,'var(--text)'],
+                    ['Spells',`${(s.activeSpells||[]).length}/${s.maxActiveSpells||1}`,(s.activeSpells||[]).length>=(s.maxActiveSpells||1)?'var(--warning)':'var(--text)']
+                  ].map(([lbl,val,clr])=>(
+                    <div key={lbl} style={{textAlign:'center',padding:'5px 2px',background:'var(--bg-dark)',borderRadius:4}}>
+                      <div style={{fontSize:'0.95em',fontWeight:'bold',color:clr}}>{val}</div>
+                      <div style={{fontSize:'0.6em',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1}}>{lbl}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginBottom:6}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:3}}>
+                    <span style={{fontSize:'0.7em',color:'var(--text-muted)'}}>Health</span>
+                    <span style={{fontSize:'0.7em',color:wound<0?'var(--danger)':'var(--success)'}}>
+                      {wound<0 ? `Wound: ${wound}` : 'No wound penalty'}
+                    </span>
+                  </div>
+                  <div style={{display:'flex',gap:2}}>
+                    {Array.from({length:shMax}).map((_,i)=>{
+                      const agg=sh.aggravated||0, lt=sh.lethal||0, bas=sh.bashing||0;
+                      let sym='',bg='var(--bg-dark)',fg='var(--text-muted)',bd='rgba(255,255,255,0.1)';
+                      if(i<agg){sym='*';bg='rgba(199,62,29,0.2)';fg='var(--danger)';bd='var(--danger)';}
+                      else if(i<agg+lt){sym='X';bg='rgba(233,196,106,0.15)';fg='var(--warning)';bd='var(--warning)';}
+                      else if(i<agg+lt+bas){sym='/';bg='var(--bg-card)';fg='var(--text)';bd='rgba(255,255,255,0.2)';}
+                      return <div key={i} style={{flex:1,textAlign:'center',padding:'3px 0',borderRadius:2,
+                        background:bg,border:`1px solid ${bd}`,fontSize:'0.75em',fontWeight:'bold',
+                        color:fg,minWidth:0}}>{sym||'\u00a0'}</div>;
+                    })}
+                  </div>
+                </div>
+              </>}
+              {sceneActive && (p.paradoxLog||[]).length > 0 && (
+                <div style={{paddingBottom:6}}>
+                  {p.paradoxLog.map((e,i)=>(
+                    <span key={i} className="scene-log-chip">{e.spell}{i>0?` (+${i})`:''}</span>
+                  ))}
+                </div>
+              )}
+              {sceneActive && (
+                <div className="scene-adj-row">
+                  <div className="scene-adj-controls">
+                    <span style={{fontSize:'0.8em',color:'var(--text-muted)'}}>ST adjustment</span>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <button className="scene-adj-btn" onClick={()=>sceneSetPlayerAdjustment(code,pid,(p.stAdjustment||0)-1,p.stNote||'')}>−</button>
+                      <span className="scene-adj-val" style={{color:(p.stAdjustment||0)!==0?'var(--warning)':'var(--text-muted)'}}>
+                        {(p.stAdjustment||0)>=0?'+':''}{p.stAdjustment||0}
+                      </span>
+                      <button className="scene-adj-btn" onClick={()=>sceneSetPlayerAdjustment(code,pid,(p.stAdjustment||0)+1,p.stNote||'')}>+</button>
+                    </div>
+                  </div>
+                  <input className="scene-adj-note" type="text" placeholder="Reason (visible to player)"
+                    defaultValue={p.stNote||''}
+                    onBlur={e=>sceneSetPlayerAdjustment(code,pid,p.stAdjustment||0,e.target.value)} />
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        const pid     = getPid();
+        const myP     = players[pid] || {};
+        const rolls   = myP.paradoxRolls || 0;
+        const stAdj   = myP.stAdjustment || 0;
+        const effPdx  = Math.max(0, rolls + stAdj);
+        const isConn  = mode === 'st' || mode === 'player';
+
+        return (
+          <div className="scene-tracker-card" id="sceneTrackerCard">
+            <div className="scene-header-bar" onClick={()=>setIsOpen(o=>!o)} style={{cursor:'pointer'}}>
+              <span className="scene-header-title">🎭 Scene Tracker</span>
+              <span className="scene-header-status" style={{
+                background: isConn ? 'rgba(42,157,143,0.2)' : 'rgba(255,255,255,0.08)',
+                color: isConn ? 'var(--success)' : 'var(--text-muted)',
+              }}>
+                {isConn
+                  ? (sceneActive ? `Scene ${sceneNum} active` : mode==='st' ? 'Room open' : 'Connected')
+                  : 'Not connected'}
+              </span>
+            </div>
+
+            {isOpen && <div className="scene-body open">
+              {error && (
+                <div style={{padding:'8px 12px',borderRadius:8,marginBottom:12,
+                  background:'rgba(199,62,29,0.15)',border:'1px solid var(--danger)',
+                  color:'var(--danger)',fontSize:'0.85em'}}>{error}</div>
+              )}
+
+              {/* Mode chooser */}
+              {!mode && (
+                <div id="sceneModeChooser">
+                  <button className="scene-mode-btn" onClick={createRoom}>
+                    <div className="label" style={{color:'var(--accent-light)'}}>Create Room (Storyteller)</div>
+                    <div className="sub">Generate a code and manage scenes for your players</div>
+                  </button>
+                  <button className="scene-mode-btn" onClick={()=>{setMode('joining');setError('');}}>
+                    <div className="label" style={{color:'var(--success)'}}>Join Room (Player)</div>
+                    <div className="sub">Enter a room code from your Storyteller</div>
+                  </button>
+                </div>
+              )}
+
+              {/* Join form */}
+              {mode === 'joining' && (
+                <div>
+                  <p style={{color:'var(--text-muted)',fontSize:'0.9em',marginBottom:12}}>
+                    Enter the room code from your Storyteller:
+                  </p>
+                  <div style={{display:'flex',gap:8,marginBottom:12}}>
+                    <input type="text" maxLength={6} placeholder="CODE" value={joinInput}
+                      onChange={e=>setJoinInput(e.target.value.toUpperCase())}
+                      onKeyDown={e=>e.key==='Enter'&&joinRoom()}
+                      style={{flex:1,textAlign:'center',fontFamily:'monospace',fontSize:'1.4em',
+                        letterSpacing:6,padding:10,borderRadius:8,background:'var(--bg-dark)',
+                        border:'1px solid var(--accent)',color:'var(--text)',textTransform:'uppercase'}} />
+                    <button onClick={joinRoom} style={{padding:'10px 20px',borderRadius:8,border:'none',
+                      background:'var(--success)',color:'#fff',fontWeight:'bold',cursor:'pointer',fontSize:'1em'}}>
+                      Join
+                    </button>
+                  </div>
+                  <button onClick={()=>{setMode(null);setError('');}}
+                    style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:'0.85em',cursor:'pointer'}}>
+                    ← Back
+                  </button>
+                </div>
+              )}
+
+              {/* ST view */}
+              {mode === 'st' && (
+                <div>
+                  <div className="scene-room-code">
+                    <div style={{fontSize:'0.7em',color:'var(--text-muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:4}}>Room Code</div>
+                    <div className="code">{code}</div>
+                    <div style={{fontSize:'0.8em',color:'var(--text-muted)',marginTop:6}}>Share this code with your players</div>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                    <span className="scene-status-dot" style={{background:sceneActive?'var(--success)':'var(--text-muted)'}}></span>
+                    <span style={{fontSize:'0.9em',fontWeight:'bold',color:sceneActive?'var(--success)':'var(--text-muted)'}}>
+                      {sceneActive ? `Scene ${sceneNum} active` : 'No active scene'}
+                    </span>
+                  </div>
+                  <div className="scene-controls">
+                    <button onClick={toggleScene}
+                      style={{background:sceneActive?'var(--danger)':'var(--success)',color:'#fff',border:'none'}}>
+                      {sceneActive ? 'End Scene' : 'Start Scene'}
+                    </button>
+                    <button onClick={()=>sceneResetAllPlayers(code)} disabled={!sceneActive}
+                      style={{background:'transparent',color:'var(--text-muted)',
+                        border:'1px solid rgba(255,255,255,0.2)',opacity:sceneActive?1:0.4}}>
+                      Reset Counters
+                    </button>
+                  </div>
+                  <h3 style={{color:'var(--accent-light)',fontSize:'0.9em',marginBottom:10}}>Connected Players</h3>
+                  {Object.keys(players).length === 0
+                    ? <div style={{padding:10,textAlign:'center',color:'var(--text-muted)'}}>No players connected yet</div>
+                    : Object.entries(players).map(([pid,p]) => <PlayerRow key={pid} pid={pid} p={p} />)
+                  }
+                  <button className="scene-disconnect-btn" onClick={disconnect}>Close Room</button>
+                </div>
+              )}
+
+              {/* Player view */}
+              {mode === 'player' && (
+                <div>
+                  {myTilts.length > 0 && (
+                    <div style={{padding:'6px 0',marginBottom:8,display:'flex',flexWrap:'wrap',gap:5,alignItems:'center'}}>
+                      <span style={{fontSize:'0.7em',letterSpacing:1,textTransform:'uppercase',color:'#e63946',fontWeight:700,marginRight:2}}>Tilts</span>
+                      {myTilts.map((t,i)=>(
+                        <span key={i} style={{fontSize:'0.85em',padding:'2px 9px',borderRadius:10,
+                          background:'rgba(230,57,70,0.15)',border:'1px solid rgba(230,57,70,0.35)',color:'#e63946'}}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="scene-status-banner" style={{
+                    background: sceneActive?'rgba(42,157,143,0.1)':'var(--bg-dark)',
+                    border: sceneActive?'1px solid rgba(42,157,143,0.3)':'1px solid rgba(255,255,255,0.1)'}}>
+                    <span className="scene-status-dot" style={{background:sceneActive?'var(--success)':'var(--text-muted)'}}></span>
+                    <span style={{fontSize:'0.9em',fontWeight:'bold',color:sceneActive?'var(--success)':'var(--text-muted)'}}>
+                      {sceneActive ? `Scene ${sceneNum} active` : 'No active scene'}
+                    </span>
+                    <span style={{marginLeft:'auto',fontFamily:'monospace',fontSize:'0.85em',color:'var(--text-muted)'}}>{code}</span>
+                  </div>
+                  <div className="scene-paradox-counter">
+                    <div>
+                      <div className="scene-paradox-big">{rolls}</div>
+                      <div style={{fontSize:'0.7em',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,textAlign:'center'}}>Rolls</div>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:'0.85em',color:'var(--text-muted)',marginBottom:4}}>Next spell modifier</div>
+                      <div style={{fontSize:'1.4em',fontWeight:'bold',color:effPdx>0?'var(--danger)':'var(--text)'}}>+{effPdx} dice</div>
+                      <div style={{fontSize:'0.8em',color:'var(--text-muted)',marginTop:2}}>
+                        {effPdx>0 ? 'Added to next Paradox roll' : 'No penalty yet'}
+                      </div>
+                    </div>
+                  </div>
+                  {stAdj !== 0 && (
+                    <div className="scene-st-notice">
+                      <div style={{fontWeight:'bold'}}>ST adjustment: {stAdj>=0?'+':''}{stAdj}</div>
+                      {myP.stNote && <div style={{fontSize:'0.85em',opacity:0.8,marginTop:2}}>{myP.stNote}</div>}
+                    </div>
+                  )}
+                  {(myP.paradoxLog||[]).length > 0 && (
+                    <div style={{marginTop:12}}>
+                      <div style={{fontSize:'0.7em',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Paradox log</div>
+                      {myP.paradoxLog.map((e,i)=>(
+                        <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                          padding:'4px 0',borderBottom:i<myP.paradoxLog.length-1?'1px solid rgba(255,255,255,0.06)':'none'}}>
+                          <span style={{fontSize:'0.85em'}}>{e.spell}
+                            <span style={{color:'var(--text-muted)',fontSize:'0.9em'}}> {e.paradoxDice==='Chance'?'Chance die':`${e.paradoxDice} dice`}</span>
+                          </span>
+                          {i>0 && <span style={{fontSize:'0.8em',color:'var(--danger)',fontWeight:'bold'}}>+{i}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button className="scene-disconnect-btn" onClick={disconnect}>Leave Room</button>
+                </div>
+              )}
+            </div>}
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('classic-scene-root')).render(<ClassicSceneTracker/>);
+    </script>
 
     <!-- Service Worker Registration -->
     <script>
