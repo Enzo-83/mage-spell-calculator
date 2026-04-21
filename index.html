@@ -2758,162 +2758,8 @@
         
         <!-- SpellForm (Phase 3: React) -->
         <div id="classic-spellform-root"></div>
-        <!-- Paradox Inputs (separate for usability) -->
-        <div class="card" id="paradoxInputSection" style="display: none;">
-            <h2>Paradox Modifiers</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Previous Paradox Rolls (this scene)</label>
-                    <input type="number" id="previousParadoxRolls" min="0" max="10" value="0">
-                    <div class="info-text">+1 die per previous roll</div>
-                </div>
-                <div id="prevParadoxAutoRow">
-                    <span id="prevParadoxAutoValue" class="value">0</span>
-                    <span id="prevParadoxAutoHint" style="font-size:0.85em; color:var(--text-muted); flex:1;">No penalty</span>
-                    <span class="scene-auto-badge">AUTO</span>
-                </div>
-                <div class="form-group">
-                    <label>Sleeper Witnesses</label>
-                    <select id="sleeperWitnesses">
-                        <option value="none">None</option>
-                        <option value="few">Few (+1 die, 9-again)</option>
-                        <option value="large">Large Group (+1 die, 8-again)</option>
-                        <option value="crowd">Crowd (+1 die, Rote quality)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="checkbox-group" style="margin-bottom: 0;">
-                        <input type="checkbox" id="inuredToSpell">
-                        <span style="text-transform: none;">Inured to Spell (+2 dice)</span>
-                    </label>
-                    <div class="info-text">Spell no longer risks Wisdom loss</div>
-                </div>
-                <div class="form-group">
-                    <label>Mana for Paradox Mitigation</label>
-                    <input type="number" id="paradoxMana" min="0" max="20" value="0">
-                    <div class="info-text" id="manaLimitInfo">-1 die per Mana</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Live Preview Results Card -->
-        <div class="live-preview-card" id="results">
-            <div class="preview-header">
-                <div class="preview-title">
-                    <span class="preview-method" id="previewMethod">Improvised</span>
-                    <span class="preview-practice" id="previewPractice">Compelling</span>
-                </div>
-                <span class="preview-roll-quality" id="previewRollQuality"></span>
-            </div>
-            
-            <!-- Combined Spell Info (shown when combining) -->
-            <div class="preview-combined-info" id="previewCombinedInfo">
-                <div class="preview-combined-spells" id="previewCombinedSpells">
-                    <!-- Spell chips go here -->
-                </div>
-                <div class="preview-combined-penalty">
-                    Using lowest Arcanum • <span id="previewCombinedPenalty">−0 combination penalty</span>
-                </div>
-            </div>
-            
-            <!-- Dice Pool - Most Prominent -->
-            <div class="preview-dice-section">
-                <div class="preview-dice-pool">
-                    <span class="preview-pool-value" id="previewPoolValue">0</span>
-                    <span class="preview-pool-label" id="previewPoolLabel">dice</span>
-                </div>
-                <div class="preview-dice-breakdown" id="previewDiceBreakdown">
-                    <!-- Breakdown chips go here -->
-                </div>
-            </div>
-            
-            <!-- Factor Penalties - Second Priority -->
-            <div class="preview-factors-section">
-                <div class="preview-section-label">Spell Factors</div>
-                <div class="preview-factors-row">
-                    <span class="preview-factor" id="previewPotency">Potency 1</span>
-                    <span class="preview-factor" id="previewDuration">Duration 1 turn</span>
-                    <span class="preview-factor" id="previewScale">Scale 1 subject</span>
-                </div>
-                <div class="preview-factors-row">
-                    <span class="preview-factor" id="previewRange">Touch</span>
-                    <span class="preview-factor" id="previewCastingTime">Ritual</span>
-                </div>
-                <div class="preview-penalty-summary" id="previewPenaltySummary">
-                    <!-- e.g., "Potency −2 | Duration −2 | Scale 0" -->
-                </div>
-            </div>
-            
-            <!-- Stats Row - Reach, Mana, Time -->
-            <div class="preview-stats-row">
-                <div class="preview-stat">
-                    <span class="preview-stat-value" id="previewReach">0 / 1</span>
-                    <span class="preview-stat-label">Reach</span>
-                </div>
-                <div class="preview-stat">
-                    <span class="preview-stat-value" id="previewMana">0</span>
-                    <span class="preview-stat-label">Mana</span>
-                </div>
-                <div class="preview-stat">
-                    <span class="preview-stat-value" id="previewTime">3 hours</span>
-                    <span class="preview-stat-label">Cast Time</span>
-                </div>
-            </div>
-            
-            <!-- Paradox Section - Integrated -->
-            <div class="preview-paradox-section" id="previewParadoxSection" style="display: none;">
-                <div class="preview-paradox-header">
-                    <span class="preview-paradox-icon">⚠</span>
-                    <span class="preview-paradox-title">Paradox Risk</span>
-                    <span class="preview-paradox-pool" id="previewParadoxPool">0 dice</span>
-                    <span class="preview-paradox-quality" id="previewParadoxQuality"></span>
-                </div>
-                <div class="preview-paradox-breakdown" id="previewParadoxBreakdown">
-                    <!-- Breakdown text -->
-                </div>
-                <div class="preview-paradox-options">
-                    <span class="paradox-opt contain">Contain: Absorb into soul</span>
-                    <span class="paradox-opt release">Release: Manifest externally</span>
-                </div>
-            </div>
-            
-            <!-- No Paradox Message -->
-            <div class="preview-no-paradox" id="previewNoParadox">
-                <span class="no-paradox-icon">✓</span>
-                <span>No Paradox risk</span>
-            </div>
-            
-            <!-- Warnings -->
-            <div class="preview-warnings" id="previewWarnings" style="display: none;">
-                <!-- Dynamic warnings -->
-            </div>
-            
-            <!-- Discord Actions -->
-            <div class="preview-actions" id="discordActions">
-                <span class="discord-status" id="discordStatus" style="display: none;"></span>
-                <button class="save-library-btn" id="btnSaveToLibrary" title="Save current spell to Grimoire">
-                    <svg class="save-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    Save to Grimoire
-                </button>
-                <button class="btn-set-active" id="btnSetActive" title="Track this spell as currently active" disabled>
-                    ⚡ Set as Active
-                </button>
-                <button class="discord-send-btn" id="btnSendDicePool" title="Send Dice Pool to Discord">
-                    <svg class="discord-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                    </svg>
-                    Send Dice Pool
-                </button>
-                <button class="discord-send-btn" id="btnSendCard" title="Send Spell Card to Discord">
-                    <svg class="discord-icon" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                    </svg>
-                    Send Card
-                </button>
-            </div>
-        </div>
+        <!-- Results Panel (Phase 4: React) -->
+        <div id="classic-results-root"></div>
         
         <!-- Clash of Wills -->
         <div class="card" id="clashOfWillsSection">
@@ -3484,7 +3330,19 @@
                 poolResult.combinationPenalty = combinationPenalty;
                 poolResult.lowestArcanumInfo = isCombinedSpell ? getLowestArcanumInfo() : null;
                 
-                displayResults(spellResult, poolResult);
+                if (window.classicResultsBridge && window.classicResultsBridge.setResults) {
+                    window.classicResultsBridge.setResults(spellResult, poolResult, {
+                        castingMethod: castingMethod,
+                        spellArcanum: document.getElementById('spellArcanum')?.value || '',
+                        advancedDuration: document.getElementById('advancedDuration')?.checked || false,
+                        durationIndex: parseInt(document.getElementById('duration')?.value) || 0,
+                        range: document.getElementById('range')?.value || 'touch',
+                        castingTime: document.getElementById('castingTime')?.value || 'ritual',
+                        additionalManaCost: parseInt(document.getElementById('additionalManaCost')?.value) || 0,
+                        gnosis: gnosis,
+                        dedicatedTool: typeof isDedicatedToolActive === 'function' ? isDedicatedToolActive() : false,
+                    });
+                }
             }
             
             function displayResults(result, poolResult) {
@@ -3873,17 +3731,7 @@
                 document.getElementById('manaDeductedNotice').style.display = 'none';
             }
             
-            // Paradox input event listeners
-            document.getElementById('previousParadoxRolls').addEventListener('change', updateParadoxDisplay);
-            document.getElementById('sleeperWitnesses').addEventListener('change', updateParadoxDisplay);
-            document.getElementById('inuredToSpell').addEventListener('change', updateParadoxDisplay);
-            document.getElementById('paradoxMana').addEventListener('change', function() {
-                updateParadoxDisplay();
-                updateManaSummary();
-            });
-            
-            // Additional Mana cost listener
-            document.getElementById('additionalManaCost').addEventListener('change', updateManaSummary);
+            // Paradox inputs and mana summary are now reactive via ClassicResultsPanel (Phase 4)
             
             // =================================================================
             // CHARACTER MANAGEMENT
@@ -3896,8 +3744,7 @@
             function initCharacterSystem() {
                 updateCharacterHeader();
 
-                // Spell results + active spells (still vanilla)
-                document.getElementById('btnSetActive').addEventListener('click', setSpellAsActive);
+                // btnSetActive is wired via React onClick (Phase 4)
                 document.getElementById('activeSpellsManageLink').addEventListener('click', openCharacterEditor);
 
                 // Character editor modal controls
@@ -6266,19 +6113,18 @@
                 currentCharacter.mana.current = newMana;
                 manaAlreadyDeducted = true;
                 updateManaAdjusterDisplay();
-                updateManaSummary();
-                // Show deducted notice
-                const notice = document.getElementById('manaDeductedNotice');
-                notice.textContent = `✓ Mana deducted — ${newMana} remaining`;
-                notice.style.display = 'block';
+                if (window.classicResultsBridge) {
+                    window.classicResultsBridge.refreshResults();
+                    window.classicResultsBridge.notifyManaDeducted(`✓ Mana deducted — ${newMana} remaining`);
+                }
                 if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
                     scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                 }
             }
-            
+
             function resetManaDeductedFlag() {
                 manaAlreadyDeducted = false;
-                document.getElementById('manaDeductedNotice').style.display = 'none';
+                if (window.classicResultsBridge) window.classicResultsBridge.clearManaDeducted();
             }
             
             // Send Dice Pool to Discord
@@ -6440,12 +6286,8 @@
                 }
             }
             
-            // Initialize Discord send buttons
-            document.getElementById('btnSendDicePool').addEventListener('click', sendDicePool);
-            document.getElementById('btnSendCard').addEventListener('click', sendCard);
-            
-            // Initialize Save to Library button and modal
-            document.getElementById('btnSaveToLibrary').addEventListener('click', openSaveToLibrary);
+            // Discord buttons + save-to-library are now wired via React onClick (Phase 4)
+            // Initialize Save to Library modal close handlers
             document.getElementById('saveLibModalClose').addEventListener('click', closeSaveToLibrary);
             document.getElementById('btnCancelSaveLib').addEventListener('click', closeSaveToLibrary);
             document.getElementById('btnConfirmSaveLib').addEventListener('click', confirmSaveToLibrary);
@@ -6497,26 +6339,17 @@
 
             // ── Auto-fill prevParadox (called by onSceneChange after closure vars are updated) ──
             function sceneUpdatePrevParadox() {
-                var input = document.getElementById('previousParadoxRolls');
-                var autoRow = document.getElementById('prevParadoxAutoRow');
-                var manualRow = input.closest('.form-group');
-
                 if (sceneMode === 'player' || sceneMode === 'st') {
                     var pid = sceneGetPlayerId();
                     var myData = scenePlayers[pid];
                     var eff = myData ? Math.max(0, (myData.paradoxRolls || 0) + (myData.stAdjustment || 0)) : 0;
-                    input.value = eff;
-                    input.disabled = true;
-                    if (manualRow) manualRow.style.display = 'none';
-                    autoRow.style.display = 'flex';
-                    document.getElementById('prevParadoxAutoValue').textContent = eff;
-                    document.getElementById('prevParadoxAutoHint').textContent =
-                        eff > 0 ? '+' + eff + ' to next Paradox roll' : 'No penalty';
-                    updateParadoxDisplay();
+                    if (window.classicResultsBridge && window.classicResultsBridge.setAutoParadoxRolls) {
+                        window.classicResultsBridge.setAutoParadoxRolls(eff);
+                    }
                 } else {
-                    input.disabled = false;
-                    if (manualRow) manualRow.style.display = '';
-                    autoRow.style.display = 'none';
+                    if (window.classicResultsBridge && window.classicResultsBridge.clearAutoParadoxRolls) {
+                        window.classicResultsBridge.clearAutoParadoxRolls();
+                    }
                 }
             }
 
@@ -8374,28 +8207,7 @@
         );
       }, () => true);
 
-      const ManaSummaryDisplay = React.memo(function() {
-        return (
-          <React.Fragment>
-            <div className="mana-breakdown" id="manaBreakdown">
-              <div className="mana-row"><span className="mana-source">Non-Ruling Improvised:</span><span className="mana-cost" id="manaNonRuling">0</span></div>
-              <div className="mana-row"><span className="mana-source">Indefinite Duration:</span><span className="mana-cost" id="manaIndefinite">0</span></div>
-              <div className="mana-row"><span className="mana-source">Sympathetic / Temporal:</span><span className="mana-cost" id="manaSympathy">0</span></div>
-              <div className="mana-row"><span className="mana-source">Paradox Mitigation:</span><span className="mana-cost" id="manaParadox">0</span></div>
-              <div className="mana-row"><span className="mana-source">Additional Costs:</span><span className="mana-cost" id="manaAdditional">0</span></div>
-              <div className="mana-row mana-total"><span className="mana-source">Total Mana Required:</span><span className="mana-cost" id="manaTotalCost">0</span></div>
-            </div>
-            <div className="mana-ledger" id="manaLedger" style={{display:'none'}}>
-              <div className="mana-ledger-row"><span className="label">Current mana</span><span id="manaLedgerCurrent">0</span></div>
-              <div className="mana-ledger-row"><span className="label">Cost</span><span style={{color:'var(--warning)'}} id="manaLedgerCost">−0</span></div>
-              <div className="mana-ledger-divider"></div>
-              <div className="mana-ledger-total"><span>After cast</span><span id="manaLedgerAfter">0</span></div>
-              <div style={{fontSize:'0.75em',color:'var(--text-muted)',marginTop:4}} id="manaPerTurnInfo"></div>
-            </div>
-            <div className="mana-validation" id="manaValidation" style={{display:'none'}}></div>
-          </React.Fragment>
-        );
-      }, () => true);
+      // ManaSummaryDisplay removed — mana summary now rendered in ClassicResultsPanel (Phase 4)
 
       // ── Main spell form component ─────────────────────────────────────────
       function ClassicSpellForm() {
@@ -8428,11 +8240,9 @@
           };
         }, []);
 
-        // Recalculate after every state change
+        // Recalculate after every state change; results bridge to ClassicResultsPanel (Phase 4)
         _sf_ue(() => {
-          if (typeof calculate       === 'function') calculate();
-          if (typeof updateManaSummary === 'function') updateManaSummary();
-          if (typeof updateParadoxDisplay === 'function') updateParadoxDisplay();
+          if (typeof calculate === 'function') calculate();
         }, [form]);
 
         // ── Derived ──────────────────────────────────────────────────────────
@@ -8855,17 +8665,13 @@
                     onChange={e => set('otherModifierName', e.target.value)} />
                 </div>
               </div>
-              <div className="mana-summary" id="manaSummary">
-                <h3>Mana Summary</h3>
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>Additional Mana Cost</label>
-                    <input type="number" id="additionalManaCost" min="0" max="20"
-                      value={form.additionalManaCost} onChange={e => set('additionalManaCost', parseInt(e.target.value)||0)} />
-                    <div className="info-text">For spell-specific costs</div>
-                  </div>
+              <div className="form-grid" style={{marginTop:12}}>
+                <div className="form-group">
+                  <label>Additional Mana Cost</label>
+                  <input type="number" id="additionalManaCost" min="0" max="20"
+                    value={form.additionalManaCost} onChange={e => set('additionalManaCost', parseInt(e.target.value)||0)} />
+                  <div className="info-text">For spell-specific costs — full Mana summary in Results</div>
                 </div>
-                <ManaSummaryDisplay />
               </div>
             </div>
 
@@ -8874,6 +8680,359 @@
       }
 
       ReactDOM.createRoot(document.getElementById('classic-spellform-root')).render(<ClassicSpellForm/>);
+
+      // ── ClassicResultsPanel (Phase 4) ──────────────────────────────────────
+      function ClassicResultsPanel() {
+        const [results, setResults] = React.useState(null);
+        const [pv, setPv] = React.useState({ rolls:0, witnesses:'none', inured:false, mana:0, auto:false });
+        const [notice, setNotice] = React.useState('');
+        const pvRef = React.useRef(pv);
+        pvRef.current = pv;
+
+        React.useEffect(() => {
+          window.classicResultsBridge = {
+            setResults:            (sr, pr, fs) => setResults({ sr, pr, fs }),
+            refreshResults:        () => setResults(r => r ? {...r} : r),
+            notifyManaDeducted:    (msg) => setNotice(msg),
+            clearManaDeducted:     () => setNotice(''),
+            setAutoParadoxRolls:   (n) => setPv(p => ({...p, rolls:n, auto:true})),
+            clearAutoParadoxRolls: () => setPv(p => ({...p, auto:false})),
+            getParadoxInputs:      () => pvRef.current,
+          };
+          // Populate results immediately in case ClassicSpellForm's effect ran first
+          if (typeof calculate === 'function') calculate();
+        }, []);
+
+        if (!results) {
+          return (
+            <div className="live-preview-card">
+              <div style={{textAlign:'center',color:'var(--text-muted)',padding:'24px 16px'}}>
+                Configure your spell above to see results.
+              </div>
+            </div>
+          );
+        }
+
+        const { sr: result, pr: poolResult, fs } = results;
+        const ch = window.currentCharacter;
+        const excess = result.reach.excess;
+
+        const castTimeDisplay = typeof getTotalCastingTime === 'function'
+          ? getTotalCastingTime({
+              castingTimeType: result.factors.castingTime.key,
+              gnosis: result.gnosis,
+              ritualIntervals: result.factors.castingTime.ritualIntervals || 0,
+              yantrasUsed: poolResult.yantras.yantrasUsed,
+              isGrimoireRote: result.castingMethod.doubleRitualTime,
+            }).display
+          : '?';
+
+        const paradoxResult = excess > 0 && typeof calculateParadoxPool === 'function'
+          ? calculateParadoxPool({
+              reachExcess: excess,
+              gnosis: result.gnosis,
+              previousRolls: pv.rolls,
+              sleeperWitnesses: pv.witnesses,
+              inuredToSpell: pv.inured,
+              dedicatedTool: fs.dedicatedTool || false,
+              manaMitigation: pv.mana,
+            })
+          : null;
+
+        const isImprovised = fs.castingMethod === 'improvised';
+        const manaNonRuling = isImprovised
+          ? (ch && fs.spellArcanum
+              ? (typeof isRulingArcanum === 'function' && isRulingArcanum(ch, fs.spellArcanum) ? 0 : 1)
+              : 1)
+          : 0;
+        const manaIndefinite = fs.advancedDuration && fs.durationIndex === 5 ? 1 : 0;
+        const manaSympathy = (fs.range === 'sympathetic' || fs.range === 'temporal') ? 1 : 0;
+        const totalMana = manaNonRuling + manaIndefinite + manaSympathy + pv.mana + (fs.additionalManaCost || 0);
+        let manaAfter = null, manaPerTurn = null;
+        if (ch) {
+          manaAfter = ch.mana.current - totalMana;
+          manaPerTurn = typeof getManaPerTurn === 'function' ? getManaPerTurn(fs.gnosis || 1) : 1;
+        }
+
+        let qualityText = poolResult.rollQuality.description;
+        if (poolResult.doubleRitualTime) qualityText += ' | 2× Time';
+
+        const warnings = [];
+        if (result.spellControl && result.spellControl.exceedsLimit) {
+          warnings.push(`Exceeds active spell limit (${result.spellControl.activeSpells}/${result.spellControl.maxActiveSpells}). +${result.spellControl.reachCost} Reach added.`);
+        }
+
+        const practiceName = result.practice.name.charAt(0).toUpperCase() + result.practice.name.slice(1);
+        const cap = typeof capitalize === 'function' ? capitalize : s => s.charAt(0).toUpperCase() + s.slice(1);
+        const DiscordSVG = () => (
+          <svg className="discord-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+          </svg>
+        );
+
+        return (
+          <div className="live-preview-card visible">
+
+            <div className="preview-header">
+              <div className="preview-title">
+                <span className="preview-method" id="previewMethod">
+                  {poolResult.isCombinedSpell
+                    ? `Combined (${poolResult.combinedSpells.length} spells)`
+                    : result.castingMethod.label}
+                </span>
+                <span className="preview-practice" id="previewPractice">
+                  {practiceName} ({result.practice.dots}-dot)
+                </span>
+              </div>
+              <span className="preview-roll-quality" id="previewRollQuality">{qualityText}</span>
+            </div>
+
+            {poolResult.isCombinedSpell && poolResult.combinedSpells.length > 0 && (
+              <div className="preview-combined-info active" id="previewCombinedInfo">
+                <div className="preview-combined-spells" id="previewCombinedSpells">
+                  {poolResult.combinedSpells.map(spell => {
+                    const isLowest = poolResult.lowestArcanumInfo?.spellId === spell.id;
+                    return (
+                      <span key={spell.id} className={'preview-combined-spell' + (isLowest ? ' lowest' : '')}>
+                        {spell.name} ({cap(spell.primaryArcanum)} {spell.primaryArcanumLevel})
+                      </span>
+                    );
+                  })}
+                </div>
+                <div className="preview-combined-penalty">
+                  Using lowest Arcanum • <span id="previewCombinedPenalty">{poolResult.combinationPenalty} combination penalty</span>
+                </div>
+              </div>
+            )}
+
+            <div className="preview-dice-section">
+              <div className="preview-dice-pool">
+                <span id="previewPoolValue" className={'preview-pool-value' + (poolResult.rollType !== 'normal' ? ' chance' : '')}>
+                  {poolResult.finalPool}
+                </span>
+                <span id="previewPoolLabel" className="preview-pool-label">
+                  {poolResult.rollType === 'chance' ? 'Chance Die' : poolResult.rollType === 'impossible' ? 'Impossible' : 'dice'}
+                </span>
+              </div>
+              <div className="preview-dice-breakdown" id="previewDiceBreakdown">
+                <span className="chip base">{poolResult.summary.base} {poolResult.summary.baseSource}</span>
+                {poolResult.summary.spellFactors !== 0 && <span className="chip penalty">{poolResult.summary.spellFactors} Factors</span>}
+                {poolResult.summary.yantras > 0 && <span className="chip bonus">+{poolResult.summary.yantras} Yantras</span>}
+                {poolResult.summary.ritual > 0 && <span className="chip bonus">+{poolResult.summary.ritual} Ritual</span>}
+                {poolResult.summary.willpower > 0 && <span className="chip bonus">+{poolResult.summary.willpower} Willpower</span>}
+                {poolResult.summary.teamwork > 0 && <span className="chip bonus">+{poolResult.summary.teamwork} Teamwork</span>}
+                {poolResult.summary.other !== 0 && (
+                  <span className={'chip ' + (poolResult.summary.other > 0 ? 'bonus' : 'penalty')}>
+                    {poolResult.summary.other > 0 ? '+' : ''}{poolResult.summary.other} Other
+                  </span>
+                )}
+                {poolResult.summary.yantraCap !== 0 && <span className="chip penalty">{poolResult.summary.yantraCap} Cap</span>}
+              </div>
+            </div>
+
+            <div className="preview-factors-section">
+              <div className="preview-section-label">Spell Factors</div>
+              <div className="preview-factors-row">
+                <span id="previewPotency" className={'preview-factor' + (result.factors.potency.penalty < 0 ? ' has-penalty' : '')}>
+                  Potency {result.factors.potency.value}{result.advancedPotency ? ' (Adv)' : ''}
+                </span>
+                <span id="previewDuration" className={'preview-factor' + (result.factors.duration.penalty < 0 ? ' has-penalty' : '')}>
+                  {result.factors.duration.label}{result.factors.duration.scale === 'advanced' ? ' [Adv]' : ''}
+                </span>
+                <span id="previewScale" className={'preview-factor' + (result.factors.scale.penalty < 0 ? ' has-penalty' : '')}>
+                  {result.factors.scale.label}{result.factors.scale.scale === 'advanced' ? ' [Adv]' : ''}
+                </span>
+              </div>
+              <div className="preview-factors-row">
+                <span id="previewRange" className={'preview-factor' + (result.factors.range.reachCost > 0 ? ' has-reach' : '')}>
+                  {result.factors.range.label}{result.factors.range.reachCost > 0 ? ` (+${result.factors.range.reachCost}R)` : ''}
+                </span>
+                <span id="previewCastingTime" className={'preview-factor' + (result.factors.castingTime.reachCost > 0 ? ' has-reach' : '')}>
+                  {result.factors.castingTime.label}
+                  {result.factors.castingTime.reachCost > 0 ? ` (+${result.factors.castingTime.reachCost}R)` : ''}
+                  {result.factors.castingTime.bonusDice > 0 ? ` (+${result.factors.castingTime.bonusDice}d)` : ''}
+                </span>
+              </div>
+              <div className="preview-penalty-summary" id="previewPenaltySummary">
+                <span className={'penalty-item' + (result.factors.potency.penalty === 0 ? ' zero' : '')}>Pot {result.factors.potency.penalty}</span>
+                {' | '}
+                <span className={'penalty-item' + (result.factors.duration.penalty === 0 ? ' zero' : '')}>Dur {result.factors.duration.penalty}</span>
+                {' | '}
+                <span className={'penalty-item' + (result.factors.scale.penalty === 0 ? ' zero' : '')}>Scale {result.factors.scale.penalty}</span>
+                {' | '}
+                <span className={'penalty-item' + (result.totals.factorPenalty === 0 ? ' zero' : '')}>=  {result.totals.factorPenalty} total</span>
+              </div>
+            </div>
+
+            <div className="preview-stats-row">
+              <div className="preview-stat">
+                <span id="previewReach" className={'preview-stat-value' + (excess > 0 ? ' over' : '')}>
+                  {result.reach.used} / {result.reach.freeReach}
+                </span>
+                <span className="preview-stat-label">Reach</span>
+              </div>
+              <div className="preview-stat">
+                <span className="preview-stat-value" id="previewMana">{totalMana}</span>
+                <span className="preview-stat-label">Mana</span>
+              </div>
+              <div className="preview-stat">
+                <span className="preview-stat-value" id="previewTime">{castTimeDisplay}</span>
+                <span className="preview-stat-label">Cast Time</span>
+              </div>
+            </div>
+
+            {excess > 0 ? (
+              <React.Fragment>
+                <div className="preview-paradox-section" id="previewParadoxSection">
+                  <div className="preview-paradox-header">
+                    <span className="preview-paradox-icon">⚠</span>
+                    <span className="preview-paradox-title">Paradox Risk</span>
+                    <span className="preview-paradox-pool" id="previewParadoxPool">
+                      {paradoxResult ? (paradoxResult.isChanceDie ? '1 chance' : `${paradoxResult.finalDice} dice`) : ''}
+                    </span>
+                    {paradoxResult?.rollQuality?.label && (
+                      <span className="preview-paradox-quality" id="previewParadoxQuality">{paradoxResult.rollQuality.label}</span>
+                    )}
+                  </div>
+                  {paradoxResult && (
+                    <div className="preview-paradox-breakdown" id="previewParadoxBreakdown">
+                      {paradoxResult.breakdown.map((item, i) => (i > 0 ? ' | ' : '') + (item.value > 0 ? '+' : '') + item.value + ' ' + item.label).join('')}
+                    </div>
+                  )}
+                  <div className="preview-paradox-options">
+                    <span className="paradox-opt contain">Contain: Absorb into soul</span>
+                    <span className="paradox-opt release">Release: Manifest externally</span>
+                  </div>
+                </div>
+                <div className="card" id="paradoxInputSection">
+                  <h2>Paradox Modifiers</h2>
+                  <div className="form-grid">
+                    {!pv.auto && (
+                      <div className="form-group">
+                        <label>Previous Paradox Rolls (this scene)</label>
+                        <input type="number" id="previousParadoxRolls" min="0" max="10"
+                          value={pv.rolls} onChange={e => setPv(p => ({...p, rolls:parseInt(e.target.value)||0}))} />
+                        <div className="info-text">+1 die per previous roll</div>
+                      </div>
+                    )}
+                    {pv.auto && (
+                      <div id="prevParadoxAutoRow" style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg-dark)',borderRadius:6,padding:'8px 12px'}}>
+                        <span id="prevParadoxAutoValue" className="value" style={{fontSize:'1.2em',fontWeight:'bold',fontFamily:'monospace'}}>{pv.rolls}</span>
+                        <span id="prevParadoxAutoHint" style={{fontSize:'0.85em',color:'var(--text-muted)',flex:1}}>
+                          {pv.rolls > 0 ? `+${pv.rolls} to next Paradox roll` : 'No penalty'}
+                        </span>
+                        <span className="scene-auto-badge">AUTO</span>
+                      </div>
+                    )}
+                    <div className="form-group">
+                      <label>Sleeper Witnesses</label>
+                      <select id="sleeperWitnesses" value={pv.witnesses}
+                        onChange={e => setPv(p => ({...p, witnesses:e.target.value}))}>
+                        <option value="none">None</option>
+                        <option value="few">Few (+1 die, 9-again)</option>
+                        <option value="large">Large Group (+1 die, 8-again)</option>
+                        <option value="crowd">Crowd (+1 die, Rote quality)</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="checkbox-group" style={{marginBottom:0}}>
+                        <input type="checkbox" id="inuredToSpell" checked={pv.inured}
+                          onChange={e => setPv(p => ({...p, inured:e.target.checked}))} />
+                        <span style={{textTransform:'none'}}>Inured to Spell (+2 dice)</span>
+                      </label>
+                      <div className="info-text">Spell no longer risks Wisdom loss</div>
+                    </div>
+                    <div className="form-group">
+                      <label>Mana for Paradox Mitigation</label>
+                      <input type="number" id="paradoxMana" min="0" max="20"
+                        value={pv.mana} onChange={e => setPv(p => ({...p, mana:parseInt(e.target.value)||0}))} />
+                      <div className="info-text" id="manaLimitInfo">-1 die per Mana</div>
+                    </div>
+                  </div>
+                </div>
+              </React.Fragment>
+            ) : (
+              <div className="preview-no-paradox" id="previewNoParadox">
+                <span className="no-paradox-icon">✓</span>
+                <span>No Paradox risk</span>
+              </div>
+            )}
+
+            {warnings.length > 0 && (
+              <div className="preview-warnings" id="previewWarnings">
+                {warnings.map((w, i) => <div key={i} className="preview-warning-item">⚠ {w}</div>)}
+              </div>
+            )}
+
+            <div className="mana-summary" id="manaSummary">
+              <h3>Mana Summary</h3>
+              <div className="mana-breakdown" id="manaBreakdown">
+                <div className="mana-row"><span className="mana-source">Non-Ruling Improvised:</span><span className="mana-cost" id="manaNonRuling">{manaNonRuling}</span></div>
+                <div className="mana-row"><span className="mana-source">Indefinite Duration:</span><span className="mana-cost" id="manaIndefinite">{manaIndefinite}</span></div>
+                <div className="mana-row"><span className="mana-source">Sympathetic / Temporal:</span><span className="mana-cost" id="manaSympathy">{manaSympathy}</span></div>
+                <div className="mana-row"><span className="mana-source">Paradox Mitigation:</span><span className="mana-cost" id="manaParadox">{pv.mana}</span></div>
+                <div className="mana-row"><span className="mana-source">Additional Costs:</span><span className="mana-cost" id="manaAdditional">{fs.additionalManaCost||0}</span></div>
+                <div className="mana-row mana-total"><span className="mana-source">Total Mana Required:</span><span className="mana-cost" id="manaTotalCost">{totalMana}</span></div>
+              </div>
+              {ch && totalMana > 0 && (
+                <div className="mana-ledger" id="manaLedger">
+                  <div className="mana-ledger-row"><span className="label">Current mana</span><span id="manaLedgerCurrent">{ch.mana.current}</span></div>
+                  <div className="mana-ledger-row"><span className="label">Cost</span><span style={{color:'var(--warning)'}} id="manaLedgerCost">−{totalMana}</span></div>
+                  <div className="mana-ledger-divider"></div>
+                  <div className="mana-ledger-total">
+                    <span>After cast</span>
+                    <span id="manaLedgerAfter" style={{color: manaAfter > 0 ? 'var(--success)' : manaAfter === 0 ? 'var(--warning)' : 'var(--danger)'}}>
+                      {Math.max(0, manaAfter)}
+                    </span>
+                  </div>
+                  <div style={{fontSize:'0.75em',color:'var(--text-muted)',marginTop:4}} id="manaPerTurnInfo">
+                    Per-turn limit: {manaPerTurn} mana (Gnosis {fs.gnosis||1})
+                  </div>
+                </div>
+              )}
+              {ch && totalMana > 0 && (
+                <div id="manaValidation" className={'mana-validation ' + (manaAfter < 0 ? 'block' : manaAfter === 0 ? 'warn' : 'ok')}>
+                  {manaAfter < 0
+                    ? `✗ Insufficient mana — need ${totalMana}, have ${ch.mana.current}`
+                    : manaAfter === 0
+                    ? '⚠ This will use your last mana — 0 remaining'
+                    : `✓ Mana sufficient — ${manaAfter} remaining after cast`}
+                </div>
+              )}
+              {notice && <div id="manaDeductedNotice" className="mana-validation ok">{notice}</div>}
+            </div>
+
+            <div className="preview-actions" id="discordActions">
+              <span className="discord-status" id="discordStatus" style={{display:'none'}}></span>
+              <button className="save-library-btn" id="btnSaveToLibrary" title="Save current spell to Grimoire"
+                onClick={() => typeof openSaveToLibrary === 'function' && openSaveToLibrary()}>
+                <svg className="save-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path>
+                </svg>
+                Save to Grimoire
+              </button>
+              <button className="btn-set-active" id="btnSetActive" title="Track this spell as currently active"
+                disabled={!ch}
+                onClick={() => typeof setSpellAsActive === 'function' && setSpellAsActive()}>
+                ⚡ Set as Active
+              </button>
+              <button className="discord-send-btn" id="btnSendDicePool" title="Send Dice Pool to Discord"
+                onClick={() => typeof sendDicePool === 'function' && sendDicePool()}>
+                <DiscordSVG />
+                Send Dice Pool
+              </button>
+              <button className="discord-send-btn" id="btnSendCard" title="Send Spell Card to Discord"
+                onClick={() => typeof sendCard === 'function' && sendCard()}>
+                <DiscordSVG />
+                Send Card
+              </button>
+            </div>
+
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('classic-results-root')).render(<ClassicResultsPanel/>);
     </script>
 
     <!-- Service Worker Registration -->
