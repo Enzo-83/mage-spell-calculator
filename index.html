@@ -3203,28 +3203,15 @@
                 let combinationPenalty = 0;
                 let isCombinedSpell = false;
                 
-                if (combinedModeEnabled && combinedSpells.length > 0) {
+                const _cb = window.classicCombinedBridge;
+                if (_cb && _cb.isEnabled() && _cb.getSpells().length > 0) {
                     isCombinedSpell = true;
-                    
-                    // Use caster's dots in lowest arcanum
-                    arcanumDots = getCasterLowestArcanumDots();
-                    
-                    // Get lowest spell requirement from combined spells
-                    const lowestInfo = getLowestArcanumInfo();
+                    arcanumDots = _cb.getCasterLowestArcanumDots();
+                    const lowestInfo = _cb.getLowestArcanumInfo();
                     spellArcanumReq = lowestInfo.level;
-                    
-                    // Calculate combination penalty
-                    combinationPenalty = getCombinationPenalty();
-                    
-                    // Add per-spell additional reach
-                    additionalReach += getCombinedAdditionalReach();
-                    
-                    // Check if all are praxes
-                    if (areAllCombinedPraxes()) {
-                        castingMethod = 'praxis';
-                    } else {
-                        castingMethod = 'improvised';
-                    }
+                    combinationPenalty = _cb.getCombinationPenalty();
+                    additionalReach += _cb.getCombinedAdditionalReach();
+                    castingMethod = _cb.areAllPraxes() ? 'praxis' : 'improvised';
                 }
                 
                 // Spell Factor params
@@ -3296,9 +3283,9 @@
                 
                 // Store combined info for display
                 poolResult.isCombinedSpell = isCombinedSpell;
-                poolResult.combinedSpells = combinedSpells;
+                poolResult.combinedSpells = isCombinedSpell ? window.classicCombinedBridge.getSpells() : [];
                 poolResult.combinationPenalty = combinationPenalty;
-                poolResult.lowestArcanumInfo = isCombinedSpell ? getLowestArcanumInfo() : null;
+                poolResult.lowestArcanumInfo = isCombinedSpell ? window.classicCombinedBridge.getLowestArcanumInfo() : null;
                 
                 if (window.classicResultsBridge && window.classicResultsBridge.setResults) {
                     window.classicResultsBridge.setResults(spellResult, poolResult, {
@@ -5321,388 +5308,6 @@
             }
             
             // =================================================================
-            // COMBINED SPELL MANAGEMENT
-            // =================================================================
-            
-            let combinedSpells = []; // Array of spell objects in the combination
-            let combinedModeEnabled = false;
-            
-            // Get max spells that can be combined based on Gnosis
-            function getMaxCombinedSpells(gnosis) {
-                if (gnosis >= 9) return 4;
-                if (gnosis >= 6) return 3;
-                if (gnosis >= 3) return 2;
-                return 1; // Can't really combine at Gnosis 1-2
-            }
-            
-            // Initialize combined spell system
-            function initCombinedSpellSystem() {
-                const toggle = document.getElementById('combinedSpellEnabled');
-                const section = document.getElementById('combinedSpellSection');
-                const toggleContainer = document.getElementById('combinedToggle');
-                const singleControls = document.getElementById('singleSpellControls');
-
-                // These elements are React-rendered; if React hasn't committed yet, skip
-                if (!toggle || !section || !toggleContainer) return;
-
-                // Toggle combined mode
-                toggle.addEventListener('change', function() {
-                    combinedModeEnabled = this.checked;
-                    section.classList.toggle('active', this.checked);
-                    toggleContainer.classList.toggle('active', this.checked);
-                    
-                    // Hide/show single spell controls - keep Practice & Primary Factor visible
-                    if (this.checked) {
-                        // In combined mode, hide arcanum inputs (we use combined spells' arcana)
-                        document.getElementById('spellArcanumGroup').style.display = 'none';
-                        document.getElementById('arcanumDots').closest('.form-group').style.display = 'none';
-                        document.getElementById('spellRequirement').closest('.form-group').style.display = 'none';
-                        // Hide Rote options
-                        const castingMethod = document.getElementById('castingMethod');
-                        for (let opt of castingMethod.options) {
-                            if (opt.value.startsWith('rote')) {
-                                opt.disabled = true;
-                            }
-                        }
-                        // Force to improvised or praxis
-                        if (castingMethod.value.startsWith('rote')) {
-                            castingMethod.value = 'improvised';
-                        }
-                    } else {
-                        document.getElementById('spellArcanumGroup').style.display = '';
-                        document.getElementById('arcanumDots').closest('.form-group').style.display = '';
-                        document.getElementById('spellRequirement').closest('.form-group').style.display = '';
-                        const castingMethod = document.getElementById('castingMethod');
-                        for (let opt of castingMethod.options) {
-                            opt.disabled = false;
-                        }
-                    }
-                    
-                    updateCombinedStats();
-                    calculate();
-                });
-                
-                // Update max info on Gnosis change
-                document.getElementById('gnosis').addEventListener('change', updateCombinedMaxInfo);
-                updateCombinedMaxInfo();
-                
-                // Add from library button
-                document.getElementById('btnAddFromLibrary').addEventListener('click', () => {
-                    openAddCombinedSpellModal('library');
-                });
-                
-                // Add manual button
-                document.getElementById('btnAddManualSpell').addEventListener('click', () => {
-                    openAddCombinedSpellModal('manual');
-                });
-                
-                // Modal tab switching
-                document.querySelectorAll('[data-add-tab]').forEach(tab => {
-                    tab.addEventListener('click', function() {
-                        document.querySelectorAll('[data-add-tab]').forEach(t => t.classList.remove('active'));
-                        this.classList.add('active');
-                        const tabName = this.dataset.addTab;
-                        document.getElementById('addFromLibraryTab').style.display = tabName === 'library' ? 'block' : 'none';
-                        document.getElementById('addManualTab').style.display = tabName === 'manual' ? 'block' : 'none';
-                    });
-                });
-                
-                // Modal close
-                document.getElementById('addCombinedSpellClose').addEventListener('click', closeAddCombinedSpellModal);
-                document.getElementById('btnCancelAddCombined').addEventListener('click', closeAddCombinedSpellModal);
-                document.getElementById('btnConfirmAddCombined').addEventListener('click', confirmAddCombinedSpell);
-                
-                // Scale separation
-                document.getElementById('separateScales').addEventListener('change', calculate);
-            }
-            
-            // Update max combined spells info
-            function updateCombinedMaxInfo() {
-                const gnosis = parseInt(document.getElementById('gnosis')?.value) || 1;
-                const max = getMaxCombinedSpells(gnosis);
-                const infoEl = document.getElementById('combinedMaxInfo');
-                const enabledEl = document.getElementById('combinedSpellEnabled');
-                if (!infoEl) return; // React not yet rendered
-                if (gnosis < 3) {
-                    infoEl.textContent = 'Requires Gnosis 3+ to combine spells';
-                    if (enabledEl) enabledEl.disabled = true;
-                } else {
-                    infoEl.textContent = `Combine up to ${max} spells at Gnosis ${gnosis}`;
-                    if (enabledEl) enabledEl.disabled = false;
-                }
-            }
-            
-            // Open add spell modal
-            function openAddCombinedSpellModal(tab = 'library') {
-                const gnosis = parseInt(document.getElementById('gnosis').value) || 1;
-                const max = getMaxCombinedSpells(gnosis);
-                
-                if (combinedSpells.length >= max) {
-                    alert(`Maximum ${max} spells can be combined at Gnosis ${gnosis}.`);
-                    return;
-                }
-                
-                // Populate library list
-                populateCombinableSpellList();
-                
-                // Set active tab
-                document.querySelectorAll('[data-add-tab]').forEach(t => t.classList.remove('active'));
-                document.querySelector(`[data-add-tab="${tab}"]`).classList.add('active');
-                document.getElementById('addFromLibraryTab').style.display = tab === 'library' ? 'block' : 'none';
-                document.getElementById('addManualTab').style.display = tab === 'manual' ? 'block' : 'none';
-                
-                // Clear manual form
-                document.getElementById('manualSpellName').value = '';
-                document.getElementById('manualPrimaryArcanum').value = 'forces';
-                document.getElementById('manualPrimaryLevel').value = 1;
-                document.getElementById('manualSecondaryArcanum').value = '';
-                document.getElementById('manualSecondaryLevel').value = 1;
-                document.getElementById('manualSpellType').value = 'improvised';
-                
-                document.getElementById('addCombinedSpellModal').classList.add('active');
-            }
-            
-            // Close add spell modal
-            function closeAddCombinedSpellModal() {
-                document.getElementById('addCombinedSpellModal').classList.remove('active');
-            }
-            
-            // Populate list of combinable spells from library
-            function populateCombinableSpellList() {
-                const listEl = document.getElementById('combinableSpellList');
-                
-                if (!currentCharacter) {
-                    listEl.innerHTML = '<div class="spell-library-empty">No character loaded</div>';
-                    return;
-                }
-                
-                // Get praxes and improvised favorites only (no rotes)
-                const praxes = currentCharacter.praxes || [];
-                const improvised = currentCharacter.improvisedFavorites || [];
-                
-                // Filter out already added spells
-                const addedIds = combinedSpells.map(s => s.id);
-                const available = [
-                    ...praxes.filter(s => !addedIds.includes(s.id)),
-                    ...improvised.filter(s => !addedIds.includes(s.id))
-                ];
-                
-                if (available.length === 0) {
-                    listEl.innerHTML = '<div class="spell-library-empty">No compatible spells available</div>';
-                    return;
-                }
-                
-                listEl.innerHTML = available.map(spell => {
-                    const arcanumText = `${capitalize(spell.primaryArcanum)} ${spell.primaryArcanumLevel}` +
-                        (spell.secondaryArcanum ? ` / ${capitalize(spell.secondaryArcanum)} ${spell.secondaryArcanumLevel}` : '');
-                    const typeClass = spell.type || 'improvised';
-                    
-                    return `
-                        <div class="library-spell-option" data-spell-id="${spell.id}">
-                            <div>
-                                <div style="font-weight: bold;">${spell.name}</div>
-                                <div style="font-size: 0.85em; color: var(--text-muted);">${arcanumText}</div>
-                            </div>
-                            <span class="spell-type ${typeClass}">${typeClass}</span>
-                        </div>
-                    `;
-                }).join('');
-                
-                // Add click handlers
-                listEl.querySelectorAll('.library-spell-option').forEach(opt => {
-                    opt.addEventListener('click', () => {
-                        const spellId = opt.dataset.spellId;
-                        const spell = [...praxes, ...improvised].find(s => s.id === spellId);
-                        if (spell) {
-                            addSpellToCombination({
-                                id: spell.id,
-                                name: spell.name,
-                                primaryArcanum: spell.primaryArcanum,
-                                primaryArcanumLevel: spell.primaryArcanumLevel,
-                                secondaryArcanum: spell.secondaryArcanum,
-                                secondaryArcanumLevel: spell.secondaryArcanumLevel,
-                                type: spell.type || 'improvised',
-                                additionalReach: 0,
-                                fromLibrary: true
-                            });
-                            closeAddCombinedSpellModal();
-                        }
-                    });
-                });
-            }
-            
-            // Confirm add from manual entry
-            function confirmAddCombinedSpell() {
-                const activeTab = document.querySelector('[data-add-tab].active').dataset.addTab;
-                
-                if (activeTab === 'manual') {
-                    const name = document.getElementById('manualSpellName').value.trim() || 'Unnamed Spell';
-                    const primaryArcanum = document.getElementById('manualPrimaryArcanum').value;
-                    const primaryLevel = parseInt(document.getElementById('manualPrimaryLevel').value) || 1;
-                    const secondaryArcanum = document.getElementById('manualSecondaryArcanum').value || null;
-                    const secondaryLevel = secondaryArcanum ? (parseInt(document.getElementById('manualSecondaryLevel').value) || 1) : null;
-                    const type = document.getElementById('manualSpellType').value;
-                    
-                    addSpellToCombination({
-                        id: 'manual_' + Date.now(),
-                        name: name,
-                        primaryArcanum: primaryArcanum,
-                        primaryArcanumLevel: primaryLevel,
-                        secondaryArcanum: secondaryArcanum,
-                        secondaryArcanumLevel: secondaryLevel,
-                        type: type,
-                        additionalReach: 0,
-                        fromLibrary: false
-                    });
-                    closeAddCombinedSpellModal();
-                }
-                // Library selection is handled by click on the option
-            }
-            
-            // Add spell to combination
-            function addSpellToCombination(spell) {
-                combinedSpells.push(spell);
-                renderCombinedSpellList();
-                updateCombinedStats();
-                calculate();
-            }
-            
-            // Remove spell from combination
-            function removeSpellFromCombination(spellId) {
-                combinedSpells = combinedSpells.filter(s => s.id !== spellId);
-                renderCombinedSpellList();
-                updateCombinedStats();
-                calculate();
-            }
-            
-            // Update additional reach for a spell in combination
-            function updateCombinedSpellReach(spellId, reach) {
-                const spell = combinedSpells.find(s => s.id === spellId);
-                if (spell) {
-                    spell.additionalReach = reach;
-                    calculate();
-                }
-            }
-            
-            // Render the combined spell list
-            function renderCombinedSpellList() {
-                const listEl = document.getElementById('combinedSpellList');
-                const lowestInfo = getLowestArcanumInfo();
-                
-                if (combinedSpells.length === 0) {
-                    listEl.innerHTML = '<div class="spell-library-empty">Add spells to combine</div>';
-                    document.getElementById('scaleSeparation').classList.remove('active');
-                    return;
-                }
-                
-                // Show scale separation option if 2+ spells
-                document.getElementById('scaleSeparation').classList.toggle('active', combinedSpells.length >= 2);
-                
-                listEl.innerHTML = combinedSpells.map(spell => {
-                    const arcanumText = `${capitalize(spell.primaryArcanum)} ${spell.primaryArcanumLevel}` +
-                        (spell.secondaryArcanum ? ` / ${capitalize(spell.secondaryArcanum)} ${spell.secondaryArcanumLevel}` : '');
-                    
-                    const isLowest = lowestInfo.spellId === spell.id;
-                    
-                    return `
-                        <div class="combined-spell-item${isLowest ? ' lowest-arcanum' : ''}" data-spell-id="${spell.id}">
-                            <div class="spell-info">
-                                <div class="spell-name">${spell.name}</div>
-                                <div class="spell-arcanum${isLowest ? ' lowest' : ''}">${arcanumText}${isLowest ? ' (lowest)' : ''}</div>
-                            </div>
-                            <div class="spell-reach">
-                                <label style="font-size: 0.8em; color: var(--text-muted);">+Reach:</label>
-                                <input type="number" min="0" max="10" value="${spell.additionalReach || 0}" 
-                                    onchange="updateCombinedSpellReach('${spell.id}', parseInt(this.value) || 0)">
-                            </div>
-                            <button class="btn-remove" onclick="removeSpellFromCombination('${spell.id}')">&times;</button>
-                        </div>
-                    `;
-                }).join('');
-            }
-            
-            // Get lowest arcanum info from combined spells
-            function getLowestArcanumInfo() {
-                if (combinedSpells.length === 0) {
-                    return { arcanum: null, level: 0, spellId: null };
-                }
-                
-                let lowest = { arcanum: null, level: Infinity, spellId: null };
-                
-                combinedSpells.forEach(spell => {
-                    // Check primary arcanum
-                    if (spell.primaryArcanumLevel < lowest.level) {
-                        lowest = {
-                            arcanum: spell.primaryArcanum,
-                            level: spell.primaryArcanumLevel,
-                            spellId: spell.id
-                        };
-                    }
-                    // Check secondary arcanum if present
-                    if (spell.secondaryArcanum && spell.secondaryArcanumLevel < lowest.level) {
-                        lowest = {
-                            arcanum: spell.secondaryArcanum,
-                            level: spell.secondaryArcanumLevel,
-                            spellId: spell.id
-                        };
-                    }
-                });
-                
-                return lowest;
-            }
-            
-            // Get caster's dots in the lowest arcanum
-            function getCasterLowestArcanumDots() {
-                const lowestInfo = getLowestArcanumInfo();
-                if (!lowestInfo.arcanum) return 1;
-                
-                if (currentCharacter) {
-                    return currentCharacter.arcana[lowestInfo.arcanum] || 1;
-                }
-                
-                // Fallback to manual input if no character
-                return parseInt(document.getElementById('arcanumDots').value) || 1;
-            }
-            
-            // Calculate combination penalty (-2 per spell after first)
-            function getCombinationPenalty() {
-                if (combinedSpells.length <= 1) return 0;
-                return -2 * (combinedSpells.length - 1);
-            }
-            
-            // Get total additional reach from all combined spells
-            function getCombinedAdditionalReach() {
-                let total = combinedSpells.reduce((sum, s) => sum + (s.additionalReach || 0), 0);
-                
-                // Add scale separation reach if enabled
-                if (document.getElementById('separateScales').checked && combinedSpells.length >= 2) {
-                    total += 1;
-                }
-                
-                return total;
-            }
-            
-            // Check if all combined spells are praxes
-            function areAllCombinedPraxes() {
-                if (combinedSpells.length === 0) return false;
-                return combinedSpells.every(s => s.type === 'praxis');
-            }
-            
-            // Update combined stats display
-            function updateCombinedStats() {
-                const lowestInfo = getLowestArcanumInfo();
-                const penalty = getCombinationPenalty();
-                
-                document.getElementById('combinedSpellCount').textContent = combinedSpells.length;
-                document.getElementById('combinedLowestArcanum').textContent = 
-                    lowestInfo.arcanum ? `${capitalize(lowestInfo.arcanum)} ${lowestInfo.level}` : '—';
-                document.getElementById('combinedPenalty').textContent = penalty;
-            }
-            
-            // Initialize combined spell system
-            initCombinedSpellSystem();
-            
-            // =================================================================
             // DISCORD INTEGRATION
             // =================================================================
             
@@ -6426,95 +6031,8 @@
         });
     </script>
     
-    <!-- Add Combined Spell Modal -->
-    <div class="modal-overlay" id="addCombinedSpellModal">
-        <div class="modal" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2 id="addCombinedSpellTitle">Add Spell to Combination</h2>
-                <button class="modal-close" id="addCombinedSpellClose">&times;</button>
-            </div>
-            <div class="modal-body">
-                <!-- Tab selection -->
-                <div class="spell-library-tabs" style="margin-bottom: 16px;">
-                    <button class="spell-tab active" data-add-tab="library">From Library</button>
-                    <button class="spell-tab" data-add-tab="manual">Manual Entry</button>
-                </div>
-                
-                <!-- Library selection -->
-                <div id="addFromLibraryTab">
-                    <div class="info-text" style="margin-bottom: 8px;">Select a Praxis or Improvised Favorite (Rotes cannot be combined)</div>
-                    <div class="library-spell-list" id="combinableSpellList">
-                        <div class="spell-library-empty">No compatible spells in library</div>
-                    </div>
-                </div>
-                
-                <!-- Manual entry -->
-                <div id="addManualTab" style="display: none;">
-                    <div class="add-spell-form">
-                        <div class="form-group">
-                            <label>Spell Name</label>
-                            <input type="text" id="manualSpellName" placeholder="e.g., Influence Electricity">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Primary Arcanum</label>
-                                <select id="manualPrimaryArcanum">
-                                    <option value="death">Death</option>
-                                    <option value="fate">Fate</option>
-                                    <option value="forces" selected>Forces</option>
-                                    <option value="life">Life</option>
-                                    <option value="matter">Matter</option>
-                                    <option value="mind">Mind</option>
-                                    <option value="prime">Prime</option>
-                                    <option value="space">Space</option>
-                                    <option value="spirit">Spirit</option>
-                                    <option value="time">Time</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Level</label>
-                                <input type="number" id="manualPrimaryLevel" min="1" max="5" value="1">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Secondary Arcanum (optional)</label>
-                                <select id="manualSecondaryArcanum">
-                                    <option value="">None</option>
-                                    <option value="death">Death</option>
-                                    <option value="fate">Fate</option>
-                                    <option value="forces">Forces</option>
-                                    <option value="life">Life</option>
-                                    <option value="matter">Matter</option>
-                                    <option value="mind">Mind</option>
-                                    <option value="prime">Prime</option>
-                                    <option value="space">Space</option>
-                                    <option value="spirit">Spirit</option>
-                                    <option value="time">Time</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Level</label>
-                                <input type="number" id="manualSecondaryLevel" min="1" max="5" value="1">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Type</label>
-                            <select id="manualSpellType">
-                                <option value="improvised">Improvised</option>
-                                <option value="praxis">Praxis</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-small" id="btnCancelAddCombined">Cancel</button>
-                <button class="btn-small btn-primary" id="btnConfirmAddCombined">Add Spell</button>
-            </div>
-        </div>
-    </div>
-    
+    <!-- Add Combined Spell Modal: migrated to React ClassicCombinedSpellPanel (Phase 7) -->
+
     <!-- Spell Editor Modal + Save to Library Modal: Phase 6 React ClassicSpellLibraryDrawer -->
     
     <!-- Toast notification -->
@@ -7597,36 +7115,298 @@
         );
       }, () => true);
 
-      const CombinedSpellZone = React.memo(function() {
+      function ClassicCombinedSpellPanel({ gnosis, onEnabledChange }) {
+        const [enabled, setEnabled]             = React.useState(false);
+        const [spells, setSpells]               = React.useState([]);
+        const [separateScales, setSeparateScales] = React.useState(false);
+        const [modalOpen, setModalOpen]         = React.useState(false);
+        const [modalTab, setModalTab]           = React.useState('library');
+        const [manual, setManual]               = React.useState({
+          name: '', primaryArcanum: 'forces', primaryLevel: 1,
+          secondaryArcanum: '', secondaryLevel: 1, type: 'improvised'
+        });
+
+        const maxSpells = gnosis >= 9 ? 4 : gnosis >= 6 ? 3 : gnosis >= 3 ? 2 : 1;
+
+        function getLowestArcanumInfo(list) {
+          if (!list || list.length === 0) return { arcanum: null, level: 0, spellId: null };
+          let lowest = { arcanum: null, level: Infinity, spellId: null };
+          list.forEach(spell => {
+            if (spell.primaryArcanumLevel < lowest.level)
+              lowest = { arcanum: spell.primaryArcanum, level: spell.primaryArcanumLevel, spellId: spell.id };
+            if (spell.secondaryArcanum && spell.secondaryArcanumLevel < lowest.level)
+              lowest = { arcanum: spell.secondaryArcanum, level: spell.secondaryArcanumLevel, spellId: spell.id };
+          });
+          return lowest;
+        }
+
+        // Keep bridge in sync with React state
+        React.useEffect(() => {
+          const info = () => getLowestArcanumInfo(spells);
+          window.classicCombinedBridge = {
+            isEnabled:                () => enabled,
+            getSpells:                () => spells,
+            getLowestArcanumInfo:     info,
+            getCombinationPenalty:    () => spells.length <= 1 ? 0 : -2 * (spells.length - 1),
+            getCombinedAdditionalReach: () => {
+              let total = spells.reduce((sum, s) => sum + (s.additionalReach || 0), 0);
+              if (separateScales && spells.length >= 2) total += 1;
+              return total;
+            },
+            areAllPraxes: () => spells.length > 0 && spells.every(s => s.type === 'praxis'),
+            getCasterLowestArcanumDots: () => {
+              const i = info();
+              if (!i.arcanum) return 1;
+              const ch = window.currentCharacter;
+              return ch ? (ch.arcana[i.arcanum] || 1)
+                        : (parseInt(document.getElementById('arcanumDots')?.value) || 1);
+            },
+          };
+        }, [enabled, spells, separateScales]);
+
+        // Trigger recalculation after state changes
+        React.useEffect(() => {
+          if (typeof calculate === 'function') calculate();
+        }, [enabled, spells, separateScales]);
+
+        // Notify parent of enabled state (for hiding arcanum fields)
+        React.useEffect(() => {
+          if (onEnabledChange) onEnabledChange(enabled);
+        }, [enabled]);
+
+        function handleToggle(checked) {
+          setEnabled(checked);
+          if (!checked) { setSpells([]); setSeparateScales(false); }
+        }
+
+        function openModal(tab) {
+          if (spells.length >= maxSpells) {
+            alert(`Maximum ${maxSpells} spells can be combined at Gnosis ${gnosis}.`);
+            return;
+          }
+          setManual({ name: '', primaryArcanum: 'forces', primaryLevel: 1, secondaryArcanum: '', secondaryLevel: 1, type: 'improvised' });
+          setModalTab(tab);
+          setModalOpen(true);
+        }
+
+        function addFromLibrary(spell) {
+          setSpells(prev => [...prev, {
+            id: spell.id, name: spell.name,
+            primaryArcanum: spell.primaryArcanum, primaryArcanumLevel: spell.primaryArcanumLevel,
+            secondaryArcanum: spell.secondaryArcanum || null,
+            secondaryArcanumLevel: spell.secondaryArcanumLevel || null,
+            type: spell.type || 'improvised', additionalReach: 0, fromLibrary: true
+          }]);
+          setModalOpen(false);
+        }
+
+        function addManual() {
+          setSpells(prev => [...prev, {
+            id: 'manual_' + Date.now(),
+            name: manual.name.trim() || 'Unnamed Spell',
+            primaryArcanum: manual.primaryArcanum, primaryArcanumLevel: manual.primaryLevel,
+            secondaryArcanum: manual.secondaryArcanum || null,
+            secondaryArcanumLevel: manual.secondaryArcanum ? manual.secondaryLevel : null,
+            type: manual.type, additionalReach: 0, fromLibrary: false
+          }]);
+          setModalOpen(false);
+        }
+
+        function removeSpell(id) { setSpells(prev => prev.filter(s => s.id !== id)); }
+        function updateReach(id, reach) {
+          setSpells(prev => prev.map(s => s.id === id ? {...s, additionalReach: reach} : s));
+        }
+
+        const lowestInfo = getLowestArcanumInfo(spells);
+        const penalty    = spells.length <= 1 ? 0 : -2 * (spells.length - 1);
+
+        const ch        = window.currentCharacter;
+        const addedIds  = spells.map(s => s.id);
+        const available = [
+          ...(ch?.praxes            || []),
+          ...(ch?.improvisedFavorites || [])
+        ].filter(s => !addedIds.includes(s.id));
+
+        const ARCANA_LIST = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
+
         return (
           <React.Fragment>
-            <div className="combined-spell-toggle" id="combinedToggle">
-              <input type="checkbox" id="combinedSpellEnabled" />
+            <div className={`combined-spell-toggle${enabled ? ' active' : ''}`} id="combinedToggle">
+              <input type="checkbox" id="combinedSpellEnabled" checked={enabled}
+                disabled={gnosis < 3}
+                onChange={e => handleToggle(e.target.checked)} />
               <label htmlFor="combinedSpellEnabled">Combined Spell</label>
-              <span className="info" id="combinedMaxInfo">Combine up to 2 spells at Gnosis 3+</span>
+              <span className="info" id="combinedMaxInfo">
+                {gnosis < 3
+                  ? 'Requires Gnosis 3+ to combine spells'
+                  : `Combine up to ${maxSpells} spells at Gnosis ${gnosis}`}
+              </span>
             </div>
-            <div className="combined-spell-section" id="combinedSpellSection">
-              <div className="combined-spell-list" id="combinedSpellList"></div>
-              <div className="combined-add-controls">
-                <button className="btn-small" id="btnAddFromLibrary">+ From Library</button>
-                <button className="btn-small" id="btnAddManualSpell">+ Manual Entry</button>
+
+            {enabled && (
+              <div className="combined-spell-section active" id="combinedSpellSection">
+                <div className="combined-spell-list" id="combinedSpellList">
+                  {spells.length === 0
+                    ? <div className="spell-library-empty">Add spells to combine</div>
+                    : spells.map(spell => {
+                        const isLowest   = lowestInfo.spellId === spell.id;
+                        const arcText    = capitalize(spell.primaryArcanum) + ' ' + spell.primaryArcanumLevel
+                          + (spell.secondaryArcanum
+                              ? ` / ${capitalize(spell.secondaryArcanum)} ${spell.secondaryArcanumLevel}`
+                              : '');
+                        return (
+                          <div key={spell.id} className={`combined-spell-item${isLowest ? ' lowest-arcanum' : ''}`}>
+                            <div className="spell-info">
+                              <div className="spell-name">{spell.name}</div>
+                              <div className={`spell-arcanum${isLowest ? ' lowest' : ''}`}>
+                                {arcText}{isLowest ? ' (lowest)' : ''}
+                              </div>
+                            </div>
+                            <div className="spell-reach">
+                              <label style={{fontSize:'0.8em',color:'var(--text-muted)'}}>+Reach:</label>
+                              <input type="number" min="0" max="10" value={spell.additionalReach || 0}
+                                onChange={e => updateReach(spell.id, parseInt(e.target.value) || 0)} />
+                            </div>
+                            <button className="btn-remove" onClick={() => removeSpell(spell.id)}>&times;</button>
+                          </div>
+                        );
+                      })
+                  }
+                </div>
+                <div className="combined-add-controls">
+                  <button className="btn-small" id="btnAddFromLibrary" onClick={() => openModal('library')}>+ From Library</button>
+                  <button className="btn-small" id="btnAddManualSpell" onClick={() => openModal('manual')}>+ Manual Entry</button>
+                </div>
+                {spells.length >= 2 && (
+                  <div className="scale-separation active" id="scaleSeparation">
+                    <label>
+                      <input type="checkbox" id="separateScales" checked={separateScales}
+                        onChange={e => setSeparateScales(e.target.checked)} />
+                      <span>Separate Scales (+1 Reach)</span>
+                    </label>
+                    <div className="info-text">Allow different spells to affect different targets/areas</div>
+                  </div>
+                )}
+                <div className="combined-stats" id="combinedStats">
+                  <div className="combined-stat">
+                    <span className="combined-stat-label">Spells:</span>
+                    <span className="combined-stat-value" id="combinedSpellCount">{spells.length}</span>
+                  </div>
+                  <div className="combined-stat">
+                    <span className="combined-stat-label">Lowest Arcanum:</span>
+                    <span className="combined-stat-value" id="combinedLowestArcanum">
+                      {lowestInfo.arcanum ? `${capitalize(lowestInfo.arcanum)} ${lowestInfo.level}` : '—'}
+                    </span>
+                  </div>
+                  <div className="combined-stat">
+                    <span className="combined-stat-label">Combination Penalty:</span>
+                    <span className="combined-stat-value penalty" id="combinedPenalty">{penalty}</span>
+                  </div>
+                </div>
               </div>
-              <div className="scale-separation" id="scaleSeparation">
-                <label>
-                  <input type="checkbox" id="separateScales" />
-                  <span>Separate Scales (+1 Reach)</span>
-                </label>
-                <div className="info-text">Allow different spells to affect different targets/areas</div>
+            )}
+
+            {modalOpen && (
+              <div className="modal-overlay active" id="addCombinedSpellModal">
+                <div className="modal" style={{maxWidth:'500px'}}>
+                  <div className="modal-header">
+                    <h2>Add Spell to Combination</h2>
+                    <button className="modal-close" onClick={() => setModalOpen(false)}>&times;</button>
+                  </div>
+                  <div className="modal-body">
+                    <div className="spell-library-tabs" style={{marginBottom:'16px'}}>
+                      <button className={`spell-tab${modalTab === 'library' ? ' active' : ''}`}
+                        onClick={() => setModalTab('library')}>From Library</button>
+                      <button className={`spell-tab${modalTab === 'manual' ? ' active' : ''}`}
+                        onClick={() => setModalTab('manual')}>Manual Entry</button>
+                    </div>
+                    {modalTab === 'library' ? (
+                      <div>
+                        <div className="info-text" style={{marginBottom:'8px'}}>
+                          Select a Praxis or Improvised Favorite (Rotes cannot be combined)
+                        </div>
+                        <div className="library-spell-list" id="combinableSpellList">
+                          {available.length === 0
+                            ? <div className="spell-library-empty">No compatible spells available</div>
+                            : available.map(spell => {
+                                const arcText = capitalize(spell.primaryArcanum) + ' ' + spell.primaryArcanumLevel
+                                  + (spell.secondaryArcanum
+                                      ? ` / ${capitalize(spell.secondaryArcanum)} ${spell.secondaryArcanumLevel}`
+                                      : '');
+                                const typeClass = spell.type || 'improvised';
+                                return (
+                                  <div key={spell.id} className="library-spell-option"
+                                    onClick={() => addFromLibrary(spell)}>
+                                    <div>
+                                      <div style={{fontWeight:'bold'}}>{spell.name}</div>
+                                      <div style={{fontSize:'0.85em',color:'var(--text-muted)'}}>{arcText}</div>
+                                    </div>
+                                    <span className={`spell-type ${typeClass}`}>{typeClass}</span>
+                                  </div>
+                                );
+                              })
+                          }
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="add-spell-form">
+                        <div className="form-group">
+                          <label>Spell Name</label>
+                          <input type="text" value={manual.name} placeholder="e.g., Influence Electricity"
+                            onChange={e => setManual(m => ({...m, name: e.target.value}))} />
+                        </div>
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label>Primary Arcanum</label>
+                            <select value={manual.primaryArcanum}
+                              onChange={e => setManual(m => ({...m, primaryArcanum: e.target.value}))}>
+                              {ARCANA_LIST.map(a => <option key={a} value={a}>{capitalize(a)}</option>)}
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label>Level</label>
+                            <input type="number" min="1" max="5" value={manual.primaryLevel}
+                              onChange={e => setManual(m => ({...m, primaryLevel: parseInt(e.target.value) || 1}))} />
+                          </div>
+                        </div>
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label>Secondary Arcanum (optional)</label>
+                            <select value={manual.secondaryArcanum}
+                              onChange={e => setManual(m => ({...m, secondaryArcanum: e.target.value}))}>
+                              <option value="">None</option>
+                              {ARCANA_LIST.map(a => <option key={a} value={a}>{capitalize(a)}</option>)}
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label>Level</label>
+                            <input type="number" min="1" max="5" value={manual.secondaryLevel}
+                              onChange={e => setManual(m => ({...m, secondaryLevel: parseInt(e.target.value) || 1}))} />
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label>Type</label>
+                          <select value={manual.type}
+                            onChange={e => setManual(m => ({...m, type: e.target.value}))}>
+                            <option value="improvised">Improvised</option>
+                            <option value="praxis">Praxis</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="modal-footer">
+                    <button className="btn-small" onClick={() => setModalOpen(false)}>Cancel</button>
+                    {modalTab === 'manual' && (
+                      <button className="btn-small btn-primary" onClick={addManual}>Add Spell</button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="combined-stats" id="combinedStats">
-                <div className="combined-stat"><span className="combined-stat-label">Spells:</span><span className="combined-stat-value" id="combinedSpellCount">0</span></div>
-                <div className="combined-stat"><span className="combined-stat-label">Lowest Arcanum:</span><span className="combined-stat-value" id="combinedLowestArcanum">—</span></div>
-                <div className="combined-stat"><span className="combined-stat-label">Combination Penalty:</span><span className="combined-stat-value penalty" id="combinedPenalty">0</span></div>
-              </div>
-            </div>
+            )}
           </React.Fragment>
         );
-      }, () => true);
+      }
 
       // ManaSummaryDisplay removed — mana summary now rendered in ClassicResultsPanel (Phase 4)
 
@@ -7634,7 +7414,7 @@
       function ClassicSpellForm() {
         const [form, setForm] = _sf_us({
           gnosis: 1, spellArcanum: '', arcanumDots: 3, spellRequirement: 1,
-          activeSpellCount: 0,
+          activeSpellCount: 0, combinedEnabled: false,
           spellName: '',
           castingMethod: 'improvised', practice: 'weaving',
           defaultPrimaryFactor: 'potency', primaryFactor: 'potency',
@@ -7665,6 +7445,13 @@
         _sf_ue(() => {
           if (typeof calculate === 'function') calculate();
         }, [form]);
+
+        // When combined mode enables, rotes are not allowed — reset to improvised
+        _sf_ue(() => {
+          if (form.combinedEnabled && form.castingMethod.startsWith('rote')) {
+            set('castingMethod', 'improvised');
+          }
+        }, [form.combinedEnabled]);
 
         // ── Derived ──────────────────────────────────────────────────────────
         const isRote    = form.castingMethod.startsWith('rote');
@@ -7749,25 +7536,31 @@
                     value={form.gnosis} onChange={e => set('gnosis', Math.max(1, parseInt(e.target.value)||1))} />
                   <div className="info-text" id="gnosisInfo">{ritInt} | Max Yantras: {maxYant}</div>
                 </div>
-                <div className="form-group" id="spellArcanumGroup">
-                  <label>Spell's Arcanum</label>
-                  <select id="spellArcanum" value={form.spellArcanum} onChange={e => onArcanum(e.target.value)}>
-                    <option value="">— Select —</option>
-                    {ARCANA.map(a => <option key={a} value={a}>{a.charAt(0).toUpperCase()+a.slice(1)}</option>)}
-                  </select>
-                  <div className="info-text" id="spellArcanumInfo" style={{color:arcColor}}>{arcText}</div>
-                </div>
-                <div className="form-group">
-                  <label>Caster's Arcanum Dots</label>
-                  <input type="number" id="arcanumDots" min="1" max="5"
-                    value={form.arcanumDots} onChange={e => set('arcanumDots', parseInt(e.target.value)||1)} />
-                </div>
-                <div className="form-group">
-                  <label>Spell's Arcanum Requirement</label>
-                  <input type="number" id="spellRequirement" min="1" max="5"
-                    value={form.spellRequirement} onChange={e => set('spellRequirement', parseInt(e.target.value)||1)} />
-                  <div className="info-text">Minimum Arcanum dots needed for the spell</div>
-                </div>
+                {!form.combinedEnabled && (
+                  <div className="form-group" id="spellArcanumGroup">
+                    <label>Spell's Arcanum</label>
+                    <select id="spellArcanum" value={form.spellArcanum} onChange={e => onArcanum(e.target.value)}>
+                      <option value="">— Select —</option>
+                      {ARCANA.map(a => <option key={a} value={a}>{a.charAt(0).toUpperCase()+a.slice(1)}</option>)}
+                    </select>
+                    <div className="info-text" id="spellArcanumInfo" style={{color:arcColor}}>{arcText}</div>
+                  </div>
+                )}
+                {!form.combinedEnabled && (
+                  <div className="form-group">
+                    <label>Caster's Arcanum Dots</label>
+                    <input type="number" id="arcanumDots" min="1" max="5"
+                      value={form.arcanumDots} onChange={e => set('arcanumDots', parseInt(e.target.value)||1)} />
+                  </div>
+                )}
+                {!form.combinedEnabled && (
+                  <div className="form-group">
+                    <label>Spell's Arcanum Requirement</label>
+                    <input type="number" id="spellRequirement" min="1" max="5"
+                      value={form.spellRequirement} onChange={e => set('spellRequirement', parseInt(e.target.value)||1)} />
+                    <div className="info-text">Minimum Arcanum dots needed for the spell</div>
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Currently Active Spells</label>
                   <ActiveSpellsDisplay />
@@ -7795,7 +7588,7 @@
                 <input type="text" id="spellName" placeholder="e.g., Supernal Vision, Counterspell Prime..."
                   value={form.spellName} onChange={e => set('spellName', e.target.value)} />
               </div>
-              <CombinedSpellZone />
+              <ClassicCombinedSpellPanel gnosis={form.gnosis} onEnabledChange={v => set('combinedEnabled', v)} />
               <div id="singleSpellControls">
                 <div className="form-grid">
                   <div className="form-group">
@@ -7803,9 +7596,9 @@
                     <select id="castingMethod" value={form.castingMethod} onChange={e => onCastingMethod(e.target.value)}>
                       <option value="improvised">Improvised (+1 Mana if not Ruling)</option>
                       <option value="praxis">Praxis (Exceptional at 3)</option>
-                      <option value="roteGrimoire">Rote - Grimoire (Rote Quality, 2× Ritual)</option>
-                      <option value="roteOwn">Rote - Your Design (Rote Quality, Mudra)</option>
-                      <option value="roteLearned">Rote - Learned (Mudra only)</option>
+                      <option value="roteGrimoire" disabled={form.combinedEnabled}>Rote - Grimoire (Rote Quality, 2× Ritual)</option>
+                      <option value="roteOwn" disabled={form.combinedEnabled}>Rote - Your Design (Rote Quality, Mudra)</option>
+                      <option value="roteLearned" disabled={form.combinedEnabled}>Rote - Learned (Mudra only)</option>
                     </select>
                   </div>
                   <div className="form-group">
