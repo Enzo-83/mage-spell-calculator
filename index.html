@@ -3165,7 +3165,7 @@
                 const dedicatedTool = document.querySelector('[data-yantra="dedicatedTool"]');
                 const pathToolDedicated = document.getElementById('pathToolDedicated');
                 const orderToolDedicated = document.getElementById('orderToolDedicated');
-                return dedicatedTool.checked || pathToolDedicated.checked || orderToolDedicated.checked;
+                return (dedicatedTool?.checked || pathToolDedicated?.checked || orderToolDedicated?.checked) || false;
             }
             
             // Update Spell Arcanum info text (ruling/inferior indicator)
@@ -3193,6 +3193,7 @@
             
             // Main calculation function
             function calculate() {
+                if (!document.getElementById('gnosis')) return; // React SpellForm not yet mounted
                 const gnosis = parseInt(document.getElementById('gnosis').value) || 1;
                 let arcanumDots = parseInt(document.getElementById('arcanumDots').value) || 1;
                 let castingMethod = document.getElementById('castingMethod').value;
@@ -3246,20 +3247,20 @@
                     scaleType: getScaleType(),
                     range: document.getElementById('range').value,
                     castingTime: document.getElementById('castingTime').value,
-                    ritualIntervals: parseInt(document.getElementById('ritualIntervals').value) || 0,
+                    ritualIntervals: parseInt(document.getElementById('ritualIntervals')?.value) || 0,
                     additionalReach: additionalReach
                 };
-                
+
                 const spellResult = calculateSpellFactors(factorParams);
-                
+
                 // Dice Pool params
                 const poolParams = {
                     gnosis: gnosis,
                     arcanumDots: arcanumDots,
                     castingMethod: castingMethod,
                     castingMethodInfo: spellResult.castingMethod, // Pass the full method info
-                    roteSkill: parseInt(document.getElementById('roteSkill').value) || 0,
-                    isOrderSkill: document.getElementById('isOrderSkill').checked,
+                    roteSkill: parseInt(document.getElementById('roteSkill')?.value) || 0,
+                    isOrderSkill: document.getElementById('isOrderSkill')?.checked || false,
                     spellFactorPenalty: spellResult.totals.factorPenalty,
                     ritualBonus: spellResult.totals.ritualBonus,
                     yantras: getSelectedYantras(),
@@ -4160,9 +4161,15 @@
 
             function syncActiveSpellCount() {
                 const count = (currentCharacter?.activeSpells || []).filter(s => !s.isRelinquished).length;
+                const max   = currentCharacter?.gnosis || 1;
                 if (window.classicBridge?.setActiveSpellCount) {
                     window.classicBridge.setActiveSpellCount(count);
                 }
+                // Direct DOM update — ActiveSpellsDisplay is memoized, never re-renders
+                const countEl = document.getElementById('activeSpellsCount');
+                const infoEl  = document.getElementById('activeSpellsInfo');
+                if (countEl) countEl.textContent = count;
+                if (infoEl)  infoEl.textContent  = `/ ${max} max`;
                 // Modal badge
                 const badgeEl = document.getElementById('activeSpellsModalCount');
                 if (badgeEl) badgeEl.textContent = count > 0 ? `(${count})` : '';
@@ -5701,7 +5708,19 @@
             
             // Initialize combined spell system
             initCombinedSpellSystem();
-            
+
+            // Active Spells modal — outside initCombinedSpellSystem so it always runs
+            window.openActiveSpellsModal = function() {
+                renderActiveSpellsList();
+                document.getElementById('activeSpellsModal').classList.add('active');
+            };
+            document.getElementById('activeSpellsModalClose').addEventListener('click', function() {
+                document.getElementById('activeSpellsModal').classList.remove('active');
+            });
+            document.getElementById('activeSpellsModal').addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('active');
+            });
+
             // =================================================================
             // DISCORD INTEGRATION
             // =================================================================
@@ -6269,16 +6288,7 @@
                 }
             }
             
-            // Discord buttons + save-to-library are now wired via React onClick (Phase 4)
-            // Initialize Save to Library modal close handlers
-            document.getElementById('saveLibModalClose').addEventListener('click', closeSaveToLibrary);
-            document.getElementById('btnCancelSaveLib').addEventListener('click', closeSaveToLibrary);
-            document.getElementById('btnConfirmSaveLib').addEventListener('click', confirmSaveToLibrary);
-            
-            // Toggle rote section visibility in Save to Library modal
-            document.getElementById('saveLibType').addEventListener('change', function() {
-                document.getElementById('saveLibRoteSection').style.display = this.value === 'rote' ? 'block' : 'none';
-            });
+            // Save to Library modal is now owned by React ClassicSpellLibraryDrawer (Phase 6)
             
             // Mana/health buttons removed — now handled by React (classic-header-root)
             
@@ -6340,9 +6350,7 @@
             window.spellLibraryAPI = {
                 getCharacter:   function () { return currentCharacter; },
                 getCurrentTab:  function () {
-                    var t = window.classicSpellLibBridge?.getCurrentTab?.() || currentSpellTab;
-                    // Prevent spellCompendium.js from rendering vanilla HTML into the compendium tab
-                    return t === 'compendium' ? 'rotes' : t;
+                    return window.classicSpellLibBridge?.getCurrentTab?.() || currentSpellTab;
                 },
                 switchTab: function (tabName) {
                     currentSpellTab = tabName;
@@ -6352,10 +6360,9 @@
                 save:           saveCharacterToLocalStorage
             };
 
-            // Initialise the compendium module (Firebase sub, auth, suggestFromSpell)
+            // Initialise the compendium module (Firebase sub, auth, admin panel)
+            // renderCompendiumTab() is called by SLCompendiumView when the tab mounts
             if (window.initCompendium) window.initCompendium();
-            // Phase 6: React handles the compendium tab — no-op the vanilla renderer
-            window.renderCompendiumTab = function () {};
 
             // ── React ↔ Vanilla bridge (callbacks React components call into) ──
             window.classicVanilla = {
@@ -6421,11 +6428,28 @@
             window.classicVanilla.loadSpell = loadSpellToCalculator;
             window.classicVanilla.exportSpellLibrary = exportSpellLibrary;
 
+            // Expose calculate globally so React SpellForm useEffect can call it
+            window.calculate = calculate;
+
             // Run initial calculation
             calculate();
         });
     </script>
     
+    <!-- Active Spells Modal -->
+    <div class="modal-overlay" id="activeSpellsModal">
+        <div class="modal" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2>Active Spells <span id="activeSpellsModalCount"></span></h2>
+                <button class="modal-close" id="activeSpellsModalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="activeSpellsEmpty" style="color:var(--text-muted);text-align:center;padding:24px 0;">No active spells</div>
+                <div id="activeSpellsList"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add Combined Spell Modal -->
     <div class="modal-overlay" id="addCombinedSpellModal">
         <div class="modal" style="max-width: 500px;">
@@ -7592,7 +7616,7 @@
           <div className="active-spells-display">
             <span className="active-spells-count" id="activeSpellsCount">0</span>
             <span id="activeSpellsInfo" style={{color:'var(--text-muted)',fontSize:'0.8em'}}>/ 1 max</span>
-            <span className="active-spells-manage-link" id="activeSpellsManageLink">Manage →</span>
+            <span className="active-spells-manage-link" id="activeSpellsManageLink" onClick={() => window.openActiveSpellsModal?.()}>Manage →</span>
           </div>
         );
       }, () => true);
@@ -9319,322 +9343,17 @@
       }
 
       // ── SLCompendiumView ─────────────────────────────────────────────────────
-      // Adapted from wizard.html CompendiumOverlay — tab layout, no close button
-      function SLCompendiumView({ character, compUser, compRole }) {
-        const [spells, setSpells]           = _sl_us([]);
-        const [loading, setLoading]         = _sl_us(true);
-        const [search, setSearch]           = _sl_us('');
-        const [filterBook, setFilterBook]   = _sl_us('all');
-        const [filterArc, setFilterArc]     = _sl_us('all');
-        const [expandedId, setExpandedId]   = _sl_us(null);
-        const [addingSpell, setAddingSpell] = _sl_us(null);
-        const [addType, setAddType]         = _sl_us('praxis');
-        const [roteSkill, setRoteSkill]     = _sl_us('occult');
-        const [roteCreator, setRoteCreator] = _sl_us('');
-        const [signBusy, setSignBusy]       = _sl_us(false);
-        const [addFeedback, setAddFeedback] = _sl_us({});
-
+      // Thin wrapper — delegates all rendering/auth/admin to spellCompendium.js
+      // spellCompendium.js writes into #spellLibraryContent; we mount it here.
+      function SLCompendiumView() {
         _sl_ue(() => {
-          setLoading(true);
-          setSpells([]);
-          const unsub = _slFs.collection('compendium')
-            .where('approved', '==', true)
-            .onSnapshot(snap => {
-              const items = [];
-              snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
-              items.sort((a,b) => (a.name||'').localeCompare(b.name||''));
-              setSpells(items);
-              setLoading(false);
-            }, err => { console.error('Compendium error:', err); setLoading(false); });
-          return () => unsub();
-        }, [compUser]); // re-subscribe when auth state changes so sign-in unlocks spells
-
-        function handleSignIn() {
-          setSignBusy(true);
-          const p = new firebase.auth.GoogleAuthProvider();
-          _slAuth.signInWithPopup(p).catch(e=>console.error(e)).finally(()=>setSignBusy(false));
-        }
-        function handleSignOut() { _slAuth.signOut(); }
-        function isAdded(spell, type) {
-          if (!character) return false;
-          const arr = type==='rote' ? (character.rotes||[])
-            : type==='praxis' ? (character.praxes||[])
-            : (character.improvisedFavorites||[]);
-          return arr.some(s => s.compendiumId === spell.id);
-        }
-        function anyAdded(spell) {
-          return isAdded(spell,'rote') || isAdded(spell,'praxis') || isAdded(spell,'favorite');
-        }
-        function openAdd(spell) {
-          setAddType('praxis'); setRoteSkill('occult'); setRoteCreator(''); setAddingSpell(spell);
-        }
-        function confirmAdd() {
-          if (!addingSpell || !character) return;
-          const sid = addingSpell.id;
-          const st = addType;
-          const params = {
-            compendiumId: addingSpell.id,
-            name: addingSpell.name,
-            primaryArcanum: (addingSpell.primaryArcanum||'prime').toLowerCase(),
-            primaryArcanumLevel: addingSpell.primaryArcanumLevel || 1,
-            secondaryArcanum: addingSpell.secondaryArcanum||null,
-            secondaryArcanumLevel: addingSpell.secondaryArcanumLevel||null,
-            practice: addingSpell.practice || "Compelling",
-            primaryFactor: addingSpell.primaryFactor || "potency",
-            withstand: addingSpell.withstand || "",
-            description: addingSpell.description || "",
-            reachOptions: addingSpell.reachOptions || [],
-            roteSkill: st==='rote' ? roteSkill : null,
-            roteCreator: st==='rote' ? (roteCreator||'order') : null,
-          };
-          const updatedChar = window.classicVanilla?.addSpell?.(st, params);
-          if (updatedChar) {
-            window.classicSpellLibBridge?.refresh?.(updatedChar);
-            window.classicVanilla?.showToast?.(`Added "${addingSpell.name}" as ${st}!`, 'success');
-          }
-          setAddFeedback(prev => ({...prev, [sid]: st}));
-          setAddingSpell(null);
-          setTimeout(() => setAddFeedback(prev => { const n={...prev}; delete n[sid]; return n; }), 3000);
-        }
-
-        const filtered = spells.filter(s => {
-          if (filterBook !== 'all' && s.sourceBook !== filterBook) return false;
-          if (filterArc  !== 'all' && (s.primaryArcanum||'').toLowerCase() !== filterArc.toLowerCase()) return false;
-          if (search) {
-            const q = search.toLowerCase();
-            if (!(s.name||'').toLowerCase().includes(q) && !(s.description||'').toLowerCase().includes(q)) return false;
-          }
-          return true;
+          if (typeof window.renderCompendiumTab === 'function') window.renderCompendiumTab();
+        }); // run after every render so auth/filter changes re-render correctly
+        return React.createElement('div', {
+          id: 'spellLibraryContent',
+          style: { height: '100%', overflowY: 'auto', padding: '4px 0' }
         });
-        const roleBadgeColor = { admin:'#c73e1d', editor:'#2a9d8f', 'sub-editor':'#e9c46a', suggester:'#9d4edd' };
-
-        return (
-          <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0, position:"relative" }}>
-            {/* Auth + search row */}
-            <div style={{ padding:"8px 10px", display:"flex", gap:6, alignItems:"center", flexShrink:0,
-              borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-              {compUser ? (
-                <div style={{ display:"flex", alignItems:"center", gap:6, marginLeft:"auto" }}>
-                  {compRole && compRole !== 'player' && (
-                    <span style={{ fontSize:9, fontWeight:700, textTransform:"uppercase", letterSpacing:.8,
-                      padding:"2px 6px", borderRadius:4,
-                      background:roleBadgeColor[compRole]?roleBadgeColor[compRole]+'33':'rgba(123,44,191,0.12)',
-                      color:roleBadgeColor[compRole]||'var(--accent-light)',
-                      border:`1px solid ${roleBadgeColor[compRole]||'rgba(157,78,221,0.35)'}44` }}>
-                      {compRole}
-                    </span>
-                  )}
-                  <button onClick={handleSignOut}
-                    style={{ padding:"3px 8px", borderRadius:5, fontSize:10, cursor:"pointer",
-                      background:"transparent", border:"1px solid rgba(255,255,255,0.12)",
-                      color:"var(--text-muted)" }}>
-                    Sign Out
-                  </button>
-                </div>
-              ) : (
-                <button onClick={handleSignIn} disabled={signBusy}
-                  style={{ padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
-                    cursor:signBusy?"not-allowed":"pointer", marginLeft:"auto",
-                    background:"rgba(66,133,244,0.15)", border:"1px solid rgba(66,133,244,0.4)",
-                    color:"#4285F4", opacity:signBusy?0.6:1 }}>
-                  {signBusy ? "…" : "🔑 Sign In"}
-                </button>
-              )}
-            </div>
-            {/* Filters */}
-            <div style={{ padding:"8px 10px", display:"flex", flexDirection:"column", gap:6, flexShrink:0 }}>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search spells…"
-                style={SL_INP}/>
-              <div style={{ display:"flex", gap:6 }}>
-                <select value={filterBook} onChange={e=>setFilterBook(e.target.value)}
-                  style={{ ...SL_INP, flex:1 }}>
-                  <option value="all">All Books</option>
-                  {Object.entries(SL_COMP_BOOKS).map(([k,v])=>(
-                    <option key={k} value={k}>{v.short}</option>
-                  ))}
-                </select>
-                <select value={filterArc} onChange={e=>setFilterArc(e.target.value)}
-                  style={{ ...SL_INP, flex:1 }}>
-                  <option value="all">All Arcana</option>
-                  {SL_ARCANA.map(a=><option key={a} value={a}>{capitalize(a)}</option>)}
-                </select>
-              </div>
-              <div style={{ fontSize:10, color:"var(--text-muted)" }}>
-                {loading ? "Loading…" : `${filtered.length} spell${filtered.length!==1?'s':''} found`}
-              </div>
-            </div>
-            {/* List */}
-            <div style={{ flex:1, overflowY:"auto", padding:"0 10px 10px" }}>
-              {loading && (
-                <div style={{ textAlign:"center", color:"var(--text-muted)", padding:40, fontSize:13 }}>
-                  Loading compendium…
-                </div>
-              )}
-              {!loading && filtered.length===0 && (
-                <div style={{ textAlign:"center", color:"var(--text-muted)", padding:40, fontSize:13 }}>
-                  No spells match your filters.
-                </div>
-              )}
-              {!loading && filtered.map(spell => {
-                const book = SL_COMP_BOOKS[spell.sourceBook];
-                const isExpanded = expandedId === spell.id;
-                const added = anyAdded(spell);
-                const justAdded = addFeedback[spell.id];
-                return (
-                  <div key={spell.id} style={{ marginBottom:7, borderRadius:8, overflow:"hidden",
-                    background:"var(--bg-card)",
-                    border:`1px solid ${isExpanded?'rgba(157,78,221,0.4)':'rgba(255,255,255,0.08)'}`,
-                    transition:"border-color .2s" }}>
-                    <div onClick={()=>setExpandedId(isExpanded?null:spell.id)}
-                      style={{ padding:"9px 11px", display:"flex", alignItems:"center", gap:7, cursor:"pointer" }}>
-                      {book && (
-                        <span style={{ fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:3,
-                          background:`${book.color}22`, color:book.color, border:`1px solid ${book.color}44`,
-                          textTransform:"uppercase", letterSpacing:.5, flexShrink:0 }}>
-                          {book.short}
-                        </span>
-                      )}
-                      <span style={{ fontWeight:600, fontSize:13,
-                        color:added?'var(--accent-light)':'var(--text)', flex:1 }}>
-                        {spell.name}
-                      </span>
-                      <span style={{ fontSize:10, color:"var(--text-muted)", flexShrink:0 }}>
-                        {spell.primaryArcanum} {spell.primaryArcanumLevel?'●'.repeat(spell.primaryArcanumLevel):''}
-                      </span>
-                      <span style={{ fontSize:11, color:"var(--text-muted)", flexShrink:0, marginLeft:3 }}>
-                        {isExpanded?'▲':'▼'}
-                      </span>
-                    </div>
-                    {isExpanded && (
-                      <div style={{ padding:"0 11px 11px", borderTop:"1px solid rgba(255,255,255,0.06)" }}>
-                        <div style={{ display:"flex", flexWrap:"wrap", gap:4, margin:"8px 0 6px" }}>
-                          {spell.practice && (
-                            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
-                              background:"rgba(123,44,191,0.12)", color:"var(--accent-light)",
-                              border:"1px solid rgba(157,78,221,0.3)" }}>{spell.practice}</span>
-                          )}
-                          {spell.primaryFactor && (
-                            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
-                              background:"rgba(42,157,143,0.12)", color:"var(--success)",
-                              border:"1px solid rgba(42,157,143,0.3)" }}>Factor: {spell.primaryFactor}</span>
-                          )}
-                          {spell.withstand && (
-                            <span style={{ fontSize:10, padding:"2px 7px", borderRadius:4,
-                              background:"rgba(199,62,29,0.1)", color:"var(--danger)",
-                              border:"1px solid rgba(199,62,29,0.25)" }}>Withstand: {spell.withstand}</span>
-                          )}
-                        </div>
-                        {spell.description && (
-                          <p style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.55, marginBottom:8 }}>
-                            {spell.description}
-                          </p>
-                        )}
-                        {spell.reachOptions && spell.reachOptions.length>0 && (
-                          <div style={{ marginBottom:8 }}>
-                            <div style={{ fontSize:10, color:"var(--accent-light)", fontWeight:600, marginBottom:3 }}>
-                              Reach Options
-                            </div>
-                            {spell.reachOptions.map((r,i)=>(
-                              <div key={i} style={{ fontSize:10, color:"var(--text-muted)", paddingLeft:8,
-                                borderLeft:"2px solid rgba(157,78,221,0.3)", marginBottom:2 }}>{r}</div>
-                            ))}
-                          </div>
-                        )}
-                        {spell.optionalArcana && spell.optionalArcana.length>0 && (
-                          <div style={{ marginBottom:8 }}>
-                            <div style={{ fontSize:10, color:"var(--warning)", fontWeight:600, marginBottom:3 }}>
-                              Optional Arcana
-                            </div>
-                            {spell.optionalArcana.map((oa,i)=>(
-                              <div key={i} style={{ fontSize:10, color:"var(--text-muted)", paddingLeft:8,
-                                borderLeft:"2px solid rgba(233,196,106,0.3)", marginBottom:2 }}>
-                                {oa.arcanum} {oa.level?'●'.repeat(oa.level):''}{oa.effect?` — ${oa.effect}`:''}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {character ? (
-                          justAdded ? (
-                            <div style={{ textAlign:"center", fontSize:11, color:"var(--success)", padding:"6px 0" }}>
-                              ✓ Added as {justAdded}!
-                            </div>
-                          ) : (
-                            <button onClick={()=>openAdd(spell)}
-                              style={{ width:"100%", padding:"8px 0", borderRadius:6, fontSize:12, fontWeight:600,
-                                cursor:"pointer", border:"none",
-                                background:"linear-gradient(135deg,var(--accent),var(--accent-light))",
-                                color:"#fff" }}>
-                              {added ? "✚ Add Again" : "✚ Add to Grimoire"}
-                            </button>
-                          )
-                        ) : (
-                          <div style={{ textAlign:"center", fontSize:11, color:"var(--text-muted)",
-                            padding:"6px 0", fontStyle:"italic" }}>
-                            Load a character to add spells
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {/* Add drawer */}
-            {addingSpell && (
-              <div style={{ position:"absolute", bottom:0, left:0, right:0, zIndex:10,
-                background:"var(--bg-card)", borderTop:"2px solid rgba(157,78,221,0.45)",
-                padding:"14px 16px 18px" }}>
-                <div style={{ fontWeight:700, fontSize:14, color:"var(--text)", marginBottom:10 }}>
-                  Add "{addingSpell.name}"
-                </div>
-                <div style={{ display:"flex", gap:6, marginBottom:10 }}>
-                  {['rote','praxis','favorite'].map(t => {
-                    const already = isAdded(addingSpell, t);
-                    return (
-                      <button key={t} onClick={()=>!already && setAddType(t)}
-                        style={{ flex:1, padding:"7px 0", borderRadius:6, fontSize:11, fontWeight:600,
-                          cursor:already?"not-allowed":"pointer",
-                          border:`1px solid ${addType===t?'rgba(157,78,221,0.5)':'rgba(255,255,255,0.1)'}`,
-                          background:already?'rgba(123,44,191,0.2)':addType===t?'rgba(123,44,191,0.15)':'transparent',
-                          color:already?'var(--accent-light)':addType===t?'var(--accent-light)':'var(--text-muted)',
-                          opacity:already?0.6:1 }}>
-                        {already?"✓ ":""}{t.charAt(0).toUpperCase()+t.slice(1)}
-                      </button>
-                    );
-                  })}
-                </div>
-                {addType==='rote' && (
-                  <div style={{ marginBottom:10 }}>
-                    <select value={roteSkill} onChange={e=>setRoteSkill(e.target.value)}
-                      style={{ ...SL_INP, marginBottom:6 }}>
-                      {SL_SKILL_OPTS.map(s=><option key={s.key} value={s.key}>{s.lbl}</option>)}
-                    </select>
-                    <input value={roteCreator} onChange={e=>setRoteCreator(e.target.value)}
-                      placeholder="Creator / Order (optional)"
-                      style={SL_INP}/>
-                  </div>
-                )}
-                <div style={{ display:"flex", gap:8 }}>
-                  <button onClick={()=>setAddingSpell(null)}
-                    style={{ flex:1, padding:"9px 0", borderRadius:6, fontSize:12, fontWeight:600,
-                      cursor:"pointer", background:"transparent",
-                      border:"1px solid rgba(255,255,255,0.12)", color:"var(--text-muted)" }}>
-                    Cancel
-                  </button>
-                  <button onClick={confirmAdd}
-                    style={{ flex:2, padding:"9px 0", borderRadius:6, fontSize:12, fontWeight:600,
-                      cursor:"pointer", border:"none",
-                      background:"linear-gradient(135deg,var(--accent),var(--accent-light))",
-                      color:"#fff" }}>
-                    ✓ Confirm
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
       }
-
       // ── ClassicSpellLibraryDrawer ─────────────────────────────────────────────
       function ClassicSpellLibraryDrawer() {
         const [character, setCharacter]   = _sl_us(null);
@@ -9642,24 +9361,7 @@
         const [viewMode, setViewMode]     = _sl_us('grid');  // 'grid'|'browse'
         const [editorSpell, setEditorSpell] = _sl_us(null);  // spell being edited (null = closed)
         const [saveModal, setSaveModal]   = _sl_us(null);    // { state, sourceSpellId } | null
-        const [compUser, setCompUser]     = _sl_us(null);
-        const [compRole, setCompRole]     = _sl_us(null);
-
-        // Auth listener for compendium
-        _sl_ue(() => {
-          const unsub = _slAuth.onAuthStateChanged(async user => {
-            setCompUser(user || null);
-            if (user) {
-              try {
-                const doc = await _slFs.collection('roles').doc(user.uid).get();
-                setCompRole(doc.exists ? (doc.data().role || 'player') : 'player');
-              } catch { setCompRole('player'); }
-            } else {
-              setCompRole(null);
-            }
-          });
-          return () => unsub();
-        }, []);
+        // compUser/compRole removed — spellCompendium.js owns auth for the compendium tab
 
         // Bridge setup
         _sl_ue(() => {
@@ -9805,7 +9507,7 @@
             {(character || tab === 'compendium') && (
               <div style={{ flex:1, minHeight:0, position:"relative" }}>
                 {tab === 'compendium' ? (
-                  <SLCompendiumView character={character} compUser={compUser} compRole={compRole}/>
+                  <SLCompendiumView/>
                 ) : viewMode === 'grid' ? (
                   <SLGridView spells={tabSpells} character={character} tabKey={tab}
                     onLoad={handleLoad} onEdit={handleEdit} onDelete={handleDelete} onNew={handleNew}/>
