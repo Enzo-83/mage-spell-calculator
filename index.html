@@ -3193,6 +3193,7 @@
             
             // Main calculation function
             function calculate() {
+                if (!document.getElementById('gnosis')) return; // React SpellForm not yet mounted
                 const gnosis = parseInt(document.getElementById('gnosis').value) || 1;
                 let arcanumDots = parseInt(document.getElementById('arcanumDots').value) || 1;
                 let castingMethod = document.getElementById('castingMethod').value;
@@ -4043,7 +4044,8 @@
             // Apply character data to main calculator form
             function applyCharacterToForm() {
                 if (!currentCharacter) return;
-                updateCombinedMaxInfo();
+                // updateCombinedMaxInfo() removed Phase 7 — React ClassicCombinedSpellPanel
+                // reacts to gnosis prop change automatically
                 syncActiveSpellCount();
                 renderActiveSpellsList();
 
@@ -5874,16 +5876,7 @@
                 }
             }
             
-            // Discord buttons + save-to-library are now wired via React onClick (Phase 4)
-            // Initialize Save to Library modal close handlers
-            document.getElementById('saveLibModalClose').addEventListener('click', closeSaveToLibrary);
-            document.getElementById('btnCancelSaveLib').addEventListener('click', closeSaveToLibrary);
-            document.getElementById('btnConfirmSaveLib').addEventListener('click', confirmSaveToLibrary);
-            
-            // Toggle rote section visibility in Save to Library modal
-            document.getElementById('saveLibType').addEventListener('change', function() {
-                document.getElementById('saveLibRoteSection').style.display = this.value === 'rote' ? 'block' : 'none';
-            });
+            // Save to Library modal is now owned by React ClassicSpellLibraryDrawer (Phase 6)
             
             // Mana/health buttons removed — now handled by React (classic-header-root)
             
@@ -7110,7 +7103,9 @@
           <div className="active-spells-display">
             <span className="active-spells-count" id="activeSpellsCount">0</span>
             <span id="activeSpellsInfo" style={{color:'var(--text-muted)',fontSize:'0.8em'}}>/ 1 max</span>
-            <span className="active-spells-manage-link" id="activeSpellsManageLink">Manage →</span>
+            <span className="active-spells-manage-link" id="activeSpellsManageLink"
+              style={{cursor:'pointer'}}
+              onClick={() => window.classicVanilla?.onEdit?.()}>Manage →</span>
           </div>
         );
       }, () => true);
