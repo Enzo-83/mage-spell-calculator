@@ -2722,9 +2722,9 @@
         }
     </style>
   <!-- React 18 + Babel (Phase 1 migration) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" integrity="sha384-tMH8h3BGESGckSAVGZ82T9n90ztNXxvdwvdM6UoR56cYcf+0iGXBliJ29D+wZ/x8" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" integrity="sha384-bm7MnzvK++ykSwVJ2tynSE5TRdN+xL418osEVF2DE/L/gfWHj91J2Sphe582B1Bh" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" integrity="sha384-1qlE7MZPM2pHD/pBZCU/yB8UCP52RYL8bge/qNdfNBCWToySp8/M+JL2waXU4hjJ" crossorigin="anonymous"></script>
 </head>
 <body>
     <div style="position: fixed;
@@ -2756,10 +2756,7 @@
 
         <h1>⟡ Spell Factor Calculator ⟡</h1>
         
-        <!-- SpellForm (Phase 3: React) -->
-        <div id="classic-spellform-root"></div>
-        <!-- Results Panel (Phase 4: React) -->
-        <div id="classic-results-root"></div>
+        <div id="classic-calculator-root"></div>
         
         <!-- Clash of Wills -->
         <div class="card" id="clashOfWillsSection">
@@ -2845,111 +2842,10 @@
       if (!window._fbDb) {
         window._fbDb = firebase.database();
       }
-
-      function sceneGenerateCode() {
-        var chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var code = "";
-        for (var i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
-        return code;
-      }
-      function sceneGetRef(roomCode) {
-        return _fbDb.ref("sessions/" + roomCode);
-      }
-      function sceneCreateRoom(roomCode, stName) {
-        return sceneGetRef(roomCode).set({
-          sceneActive: false, sceneNumber: 0,
-          createdBy: stName,
-          createdAt: firebase.database.ServerValue.TIMESTAMP,
-        });
-      }
-      function sceneSetActive(roomCode, active) {
-        var updates = { sceneActive: active };
-        if (active) updates.sceneStartedAt = firebase.database.ServerValue.TIMESTAMP;
-        return sceneGetRef(roomCode).update(updates);
-      }
-      function sceneIncrementNumber(roomCode) {
-        return sceneGetRef(roomCode).child("sceneNumber").transaction(function(n) {
-          return (n || 0) + 1;
-        });
-      }
-      function sceneJoinRoom(roomCode, playerId, playerName, playerPath) {
-        var playerRef = sceneGetRef(roomCode).child("players/" + playerId);
-        playerRef.set({
-          name: playerName, path: playerPath || "",
-          paradoxRolls: 0, stAdjustment: 0, stNote: "", paradoxLog: [],
-          joinedAt: firebase.database.ServerValue.TIMESTAMP,
-        });
-        playerRef.onDisconnect().remove();
-        return playerRef;
-      }
-      function sceneLeaveRoom(roomCode, playerId) {
-        return sceneGetRef(roomCode).child("players/" + playerId).remove();
-      }
-      function sceneResetAllPlayers(roomCode) {
-        return sceneGetRef(roomCode).child("players").once("value").then(function(snap) {
-          var updates = {};
-          snap.forEach(function(child) {
-            updates[child.key + "/paradoxRolls"] = 0;
-            updates[child.key + "/stAdjustment"] = 0;
-            updates[child.key + "/stNote"] = "";
-            updates[child.key + "/paradoxLog"] = [];
-          });
-          if (Object.keys(updates).length > 0) {
-            return sceneGetRef(roomCode).child("players").update(updates);
-          }
-        });
-      }
-      function sceneSetPlayerAdjustment(roomCode, playerId, adj, note) {
-        return sceneGetRef(roomCode).child("players/" + playerId).update({
-          stAdjustment: adj, stNote: note || "",
-        });
-      }
-      function scenePushParadoxLog(roomCode, playerId, entry) {
-        var logRef = sceneGetRef(roomCode).child("players/" + playerId + "/paradoxLog");
-        return logRef.transaction(function(current) {
-          var arr = current || [];
-          arr.push(entry);
-          if (arr.length > 20) arr = arr.slice(arr.length - 20);
-          return arr;
-        });
-      }
-
-      function scenePushStats(roomCode, playerId, character) {
-        if (!roomCode || !playerId || !character) return;
-        var h = character.health || { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
-        var wp = character.willpower || { current: 5, max: 5 };
-        var spells = (character.activeSpells || [])
-          .filter(function(s) { return !s.isRelinquished; })
-          .map(function(s) { return {
-            id: s.id || "", name: s.name || "Unnamed",
-            arcanum: s.arcanum || "prime", arcanumLevel: s.arcanumLevel || 1,
-            potency: s.potency || 1, duration: s.duration || "—",
-            castMethod: s.castMethod || "improvised",
-          }; });
-        sceneGetRef(roomCode).child("players/" + playerId + "/stats").update({
-          gnosis: character.gnosis || 1,
-          wisdom: character.wisdom || 7,
-          willpower: { current: wp.current != null ? wp.current : 5, max: wp.max || 5 },
-          mana: { current: character.mana?.current ?? 0, max: character.mana?.max ?? 10 },
-          health: { max: h.max || 7, bashing: h.bashing || 0, lethal: h.lethal || 0, aggravated: h.aggravated || 0 },
-          activeSpells: spells,
-          maxActiveSpells: character.gnosis || 1,
-        });
-      }
-      function sceneRememberRoom(code, role) {
-        try { localStorage.setItem("mage_scene_room", JSON.stringify({ code: code, role: role })); } catch(e) {}
-      }
-      function sceneForgetRoom() {
-        try { localStorage.removeItem("mage_scene_room"); } catch(e) {}
-      }
-      function sceneRecallRoom() {
-        try {
-          var raw = localStorage.getItem("mage_scene_room");
-          return raw ? JSON.parse(raw) : null;
-        } catch(e) { return null; }
-      }
     </script>
 
+    <script src="shared/session.js"></script>
+    <script src="js/scene.js"></script>
     <script src="./js/spellFactors.js"></script>
     <script src="./js/dicePool.js"></script>
     <script src="./js/character.js"></script>
@@ -3191,117 +3087,6 @@
                 }
             }
             
-            // Main calculation function
-            function calculate() {
-                if (!document.getElementById('gnosis')) return; // React SpellForm not yet mounted
-                const gnosis = parseInt(document.getElementById('gnosis').value) || 1;
-                let arcanumDots = parseInt(document.getElementById('arcanumDots').value) || 1;
-                let castingMethod = document.getElementById('castingMethod').value;
-                let additionalReach = parseInt(document.getElementById('additionalReach').value) || 0;
-                let spellArcanumReq = parseInt(document.getElementById('spellRequirement').value) || 1;
-                
-                // Combined spell adjustments
-                let combinationPenalty = 0;
-                let isCombinedSpell = false;
-                
-                const _cb = window.classicCombinedBridge;
-                if (_cb && _cb.isEnabled() && _cb.getSpells().length > 0) {
-                    isCombinedSpell = true;
-                    arcanumDots = _cb.getCasterLowestArcanumDots();
-                    const lowestInfo = _cb.getLowestArcanumInfo();
-                    spellArcanumReq = lowestInfo.level;
-                    combinationPenalty = _cb.getCombinationPenalty();
-                    additionalReach += _cb.getCombinedAdditionalReach();
-                    castingMethod = _cb.areAllPraxes() ? 'praxis' : 'improvised';
-                }
-                
-                // Spell Factor params
-                const factorParams = {
-                    practice: document.getElementById('practice').value,
-                    arcanumDots: arcanumDots,
-                    spellArcanumReq: spellArcanumReq,
-                    gnosis: gnosis,
-                    activeSpells: parseInt(document.getElementById('activeSpellsCount')?.textContent) || 0,
-                    castingMethod: castingMethod,
-                    defaultPrimaryFactor: document.getElementById('defaultPrimaryFactor').value,
-                    primaryFactor: document.getElementById('primaryFactor').value,
-                    potency: parseInt(document.getElementById('potency').value) || 1,
-                    useAdvancedPotency: document.getElementById('advancedPotency').checked,
-                    durationIndex: parseInt(document.getElementById('duration').value) || 0,
-                    useAdvancedDuration: document.getElementById('advancedDuration').checked,
-                    scaleIndex: parseInt(document.getElementById('scale').value) || 0,
-                    useAdvancedScale: document.getElementById('advancedScale').checked,
-                    scaleType: getScaleType(),
-                    range: document.getElementById('range').value,
-                    castingTime: document.getElementById('castingTime').value,
-                    ritualIntervals: parseInt(document.getElementById('ritualIntervals')?.value) || 0,
-                    additionalReach: additionalReach
-                };
-
-                const spellResult = calculateSpellFactors(factorParams);
-
-                // Dice Pool params
-                const poolParams = {
-                    gnosis: gnosis,
-                    arcanumDots: arcanumDots,
-                    castingMethod: castingMethod,
-                    castingMethodInfo: spellResult.castingMethod, // Pass the full method info
-                    roteSkill: parseInt(document.getElementById('roteSkill')?.value) || 0,
-                    isOrderSkill: document.getElementById('isOrderSkill')?.checked || false,
-                    spellFactorPenalty: spellResult.totals.factorPenalty,
-                    ritualBonus: spellResult.totals.ritualBonus,
-                    yantras: getSelectedYantras(),
-                    spendWillpower: document.getElementById('spendWillpower').checked,
-                    teamworkDice: parseInt(document.getElementById('teamworkDice').value) || 0,
-                    paradoxSuccesses: 0, // User would input this after rolling
-                    otherModifiers: []
-                };
-                
-                // Add combination penalty as an "other modifier"
-                if (combinationPenalty !== 0) {
-                    poolParams.otherModifiers.push({
-                        name: 'Combination',
-                        value: combinationPenalty
-                    });
-                }
-                
-                // Add other modifier if specified
-                const otherMod = parseInt(document.getElementById('otherModifier').value) || 0;
-                if (otherMod !== 0) {
-                    poolParams.otherModifiers.push({
-                        name: document.getElementById('otherModifierName').value || 'Other',
-                        value: otherMod
-                    });
-                }
-                
-                const poolResult = calculateDicePool(poolParams);
-                
-                // Enable "Set as Active" only when character is loaded
-                const setActiveBtn = document.getElementById('btnSetActive');
-                if (setActiveBtn) {
-                    setActiveBtn.disabled = !currentCharacter;
-                }
-                
-                // Store combined info for display
-                poolResult.isCombinedSpell = isCombinedSpell;
-                poolResult.combinedSpells = isCombinedSpell ? window.classicCombinedBridge.getSpells() : [];
-                poolResult.combinationPenalty = combinationPenalty;
-                poolResult.lowestArcanumInfo = isCombinedSpell ? window.classicCombinedBridge.getLowestArcanumInfo() : null;
-                
-                if (window.classicResultsBridge && window.classicResultsBridge.setResults) {
-                    window.classicResultsBridge.setResults(spellResult, poolResult, {
-                        castingMethod: castingMethod,
-                        spellArcanum: document.getElementById('spellArcanum')?.value || '',
-                        advancedDuration: document.getElementById('advancedDuration')?.checked || false,
-                        durationIndex: parseInt(document.getElementById('duration')?.value) || 0,
-                        range: document.getElementById('range')?.value || 'touch',
-                        castingTime: document.getElementById('castingTime')?.value || 'ritual',
-                        additionalManaCost: parseInt(document.getElementById('additionalManaCost')?.value) || 0,
-                        gnosis: gnosis,
-                        dedicatedTool: typeof isDedicatedToolActive === 'function' ? isDedicatedToolActive() : false,
-                    });
-                }
-            }
             
             // Update Paradox display based on inputs
             function updateParadoxDisplay() {
@@ -4716,11 +4501,6 @@
             window.classicVanilla.loadSpell = loadSpellToCalculator;
             window.classicVanilla.exportSpellLibrary = exportSpellLibrary;
 
-            // Expose calculate globally so React SpellForm useEffect can call it
-            window.calculate = calculate;
-
-            // Run initial calculation
-            calculate();
         });
     </script>
     
@@ -5863,7 +5643,7 @@
 
         // Trigger recalculation after state changes
         React.useEffect(() => {
-          if (typeof calculate === 'function') calculate();
+          if (window.classicBridge?.recalculate) window.classicBridge.recalculate();
         }, [enabled, spells, separateScales]);
 
         // Notify parent of enabled state (for hiding arcanum fields)
@@ -6107,23 +5887,51 @@
 
       // ManaSummaryDisplay removed — mana summary now rendered in ClassicResultsPanel (Phase 4)
 
+      // ── Yantra derivation (pure — no DOM reads) ───────────────────────────
+      function deriveYantrasFromForm(form) {
+        const YANTRA_BONUSES = {
+          demesne: 2, environment: 1, supernalVerge: 2,
+          pathTool: 1, orderTool: 1,
+          concentration: 2, highSpeech: 2, rune: 2,
+          material: 2, representational: 1, symbolic: 0,
+          sacramentNormal: 1, sacramentRare: 2, sacramentOther: 3,
+        };
+        const yantras = [];
+        for (const [key, active] of Object.entries(form.yantras)) {
+          if (!active) continue;
+          if (key === 'dedicatedTool') {
+            yantras.push({ name: key, bonus: 0, special: 'paradox', isMudra: false });
+          } else if (key === 'mudra') {
+            const bonus = form.roteSkill + (form.isOrderSkill ? 1 : 0);
+            yantras.push({ name: key, bonus, special: 'mudra', isMudra: true });
+          } else {
+            yantras.push({ name: key, bonus: YANTRA_BONUSES[key] ?? 0, special: null, isMudra: false });
+          }
+        }
+        if (form.pathToolDedicated)  yantras.push({ name: 'dedicatedTool', bonus: 0, special: 'paradox', isMudra: false });
+        if (form.orderToolDedicated) yantras.push({ name: 'dedicatedTool', bonus: 0, special: 'paradox', isMudra: false });
+        if (form.personaBonus > 0)   yantras.push({ name: 'persona', bonus: form.personaBonus, special: null, isMudra: false });
+        return yantras;
+      }
+
       // ── Main spell form component ─────────────────────────────────────────
-      function ClassicSpellForm() {
-        const [form, setForm] = _sf_us({
-          gnosis: 1, spellArcanum: '', arcanumDots: 3, spellRequirement: 1,
-          activeSpellCount: 0, combinedEnabled: false,
-          spellName: '',
-          castingMethod: 'improvised', practice: 'weaving',
-          defaultPrimaryFactor: 'potency', primaryFactor: 'potency',
-          potency: 1, advancedPotency: false,
-          durationIndex: 0, advancedDuration: false,
-          scaleIndex: 0, advancedScale: false, scaleType: 'subjects',
-          range: 'touch', castingTime: 'ritual', ritualIntervals: 0, additionalReach: 0,
-          roteSkill: 0, isOrderSkill: false,
-          yantras: {}, pathToolDedicated: false, orderToolDedicated: false, personaBonus: 0,
-          spendWillpower: false, teamworkDice: 0, otherModifier: 0, otherModifierName: '',
-          additionalManaCost: 0,
-        });
+      const DEFAULT_FORM = {
+        gnosis: 1, spellArcanum: '', arcanumDots: 3, spellRequirement: 1,
+        activeSpellCount: 0, combinedEnabled: false,
+        spellName: '',
+        castingMethod: 'improvised', practice: 'weaving',
+        defaultPrimaryFactor: 'potency', primaryFactor: 'potency',
+        potency: 1, advancedPotency: false,
+        durationIndex: 0, advancedDuration: false,
+        scaleIndex: 0, advancedScale: false, scaleType: 'subjects',
+        range: 'touch', castingTime: 'ritual', ritualIntervals: 0, additionalReach: 0,
+        roteSkill: 0, isOrderSkill: false,
+        yantras: {}, pathToolDedicated: false, orderToolDedicated: false, personaBonus: 0,
+        spendWillpower: false, teamworkDice: 0, otherModifier: 0, otherModifierName: '',
+        additionalManaCost: 0,
+      };
+
+      function ClassicSpellForm({ form, setForm }) {
 
         const set   = (k, v) => setForm(f => ({...f, [k]: v}));
         const merge = (d)    => setForm(f => ({...f, ...d}));
@@ -6135,13 +5943,9 @@
             setSpellForm:        merge,
             setSpellFormField:   set,
             setActiveSpellCount: (n) => set('activeSpellCount', n),
+            recalculate:         () => setForm(f => ({...f})),
           };
         }, []);
-
-        // Recalculate after every state change; results bridge to ClassicResultsPanel (Phase 4)
-        _sf_ue(() => {
-          if (typeof calculate === 'function') calculate();
-        }, [form]);
 
         // When combined mode enables, rotes are not allowed — reset to improvised
         _sf_ue(() => {
@@ -6590,11 +6394,8 @@
         );
       }
 
-      ReactDOM.createRoot(document.getElementById('classic-spellform-root')).render(<ClassicSpellForm/>);
-
       // ── ClassicResultsPanel (Phase 4) ──────────────────────────────────────
-      function ClassicResultsPanel() {
-        const [results, setResults] = React.useState(null);
+      function ClassicResultsPanel({ results }) {
         const [pv, setPv] = React.useState({ rolls:0, witnesses:'none', inured:false, mana:0, auto:false });
         const [notice, setNotice] = React.useState('');
         const pvRef = React.useRef(pv);
@@ -6602,16 +6403,13 @@
 
         React.useEffect(() => {
           window.classicResultsBridge = {
-            setResults:            (sr, pr, fs) => setResults({ sr, pr, fs }),
-            refreshResults:        () => setResults(r => r ? {...r} : r),
+            refreshResults:        () => {},
             notifyManaDeducted:    (msg) => setNotice(msg),
             clearManaDeducted:     () => setNotice(''),
             setAutoParadoxRolls:   (n) => setPv(p => ({...p, rolls:n, auto:true})),
             clearAutoParadoxRolls: () => setPv(p => ({...p, auto:false})),
             getParadoxInputs:      () => pvRef.current,
           };
-          // Populate results immediately in case ClassicSpellForm's effect ran first
-          if (typeof calculate === 'function') calculate();
         }, []);
 
         if (!results) {
@@ -6943,7 +6741,101 @@
         );
       }
 
-      ReactDOM.createRoot(document.getElementById('classic-results-root')).render(<ClassicResultsPanel/>);
+      // ── ClassicCalculator — owns form + results state ─────────────────────
+      function ClassicCalculator() {
+        const [form, setForm] = React.useState(DEFAULT_FORM);
+        const [results, setResults] = React.useState(null);
+
+        React.useEffect(() => {
+          // Combined spell overrides (reads React state, not DOM)
+          let arcanumDots     = form.arcanumDots;
+          let spellArcanumReq = form.spellRequirement;
+          let additionalReach = form.additionalReach;
+          let castingMethod   = form.castingMethod;
+          let combinationPenalty = 0;
+          let isCombinedSpell = false;
+
+          const _cb = window.classicCombinedBridge;
+          if (_cb && _cb.isEnabled() && _cb.getSpells().length > 0) {
+            isCombinedSpell = true;
+            arcanumDots = _cb.getCasterLowestArcanumDots();
+            const lowestInfo = _cb.getLowestArcanumInfo();
+            spellArcanumReq = lowestInfo.level;
+            combinationPenalty = _cb.getCombinationPenalty();
+            additionalReach += _cb.getCombinedAdditionalReach();
+            castingMethod = _cb.areAllPraxes() ? 'praxis' : 'improvised';
+          }
+
+          const yantras = deriveYantrasFromForm(form);
+
+          const spellResult = calculateSpellFactors({
+            practice:             form.practice,
+            arcanumDots:          arcanumDots,
+            spellArcanumReq:      spellArcanumReq,
+            gnosis:               form.gnosis,
+            activeSpells:         form.activeSpellCount,
+            castingMethod:        castingMethod,
+            defaultPrimaryFactor: form.defaultPrimaryFactor,
+            primaryFactor:        form.primaryFactor,
+            potency:              form.potency,
+            useAdvancedPotency:   form.advancedPotency,
+            durationIndex:        form.durationIndex,
+            useAdvancedDuration:  form.advancedDuration,
+            scaleIndex:           form.scaleIndex,
+            useAdvancedScale:     form.advancedScale,
+            scaleType:            form.scaleType,
+            range:                form.range,
+            castingTime:          form.castingTime,
+            ritualIntervals:      form.ritualIntervals,
+            additionalReach:      additionalReach,
+          });
+
+          const otherModifiers = [];
+          if (combinationPenalty !== 0) otherModifiers.push({ name: 'Combination', value: combinationPenalty });
+          if (form.otherModifier !== 0)  otherModifiers.push({ name: form.otherModifierName || 'Other', value: form.otherModifier });
+
+          const poolResult = calculateDicePool({
+            gnosis:             form.gnosis,
+            arcanumDots:        arcanumDots,
+            castingMethod:      castingMethod,
+            castingMethodInfo:  spellResult.castingMethod,
+            roteSkill:          form.roteSkill,
+            isOrderSkill:       form.isOrderSkill,
+            spellFactorPenalty: spellResult.totals.factorPenalty,
+            ritualBonus:        spellResult.totals.ritualBonus,
+            yantras:            yantras,
+            spendWillpower:     form.spendWillpower,
+            teamworkDice:       form.teamworkDice,
+            otherModifiers:     otherModifiers,
+          });
+
+          poolResult.isCombinedSpell    = isCombinedSpell;
+          poolResult.combinedSpells     = isCombinedSpell ? _cb.getSpells() : [];
+          poolResult.combinationPenalty = combinationPenalty;
+          poolResult.lowestArcanumInfo  = isCombinedSpell ? _cb.getLowestArcanumInfo() : null;
+
+          setResults({ sr: spellResult, pr: poolResult, fs: {
+            castingMethod:      castingMethod,
+            spellArcanum:       form.spellArcanum,
+            advancedDuration:   form.advancedDuration,
+            durationIndex:      form.durationIndex,
+            range:              form.range,
+            castingTime:        form.castingTime,
+            additionalManaCost: form.additionalManaCost,
+            gnosis:             form.gnosis,
+            dedicatedTool:      form.pathToolDedicated || form.orderToolDedicated || !!form.yantras.dedicatedTool,
+          }});
+        }, [form]);
+
+        return (
+          <React.Fragment>
+            <ClassicSpellForm form={form} setForm={setForm} />
+            <ClassicResultsPanel results={results} />
+          </React.Fragment>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('classic-calculator-root')).render(<ClassicCalculator/>);
     </script>
 
     <!-- ── React Character Editor Modal (Phase 5 migration) ──────────────── -->
