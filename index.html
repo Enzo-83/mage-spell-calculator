@@ -4662,6 +4662,13 @@
                 },
                 onNew:  function() { newCharacter(); },
                 onEdit: function() { openCharacterEditor(); },
+                onManageActiveSpells: function() {
+                    if (!currentCharacter) { showToast('Load or create a character first.'); return; }
+                    if (window.classicActiveSpellsBridge) {
+                        window.classicActiveSpellsBridge.open(currentCharacter.activeSpells || []);
+                    }
+                },
+                dismissSpell: function(id) { dismissActiveSpell(id); },
                 onSave: function() { saveCharacter(); },
                 onSceneToggle: function() {
                     var card = document.getElementById('sceneTrackerCard');
@@ -4726,6 +4733,8 @@
     
     <!-- Character Editor Modal (Phase 5 — React) -->
     <div id="classic-chareditor-root"></div>
+    <!-- Active Spells Modal (React) -->
+    <div id="classic-activespells-root"></div>
     <!-- ═══════════════════════════════════════════════════════════════
          COMPENDIUM MODALS
          ═══════════════════════════════════════════════════════════════ -->
@@ -5798,7 +5807,7 @@
             <span id="activeSpellsInfo" style={{color:'var(--text-muted)',fontSize:'0.8em'}}>/ 1 max</span>
             <span className="active-spells-manage-link" id="activeSpellsManageLink"
               style={{cursor:'pointer'}}
-              onClick={() => window.classicVanilla?.onEdit?.()}>Manage →</span>
+              onClick={() => window.classicVanilla?.onManageActiveSpells?.()}>Manage →</span>
           </div>
         );
       }, () => true);
@@ -7213,6 +7222,64 @@
       }
 
       ReactDOM.createRoot(document.getElementById('classic-chareditor-root')).render(<ClassicCharacterEditor/>);
+    </script>
+
+    <!-- ── Active Spells Modal ──────────────────────────────────────────── -->
+    <script type="text/babel">
+      function ClassicActiveSpellsModal() {
+        const [open, setOpen] = React.useState(false);
+        const [spells, setSpells] = React.useState([]);
+
+        React.useEffect(() => {
+          window.classicActiveSpellsBridge = {
+            open: (spellList) => {
+              setSpells((spellList || []).filter(s => !s.isRelinquished));
+              setOpen(true);
+            },
+            close: () => setOpen(false),
+          };
+        }, []);
+
+        function handleDismiss(spellId) {
+          window.classicVanilla?.dismissSpell?.(spellId);
+          setSpells(prev => prev.filter(s => s.id !== spellId));
+        }
+
+        if (!open) return null;
+
+        return (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:2000,display:'flex',alignItems:'center',justifyContent:'center'}}
+            onClick={() => setOpen(false)}>
+            <div style={{background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:10,padding:24,minWidth:340,maxWidth:500,maxHeight:'75vh',overflow:'auto',boxShadow:'0 8px 32px rgba(0,0,0,0.5)'}}
+              onClick={e => e.stopPropagation()}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                <h3 style={{margin:0,color:'var(--accent)'}}>Active Spells</h3>
+                <button onClick={() => setOpen(false)}
+                  style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:20,cursor:'pointer',lineHeight:1}}>×</button>
+              </div>
+              {spells.length === 0
+                ? <div style={{color:'var(--text-muted)',textAlign:'center',padding:'20px 0'}}>No active spells.</div>
+                : spells.map(spell => (
+                  <div key={spell.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',background:'var(--bg-dark)',borderRadius:6,marginBottom:8}}>
+                    <div>
+                      <div style={{fontWeight:600}}>{spell.name || 'Unnamed Spell'}</div>
+                      <div style={{fontSize:'0.8em',color:'var(--text-muted)'}}>
+                        {ARCANA[spell.arcanum]?.label || spell.arcanum} {spell.arcanumLevel} · Potency {spell.potency} · {spell.duration}
+                      </div>
+                    </div>
+                    <button onClick={() => handleDismiss(spell.id)}
+                      style={{padding:'4px 12px',borderRadius:5,fontSize:12,cursor:'pointer',background:'transparent',border:'1px solid rgba(239,68,68,0.5)',color:'#ef4444',whiteSpace:'nowrap'}}>
+                      Dismiss
+                    </button>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('classic-activespells-root')).render(<ClassicActiveSpellsModal/>);
     </script>
 
     <!-- ── React Spell Library Drawer (Phase 6) ─────────────────────────── -->
