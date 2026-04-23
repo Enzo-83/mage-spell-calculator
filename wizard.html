@@ -572,17 +572,30 @@
               </span>
             </div>
           )}
-          <Divider/>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"end" }}>
-            <Field label="Rote Skill">
-              <SelectInput value={d.roteSkill} onChange={v=>set("roteSkill",v)} options={ROTE_SKILLS}/>
-            </Field>
-            <Field label="Dots">
-              <StepperInput value={d.roteSkillDots} min={0} max={5} onChange={v=>set("roteSkillDots",v)}/>
-            </Field>
-          </div>
-          <CheckboxRow label="Order Skill" sub="+1 Mudra die when casting Order Rotes"
-            checked={d.orderSkill} onChange={v=>set("orderSkill",v)}/>
+          {d.method.startsWith('rote') && (
+            <>
+              <Divider/>
+              <SectionHead>Rote Casting</SectionHead>
+              <div style={{ display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"end" }}>
+                <Field label="Rote Skill">
+                  <SelectInput value={d.roteSkill} onChange={v=>set("roteSkill",v)} options={ROTE_SKILLS}/>
+                </Field>
+                <Field label="Dots">
+                  <StepperInput value={d.roteSkillDots} min={0} max={5} onChange={v=>set("roteSkillDots",v)}/>
+                </Field>
+              </div>
+              <CheckboxRow label="Order Skill" sub="+1 Mudra die when casting Order Rotes"
+                checked={d.orderSkill} onChange={v=>set("orderSkill",v)}/>
+            </>
+          )}
+          {!d.method.startsWith('rote') && (
+            <div style={{ padding:"8px 12px",borderRadius:6,
+              background:"rgba(255,255,255,0.03)",marginTop:8 }}>
+              <span style={{ color:C.textMuted,fontSize:11 }}>
+                Rote Skill applies only to Rote methods — choose your casting method in Step 2.
+              </span>
+            </div>
+          )}
 
         </div>
       );
@@ -2452,13 +2465,47 @@
         </div>
       );
     }
-    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, sceneConn }) {
+    function AccordionSection({ id, title, badge, children, openSections, onToggle }) {
+      const isOpen = openSections.has(id);
+      return (
+        <div style={{ border:`1px solid ${C.border}`,borderRadius:8,marginBottom:8,overflow:"hidden" }}>
+          <button onClick={() => onToggle(id)} style={{
+            width:"100%",padding:"10px 14px",
+            display:"flex",alignItems:"center",justifyContent:"space-between",
+            background:isOpen?C.accentFaint:"rgba(255,255,255,0.02)",
+            border:"none",cursor:"pointer",color:C.text,
+          }}>
+            <span style={{ fontSize:13,fontWeight:600 }}>{title}</span>
+            <div style={{ display:"flex",alignItems:"center",gap:8 }}>
+              {badge && <span style={{ fontSize:11,color:C.textMuted }}>{badge}</span>}
+              <span style={{ color:C.accentLight,fontSize:12,
+                transform:isOpen?"rotate(0deg)":"rotate(-90deg)",transition:"transform 0.2s" }}>▾</span>
+            </div>
+          </button>
+          {isOpen && (
+            <div style={{ padding:"0 14px 14px",borderTop:`1px solid ${C.borderLight}` }}>
+              {children}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, sceneConn, onSaveToLibrary }) {
       const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
               potencyPen, durationPen, scalePen, yantraBonus, basePool,
               durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj,
               isCombined, combinedPenalty } = derived;
       const [ds, setDs] = useState({});  // discord button states
       const [manaDeducted, setManaDeducted] = useState(false);
+      const [openSections, setOpenSections] = useState(new Set());
+      function toggleSection(id) {
+        setOpenSections(prev => {
+          const next = new Set(prev);
+          next.has(id) ? next.delete(id) : next.add(id);
+          return next;
+        });
+      }
 
       const casterName    = character?.shadowName || character?.name || "Mage";
       const spellTitle    = d.spellName ? `${casterName}'s ${d.spellName}` : `${casterName}'s Spell`;
@@ -2580,39 +2627,139 @@
         );
       }
 
+      const castTimeStr = (d.castTime==="instant" && !methodInfo?.doubleRitual) ? "Instant"
+        : `Ritual${d.ritualIntervals>0?` +${d.ritualIntervals}`:""}`
+        + (methodInfo?.doubleRitual?" (2×)":"");
+      const hasParadoxRisk = excessReach > 0;
+
       return (
         <div>
-          <div style={{ textAlign:"center",marginBottom:14 }}>
-            <div style={{ fontSize:26,marginBottom:4 }}>⟡</div>
-            <h3 style={{ margin:0,color:C.accentLight,fontSize:16 }}>{spellTitle}</h3>
-            <p style={{ margin:"4px 0 0",color:C.textMuted,fontSize:11 }}>
-              {methodLabel} · {d.practice||"—"} · {d.casterArcanum} {arcDots}
-            </p>
+          {/* ── Zone 1: Action ── */}
+          <div style={{ textAlign:"center",padding:"20px 16px 16px",
+            background:C.bgDeep,borderRadius:10,marginBottom:12 }}>
+            <div style={{ fontSize:56,fontWeight:700,color:C.accentLight,lineHeight:1 }}>
+              {dicePool}
+            </div>
+            <div style={{ color:C.textMuted,fontSize:14,marginTop:4 }}>
+              dice pool
+              {methodInfo?.roteQuality && (
+                <span style={{ marginLeft:8,background:C.successFaint,
+                  color:C.success,padding:"2px 8px",borderRadius:10,fontSize:11,fontWeight:700 }}>
+                  Rote Quality
+                </span>
+              )}
+            </div>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",
+              gap:8,marginTop:16,paddingTop:16,borderTop:`1px solid ${C.borderLight}` }}>
+              <div style={{ textAlign:"center" }}>
+                <div style={{ fontSize:20,fontWeight:700,
+                  color:excessReach>0?C.danger:C.text }}>
+                  {usedReach}/{freeReach}
+                </div>
+                <div style={{ fontSize:10,color:C.textMuted,textTransform:"uppercase",
+                  letterSpacing:1 }}>Reach</div>
+              </div>
+              <div style={{ textAlign:"center" }}>
+                <div style={{ fontSize:20,fontWeight:700,color:C.warning }}>{totalMana}</div>
+                <div style={{ fontSize:10,color:C.textMuted,textTransform:"uppercase",
+                  letterSpacing:1 }}>Mana</div>
+              </div>
+              <div style={{ textAlign:"center" }}>
+                <div style={{ fontSize:14,fontWeight:700,color:C.text }}>{castTimeStr}</div>
+                <div style={{ fontSize:10,color:C.textMuted,textTransform:"uppercase",
+                  letterSpacing:1 }}>Cast Time</div>
+              </div>
+            </div>
           </div>
 
-          {d.spellDescription && (
-            <div style={{ background:C.bgDeep,borderRadius:8,padding:"10px 14px",marginBottom:10,
-              border:`1px solid ${C.borderLight}` }}>
-              <p style={{ margin:0,fontSize:9,letterSpacing:1.5,textTransform:"uppercase",color:C.accentLight,marginBottom:4 }}>Spell Effect</p>
-              <p style={{ margin:0,color:C.textMuted,fontSize:12,lineHeight:1.5 }}>{d.spellDescription}</p>
+          {/* Paradox alert */}
+          {hasParadoxRisk && (
+            <div style={{ padding:"10px 14px",borderRadius:8,marginBottom:12,
+              background:C.dangerFaint,border:`1px solid ${C.danger}` }}>
+              <div style={{ display:"flex",alignItems:"center",gap:8,flexWrap:"wrap" }}>
+                <span style={{ color:C.danger,fontSize:13,fontWeight:700 }}>⚠ Paradox Risk</span>
+                <span style={{ background:C.danger,color:"#fff",padding:"2px 8px",
+                  borderRadius:6,fontSize:12,fontWeight:700 }}>
+                  {chanceOnly ? "1 chance die" : `${paradoxDice} dice`}
+                </span>
+              </div>
+              <div style={{ display:"flex",gap:12,marginTop:8,fontSize:11,color:C.textMuted }}>
+                <span style={{ color:C.warning }}>Contain: absorb into soul</span>
+                <span>Release: manifest externally</span>
+              </div>
             </div>
           )}
 
-          <div style={{ display:"flex",gap:5,marginBottom:10 }}>
-            <StatBox label="Dice Pool" value={dicePool}/>
-            <StatBox label="Reach" value={`${usedReach}/${freeReach}`}
-              color={excessReach>0?C.warning:C.success}
-              sub={excessReach>0?`+${excessReach} excess`:""}/>
-            <StatBox label="Mana" value={totalMana} color={totalMana>0?C.warning:C.text}/>
-            <StatBox label="Paradox"
-              value={chanceOnly?"⚀":paradoxDice}
-              color={chanceOnly?C.warning:paradoxDice>0?C.danger:C.success}
-              sub={chanceOnly?"Chance Die":""}/>
+          {/* Mana validation */}
+          {manaInsufficient && !manaDeducted && (
+            <div style={{ padding:"10px 14px",borderRadius:8,background:C.dangerFaint,border:`1px solid ${C.danger}`,marginBottom:8 }}>
+              <span style={{ color:C.danger,fontSize:12,fontWeight:700 }}>✗ Insufficient mana — need {totalMana}, have {manaC}</span>
+            </div>
+          )}
+
+          {/* Primary CTA */}
+          <DBtn label="Send Dice Pool to Discord" status={ds.pool} onClick={handlePool} noHook={!poolWebhook}/>
+          <div style={{ height:8 }}/>
+
+          {/* Secondary actions row */}
+          <div style={{ display:"flex",gap:8,marginBottom:16,flexWrap:"wrap" }}>
+            <button onClick={handleCard} disabled={!!ds.card||!cardWebhook}
+              style={{ flex:1,minWidth:80,padding:"9px",
+                borderRadius:6,cursor:ds.card||!cardWebhook?"default":"pointer",
+                fontSize:12,fontWeight:600,
+                background:"rgba(88,101,242,0.15)",border:`1px solid ${C.discord}`,color:C.discord,
+                opacity:!cardWebhook?0.4:1 }}>
+              {ds.card==="ok"?"✓ Sent":ds.card==="sending"?"…":"Spell Card"}
+            </button>
+            <button onClick={deductMana} disabled={!character||totalMana<=0||manaDeducted}
+              style={{ flex:1,minWidth:80,padding:"9px",
+                borderRadius:6,cursor:character&&totalMana>0&&!manaDeducted?"pointer":"not-allowed",
+                fontSize:12,fontWeight:600,
+                opacity:character&&totalMana>0&&!manaDeducted?1:0.4,
+                background:manaDeducted?C.successFaint:C.warningFaint,
+                border:`1px solid ${manaDeducted?C.success:C.warning}`,
+                color:manaDeducted?C.success:C.warning }}>
+              {manaDeducted?"✓ Deducted":`−${totalMana} Mana`}
+            </button>
+            <button onClick={() => {
+              if (!character || !onSetActive) return;
+              const durOpts   = d.advancedDuration ? DURATION_ADVANCED : DURATION_STANDARD;
+              const scaleOpts = d.advancedScale
+                ? (d.scaleMode === 'area' ? SCALE_ADV_AREA : SCALE_ADV_SUBJECTS)
+                : (d.scaleMode === 'area' ? SCALE_STD_AREA : SCALE_STD_SUBJECTS);
+              onSetActive({
+                name:         d.spellName || 'Unnamed Spell',
+                arcanum:      (d.casterArcanum || 'prime').toLowerCase(),
+                arcanumLevel: d.casterArcanumDots,
+                castMethod:   d.method,
+                potency:      d.potency,
+                duration:     durOpts[d.durationIndex]?.label   || '—',
+                scale:        scaleOpts[d.scaleIndex]?.label    || '—',
+                reach:        usedReach,
+                mana:         totalMana,
+              });
+              if (onOpenSheet) onOpenSheet();
+            }} disabled={!character}
+              style={{ flex:1,minWidth:80,padding:"9px",
+                borderRadius:6,cursor:character?"pointer":"not-allowed",
+                fontSize:12,fontWeight:600,opacity:character?1:0.4,
+                background:C.accentFaint,border:`1px solid ${C.accentBorder}`,color:C.accentLight }}>
+              ⚡ Active
+            </button>
+            <button onClick={() => { if (onSaveToLibrary) onSaveToLibrary(); }}
+              disabled={!character}
+              style={{ flex:1,minWidth:80,padding:"9px",
+                borderRadius:6,cursor:character?"pointer":"not-allowed",
+                fontSize:12,fontWeight:600,opacity:character?1:0.4,
+                background:C.successFaint,border:`1px solid ${C.success}`,color:C.success }}>
+              Save
+            </button>
           </div>
 
-          {/* Dice breakdown */}
-          <div style={{ background:C.bgDeep,borderRadius:8,padding:14,marginBottom:10 }}>
-            <p style={{ margin:"0 0 8px",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:C.accentLight }}>Dice Breakdown</p>
+          {/* ── Zone 2: Reference (collapsed) ── */}
+          <AccordionSection id="breakdown" title="Dice Breakdown"
+            badge={`${dicePool} total`}
+            openSections={openSections} onToggle={toggleSection}>
             {[
               [isRote
                 ? `Skill (${d.roteSkill}) + Arcanum ${d.casterArcanumDots}`
@@ -2632,26 +2779,24 @@
             ].filter(Boolean).map(([k,v])=>(
               <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.borderLight}` }}>
                 <span style={{ color:C.textMuted,fontSize:12 }}>{k}</span>
-                <span style={{ color:v.startsWith("-")?C.danger:v.startsWith("+")?C.success:C.text,fontSize:12,fontWeight:600 }}>{v}</span>
+                <span style={{ color:String(v).startsWith("-")?C.danger:String(v).startsWith("+")?C.success:C.text,fontSize:12,fontWeight:600 }}>{v}</span>
               </div>
             ))}
             <div style={{ display:"flex",justifyContent:"space-between",padding:"6px 0" }}>
               <span style={{ color:C.text,fontSize:13,fontWeight:700 }}>Total</span>
               <span style={{ color:C.accentLight,fontSize:15,fontWeight:700 }}>{dicePool}</span>
             </div>
-          </div>
+          </AccordionSection>
 
-          {/* Spell factors */}
-          <div style={{ background:C.bgDeep,borderRadius:8,padding:14,marginBottom:10 }}>
-            <p style={{ margin:"0 0 8px",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:C.accentLight }}>Spell Factors</p>
+          <AccordionSection id="factors" title="Spell Factors"
+            badge={`${derived.totalFactorPen} penalty`}
+            openSections={openSections} onToggle={toggleSection}>
             {[
               ["Potency",     d.potency + (d.advancedPotency ? " (Advanced)" : "")],
               ["Duration",    durEntry?.label||"—"],
               ["Scale",       scaleEntry?.label||"—"],
               ["Range",       RANGES.find(r=>r.id===d.range)?.label||d.range],
-              ["Cast Time",   (d.castTime==="instant" && !methodInfo?.doubleRitual)?"Instant"
-                              :`Ritual${d.ritualIntervals>0?` (+${d.ritualIntervals} × ${methodInfo?.doubleRitual?"2×":""}${interval})`:""}`
-                              + (methodInfo?.doubleRitual?" (2× time)":"")],
+              ["Cast Time",   castTimeStr],
               ["Roll Quality",rollQualityLabel],
             ].map(([k,v])=>(
               <div key={k} style={{ display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:`1px solid ${C.borderLight}` }}>
@@ -2659,21 +2804,12 @@
                 <span style={{ color:C.text,fontSize:12 }}>{v}</span>
               </div>
             ))}
-          </div>
+          </AccordionSection>
 
-          {chanceOnly&&(
-            <div style={{ padding:"10px 14px",borderRadius:8,background:C.warningFaint,border:`1px solid ${C.warning}`,marginBottom:10 }}>
-              <p style={{ margin:0,color:C.warning,fontSize:12,fontWeight:700 }}>⚀ Paradox Chance Die</p>
-              <p style={{ margin:"3px 0 0",color:C.textMuted,fontSize:11 }}>
-                Fully mitigated — but excess Reach always incurs at least a Chance Die.
-              </p>
-            </div>
-          )}
-
-          {/* Mana Ledger */}
-          {manaC !== null && totalMana > 0 && (
-            <div style={{ background:C.bgDeep,borderRadius:8,padding:14,marginBottom:10,border:`1px solid ${C.borderLight}` }}>
-              <p style={{ margin:"0 0 8px",fontSize:10,letterSpacing:2,textTransform:"uppercase",color:C.accentLight }}>Mana Ledger</p>
+          {totalMana > 0 && (
+            <AccordionSection id="mana" title="Mana Ledger"
+              badge={`${totalMana} required`}
+              openSections={openSections} onToggle={toggleSection}>
               {[
                 ["Non-Ruling Improvised",  derived.nonRulingMana],
                 ["Indefinite Duration",    derived.indefiniteMana],
@@ -2690,94 +2826,44 @@
                 <span style={{ color:C.text,fontSize:12,fontWeight:700 }}>Total cost</span>
                 <span style={{ color:C.warning,fontSize:12,fontWeight:700 }}>{totalMana}</span>
               </div>
-              <div style={{ background:"rgba(255,255,255,0.04)",borderRadius:6,padding:"8px 10px",marginTop:6 }}>
-                <div style={{ display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:2 }}>
-                  <span style={{ color:C.textMuted }}>Current mana</span><span>{manaC}</span>
-                </div>
-                <div style={{ display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:2 }}>
-                  <span style={{ color:C.textMuted }}>Cost</span><span style={{ color:C.warning }}>−{totalMana}</span>
-                </div>
-                <div style={{ height:1,background:C.borderLight,margin:"3px 0" }}/>
-                <div style={{ display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:700 }}>
-                  <span>After cast</span>
-                  <span style={{ color:manaAfter>0?C.success:manaAfter===0?C.warning:C.danger }}>{Math.max(0,manaAfter)}</span>
-                </div>
-              </div>
-              <div style={{ marginTop:6,fontSize:10,color:C.textMuted }}>Per-turn limit: {manaPerTurn} mana (Gnosis {d.gnosis})</div>
-              {manaDeducted&&(
-                <div style={{ marginTop:6,padding:"6px 10px",borderRadius:6,background:C.successFaint,border:`1px solid ${C.success}` }}>
-                  <span style={{ color:C.success,fontSize:11 }}>✓ Mana deducted — {character?.mana?.current ?? 0} remaining</span>
+              {manaC !== null && (
+                <div style={{ background:"rgba(255,255,255,0.04)",borderRadius:6,padding:"8px 10px",marginTop:6 }}>
+                  <div style={{ display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:2 }}>
+                    <span style={{ color:C.textMuted }}>Current mana</span><span>{manaC}</span>
+                  </div>
+                  <div style={{ display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:2 }}>
+                    <span style={{ color:C.textMuted }}>Cost</span><span style={{ color:C.warning }}>−{totalMana}</span>
+                  </div>
+                  <div style={{ height:1,background:C.borderLight,margin:"3px 0" }}/>
+                  <div style={{ display:"flex",justifyContent:"space-between",fontSize:12,fontWeight:700 }}>
+                    <span>After cast</span>
+                    <span style={{ color:manaAfter>0?C.success:manaAfter===0?C.warning:C.danger }}>{Math.max(0,manaAfter)}</span>
+                  </div>
                 </div>
               )}
-            </div>
+              <div style={{ marginTop:6,fontSize:10,color:C.textMuted }}>Per-turn limit: {manaPerTurn} mana (Gnosis {d.gnosis})</div>
+            </AccordionSection>
           )}
 
-          {/* Mana validation */}
-          {manaInsufficient && !manaDeducted && (
-            <div style={{ padding:"10px 14px",borderRadius:8,background:C.dangerFaint,border:`1px solid ${C.danger}`,marginBottom:10 }}>
-              <span style={{ color:C.danger,fontSize:12,fontWeight:700 }}>✗ Insufficient mana — need {totalMana}, have {manaC}</span>
-            </div>
-          )}
-          {manaC !== null && manaAfter === 0 && !manaDeducted && (
-            <div style={{ padding:"10px 14px",borderRadius:8,background:C.warningFaint,border:`1px solid ${C.warning}`,marginBottom:10 }}>
-              <span style={{ color:C.warning,fontSize:12 }}>⚠ This will use your last mana — 0 remaining after cast</span>
-            </div>
+          {hasParadoxRisk && (
+            <AccordionSection id="paradox" title="Paradox Detail"
+              badge={chanceOnly ? "chance die" : `${paradoxDice} dice`}
+              openSections={openSections} onToggle={toggleSection}>
+              {chanceOnly ? (
+                <div style={{ padding:"6px 0" }}>
+                  <p style={{ margin:0,color:C.warning,fontSize:12,fontWeight:700 }}>⚀ Paradox Chance Die</p>
+                  <p style={{ margin:"3px 0 0",color:C.textMuted,fontSize:11 }}>
+                    Fully mitigated — but excess Reach always incurs at least a Chance Die.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ padding:"6px 0",color:C.textMuted,fontSize:12 }}>
+                  {excessReach} excess Reach × {PARADOX_PER_REACH[d.gnosis]||1} per Reach = {paradoxDice} paradox dice
+                </div>
+              )}
+            </AccordionSection>
           )}
 
-          {/* Discord */}
-          {/* Save to Library */}
-          <button onClick={() => { if (onSaveToLibrary) onSaveToLibrary(); }}
-            disabled={!character}
-            style={{
-              width:"100%", padding:13, borderRadius:8, marginBottom:10,
-              border:`1px solid ${character ? C.accentBorder : C.border}`,
-              background: character ? "rgba(123,44,191,0.1)" : "transparent",
-              color: character ? C.accentLight : C.textMuted,
-              cursor: character ? "pointer" : "not-allowed",
-              fontSize:13, fontWeight:700, letterSpacing:.5,
-              opacity: character ? 1 : 0.4,
-              display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-            }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
-            </svg>
-            Save to Grimoire
-          </button>
-          {/* Set as Active */}
-          <button onClick={() => {
-            if (!character || !onSetActive) return;
-            const durOpts   = d.advancedDuration ? DURATION_ADVANCED : DURATION_STANDARD;
-            const scaleOpts = d.advancedScale
-              ? (d.scaleMode === 'area' ? SCALE_ADV_AREA : SCALE_ADV_SUBJECTS)
-              : (d.scaleMode === 'area' ? SCALE_STD_AREA : SCALE_STD_SUBJECTS);
-            onSetActive({
-              name:         d.spellName || 'Unnamed Spell',
-              arcanum:      (d.casterArcanum || 'prime').toLowerCase(),
-              arcanumLevel: d.casterArcanumDots,
-              castMethod:   d.method,
-              potency:      d.potency,
-              duration:     durOpts[d.durationIndex]?.label   || '—',
-              scale:        scaleOpts[d.scaleIndex]?.label    || '—',
-              reach:        usedReach,
-              mana:         totalMana,
-            });
-            if (onOpenSheet) onOpenSheet();
-          }} disabled={!character} style={{
-            width:"100%", padding:13, borderRadius:8, marginBottom:10,
-            border:`1px solid ${character ? C.accentBorder : C.border}`,
-            background: character ? "rgba(123,44,191,0.2)" : "transparent",
-            color: character ? C.accentLight : C.textMuted,
-            cursor: character ? "pointer" : "not-allowed",
-            fontSize:13, fontWeight:700, letterSpacing:.5,
-            opacity: character ? 1 : 0.4,
-          }}>
-            ⚡ Set as Active
-          </button>
-          <SectionHead>Send to Discord</SectionHead>
-          <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:6 }}>
-            <DBtn label="Send Dice Pool" status={ds.pool} onClick={handlePool} noHook={!poolWebhook}/>
-            <DBtn label="Send Card"      status={ds.card} onClick={handleCard} noHook={!cardWebhook}/>
-          </div>
           {(!poolWebhook||!cardWebhook)&&(
             <Hint>
               Configure webhooks in your character JSON under <code style={{ color:C.accentLight }}>discord.dicePoolWebhook</code> / <code style={{ color:C.accentLight }}>discord.spellPreviewWebhook</code>.
@@ -2839,7 +2925,7 @@
     }
 
     // ── Character header ──────────────────────────────────────────────────────
-    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, onHealthChange, onWillpowerChange, activeCount, onSheetToggle, onSceneToggle, sceneConnected, onCompendiumToggle, compUser }) {
+    function CharacterHeader({ character, onLoad, onSave, onNew, onManaChange, onHealthChange, onWillpowerChange, activeCount, onSheetToggle, onSceneToggle, sceneConnected, onCompendiumToggle, compUser, justSaved }) {
       const fileRef = useRef(null);
       const [manaOpen, setManaOpen] = useState(false);
       const [healthOpen, setHealthOpen] = useState(false);
@@ -2884,6 +2970,12 @@
                       {character.shadowName || character.name}
                     </span>
                     {character.shadowName&&<span style={{ color:C.textMuted,fontSize:11 }}>({character.name})</span>}
+                    {justSaved && (
+                      <span style={{ fontSize:10,color:C.success,letterSpacing:0.5,
+                        padding:"1px 6px",borderRadius:4,background:C.successFaint }}>
+                        Saved
+                      </span>
+                    )}
                   </div>
                   <div style={{ color:C.textMuted,fontSize:11 }}>
                     {character.path} · {character.order} · Gnosis {character.gnosis}
@@ -2919,33 +3011,29 @@
                 border:`1px solid ${character?C.accentBorder:C.border}`,
                 color:character?C.accentLight:C.textMuted,opacity:character?1:0.4 }}>Save</button>
               <button onClick={onSceneToggle}
-                style={{ position:"relative", padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
+                style={{ display:"flex", alignItems:"center", gap:5,
+                  padding:"5px 10px", borderRadius:6, fontSize:12,
                   cursor:"pointer",
-                  background:sceneConnected ? "rgba(42,157,143,0.25)" : "rgba(42,157,143,0.15)",
-                  border:`1px solid ${sceneConnected ? C.success : "rgba(42,157,143,0.3)"}`,
-                  color:C.success }}>
-                🎭 Scene
+                  background:sceneConnected ? "rgba(42,157,143,0.12)" : "rgba(255,255,255,0.05)",
+                  border:`1px solid ${sceneConnected ? C.success : C.border}`,
+                  color:sceneConnected ? C.success : C.text }}>
+                <span>🎭</span>
+                <span>Scene</span>
                 {sceneConnected && (
-                  <span style={{ position:"absolute", top:-3, right:-3,
-                    width:8, height:8, borderRadius:"50%",
-                    background:C.success, border:`2px solid ${C.bgCard}` }}/>
+                  <span style={{ width:6, height:6, borderRadius:"50%",
+                    background:C.success, display:"inline-block" }}/>
                 )}
               </button>
               <button onClick={character ? onSheetToggle : undefined}
-                style={{ position:"relative", padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
+                style={{ display:"flex", alignItems:"center", gap:5,
+                  padding:"5px 10px", borderRadius:6, fontSize:12,
                   cursor: character ? "pointer" : "not-allowed",
-                  background: activeCount > 0 ? "rgba(123,44,191,0.2)" : "transparent",
+                  background: activeCount > 0 ? "rgba(123,44,191,0.2)" : "rgba(255,255,255,0.05)",
                   border:`1px solid ${activeCount > 0 ? C.accentBorder : C.border}`,
-                  color: activeCount > 0 ? C.accentLight : C.textMuted,
-                  opacity: character ? 1 : 0.4 }}>
-                ⚡ Spells
-                {activeCount > 0 && (
-                  <span style={{ position:"absolute", top:-5, right:-5,
-                    background:C.accent, color:"#fff", borderRadius:"50%",
-                    fontSize:9, fontWeight:700, width:16, height:16,
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    lineHeight:1, pointerEvents:"none" }}>{activeCount}</span>
-                )}
+                  color: C.text, opacity: character ? 1 : 0.4 }}>
+                <span>⚡</span>
+                <span style={{ fontWeight:700, color:C.accentLight }}>{activeCount}</span>
+                <span style={{ color:C.textMuted }}>Active</span>
               </button>
               <button onClick={onCompendiumToggle}
                 style={{ position:"relative", padding:"4px 10px", borderRadius:5, fontSize:11, fontWeight:600,
@@ -3721,6 +3809,36 @@
     }
 
     // ── App root ──────────────────────────────────────────────────────────────
+    function FirstRunScreen({ onLoad, onContinue }) {
+      return (
+        <div style={{ display:"flex",flexDirection:"column",alignItems:"center",
+          justifyContent:"center",padding:"40px 24px",minHeight:"60vh",textAlign:"center" }}>
+          <div style={{ fontSize:48,marginBottom:16,opacity:0.6 }}>⟡</div>
+          <h2 style={{ fontFamily:"'Rajdhani',sans-serif",fontSize:26,fontWeight:700,
+            color:C.accentLight,marginBottom:8,letterSpacing:1 }}>
+            Electronic Grimoire
+          </h2>
+          <p style={{ color:C.textMuted,fontSize:13,lineHeight:1.7,maxWidth:280,marginBottom:32 }}>
+            Load your character to get automatic Arcanum hints, active spell tracking, and mana ledger.
+          </p>
+          <button onClick={onLoad} style={{ width:"100%",maxWidth:280,padding:"14px",
+            borderRadius:10,cursor:"pointer",fontSize:15,fontWeight:700,
+            background:C.accent,border:"none",color:"#fff",marginBottom:10 }}>
+            Load Character JSON
+          </button>
+          <button onClick={onContinue} style={{ width:"100%",maxWidth:280,padding:"12px",
+            borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:600,
+            background:"transparent",border:`1px solid ${C.border}`,
+            color:C.textMuted }}>
+            Continue without character
+          </button>
+          <p style={{ color:C.textMuted,fontSize:11,marginTop:24,opacity:0.6 }}>
+            Your character is stored locally — never uploaded.
+          </p>
+        </div>
+      );
+    }
+
     function App() {
       const [d, setD]               = useState(INITIAL);
       const [stepIdx, setStepIdx]   = useState(0);
@@ -3739,8 +3857,21 @@
       const [compRole, setCompRole]     = useState('player');
       const [suggestSpell, setSuggestSpell] = useState(null);
       const [myTilts, setMyTilts] = useState([]);
+      const firstRunDismissed = useRef(false);
+      const [dismissed, setDismissed] = useState(() => {
+        try { return !!localStorage.getItem('mage_current_character'); } catch { return false; }
+      });
+      const [justSaved, setJustSaved] = useState(false);
+      const charFileRef = useRef(null);
 
       const set = useCallback((key, val) => setD(prev => ({...prev, [key]:val})), []);
+
+      useEffect(() => {
+        if (!character) return;
+        setJustSaved(true);
+        const t = setTimeout(() => setJustSaved(false), 2000);
+        return () => clearTimeout(t);
+      }, [character]);
 
       // ── Firebase Auth state listener ──────────────────────────────────────
       useEffect(() => {
@@ -3987,22 +4118,62 @@
         }
       }
 
+      const showFirstRun = !character && !dismissed && !firstRunDismissed.current;
+
+      function handleFirstRunLoad() {
+        charFileRef.current?.click();
+        firstRunDismissed.current = true;
+        setDismissed(true);
+      }
+      function handleFirstRunContinue() {
+        firstRunDismissed.current = true;
+        setDismissed(true);
+      }
+      function handleFirstRunFileChange(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try { handleLoad(JSON.parse(ev.target.result)); }
+          catch { alert("Invalid character file — could not parse JSON."); }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+      }
+
       return (
         <div style={{ minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
           background:"radial-gradient(ellipse at 50% 30%,#1a0a2e 0%,#0d0d1a 60%)",padding:"20px 12px" }}>
 
-          {/* Back link — floated top-left */}
-          <a href="index.html" style={{
-            position:"fixed",top:12,left:12,zIndex:10,
-            color:C.textMuted,fontSize:11,textDecoration:"none",
-            padding:"4px 10px",borderRadius:6,
-            background:C.bgCard,border:`1px solid ${C.border}`,letterSpacing:.5,
-          }}>← Classic View</a>
+          {/* Nav pill */}
+          <div style={{ position:"fixed",top:12,left:12,zIndex:100,
+            display:"flex",gap:4,background:"rgba(13,13,26,0.9)",
+            border:`1px solid ${C.border}`,borderRadius:8,padding:4,
+            backdropFilter:"blur(8px)" }}>
+            {[
+              { href:"index.html",       label:"Calculator",  active:false },
+              { href:"wizard.html",      label:"Wizard",      active:true },
+              { href:"storyteller.html", label:"Storyteller", active:false },
+            ].map(({href,label,active}) => (
+              <a key={href} href={href} style={{
+                padding:"5px 10px",borderRadius:5,fontSize:11,fontWeight:active?700:400,
+                color:active?C.accentLight:C.textMuted,
+                background:active?C.accentFaint:"transparent",
+                textDecoration:"none",transition:"all 0.15s",
+              }}>{label}</a>
+            ))}
+          </div>
+
+          <input type="file" accept=".json" ref={charFileRef} onChange={handleFirstRunFileChange} style={{ display:"none" }}/>
 
           <div style={{ width:"100%",maxWidth:440,background:C.bgDark,borderRadius:20,
             border:`1px solid ${C.accentBorder}`,
             boxShadow:`0 0 60px rgba(123,44,191,0.12),0 30px 80px rgba(0,0,0,0.7)`,
             display:"flex",flexDirection:"column",minHeight:750,overflow:"hidden",position:"relative" }}>
+
+          {showFirstRun ? (
+            <FirstRunScreen onLoad={handleFirstRunLoad} onContinue={handleFirstRunContinue}/>
+          ) : (<>
 
         {clashOpen && <ClashOfWills character={character} gnosis={d.gnosis} onClose={()=>setClashOpen(false)}/>}
             {compOpen && (
@@ -4068,6 +4239,7 @@
               sceneConnected={!!sceneConn}
               onCompendiumToggle={() => setCompOpen(o => !o)}
               compUser={compUser}
+              justSaved={justSaved}
             />
 
             {/* ST-applied tilts banner */}
@@ -4088,26 +4260,26 @@
             )}
 
             {/* Step indicator */}
-            <div style={{ padding:"8px 16px 4px",background:C.bgCard,borderBottom:`1px solid ${C.border}` }}>
+            <div style={{ padding:"10px 16px 4px",background:C.bgCard,borderBottom:`1px solid ${C.border}` }}>
               <div style={{ display:"flex",alignItems:"flex-start",gap:2 }}>
                 {steps.map((s,i)=>(
                   <div key={s.id} onClick={()=>i<stepIdx&&setStepIdx(i)}
                     style={{ flex:1,cursor:i<stepIdx?"pointer":"default",display:"flex",flexDirection:"column",alignItems:"center",gap:3,position:"relative" }}>
-                    {i<steps.length-1&&<div style={{ position:"absolute",top:11,left:"50%",width:"100%",height:1,
+                    {i<steps.length-1&&<div style={{ position:"absolute",top:14,left:"50%",width:"100%",height:1,
                       background:i<stepIdx?C.accent:"rgba(255,255,255,0.08)",zIndex:0 }}/>}
-                    <div style={{ width:22,height:22,borderRadius:"50%",position:"relative",zIndex:1,flexShrink:0,
+                    <div style={{ width:28,height:28,borderRadius:"50%",position:"relative",zIndex:1,flexShrink:0,
                       background:i<stepIdx?C.accent:i===stepIdx?C.accentLight:"rgba(255,255,255,0.06)",
                       border:i===stepIdx?`2px solid ${C.accentLight}`:`1px solid ${i<stepIdx?C.accent:"rgba(255,255,255,0.1)"}`,
                       display:"flex",alignItems:"center",justifyContent:"center",
-                      fontSize:9,fontWeight:700,color:i<=stepIdx?"#fff":"#555",
+                      fontSize:i<stepIdx?13:12,fontWeight:700,color:i<=stepIdx?"#fff":C.textMuted,
                       boxShadow:i===stepIdx?`0 0 0 3px rgba(157,78,221,0.25)`:"none",
-                      transition:"all .3s" }}>
+                      transition:"all 0.2s" }}>
                       {i<stepIdx?"✓":i+1}
                     </div>
-                    <div style={{ fontSize:7,letterSpacing:.5,textTransform:"uppercase",
-                      textAlign:"center",paddingBottom:4,
-                      color:i===stepIdx?C.accentLight:i<stepIdx?C.accent:"#444",
-                      fontWeight:i===stepIdx?700:400,lineHeight:1.2 }}>{s.label}</div>
+                    <div style={{ fontSize:9,letterSpacing:0.5,
+                      textAlign:"center",paddingBottom:4,whiteSpace:"nowrap",
+                      color:i===stepIdx?C.accentLight:C.textMuted,
+                      fontWeight:i===stepIdx?700:400,marginTop:4 }}>{s.label}</div>
                   </div>
                 ))}
               </div>
@@ -4158,6 +4330,7 @@
                 </button>
               )}
             </div>
+          </>)}
           </div>
         </div>
       );
