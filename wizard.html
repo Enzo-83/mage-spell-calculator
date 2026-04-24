@@ -56,6 +56,7 @@
   </script>
 
   <script src="js/scene.js"></script>
+  <script src="js/glossary.js"></script>
 
   <script type="text/babel">
     const { useState, useEffect, useCallback, useRef } = React;
@@ -384,8 +385,14 @@
     }
 
     // ── UI atoms ──────────────────────────────────────────────────────────────
-    function Label({ children }) {
-      return <p style={{ margin:"0 0 5px",fontSize:11,letterSpacing:1.5,textTransform:"uppercase",color:C.textMuted,fontWeight:600 }}>{children}</p>;
+    const GlossaryTip = window.GlossaryTip;
+    function Label({ children, tip }) {
+      return (
+        <div style={{ margin:"0 0 5px",display:"flex",alignItems:"center",gap:3 }}>
+          <span style={{ fontSize:11,letterSpacing:1.5,textTransform:"uppercase",color:C.textMuted,fontWeight:600 }}>{children}</span>
+          {tip && <GlossaryTip term={tip}/>}
+        </div>
+      );
     }
     function Hint({ children, color }) {
       return <p style={{ margin:"4px 0 0",fontSize:11,color:color||C.textMuted,lineHeight:1.4 }}>{children}</p>;
@@ -393,20 +400,21 @@
     function Divider() {
       return <div style={{ height:1,background:C.borderLight,margin:"14px 0" }}/>;
     }
-    function SectionHead({ children }) {
+    function SectionHead({ children, tip }) {
       return (
         <p style={{ margin:"14px 0 8px",fontSize:10,letterSpacing:2.5,textTransform:"uppercase",
           color:C.accentLight,fontWeight:700,display:"flex",alignItems:"center",gap:6 }}>
           <span style={{ flex:1,height:1,background:`linear-gradient(90deg,${C.accentBorder},transparent)` }}/>
           {children}
+          {tip && <GlossaryTip term={tip}/>}
           <span style={{ flex:1,height:1,background:`linear-gradient(270deg,${C.accentBorder},transparent)` }}/>
         </p>
       );
     }
-    function Field({ label, hint, hintColor, children }) {
+    function Field({ label, hint, hintColor, tip, children }) {
       return (
         <div style={{ marginBottom:12 }}>
-          {label && <Label>{label}</Label>}
+          {label && <Label tip={tip}>{label}</Label>}
           {children}
           {hint && <Hint color={hintColor}>{hint}</Hint>}
         </div>
@@ -471,7 +479,7 @@
         </button>
       );
     }
-    function CheckboxRow({ label, sub, checked, onChange, disabled, accentColor }) {
+    function CheckboxRow({ label, sub, checked, onChange, disabled, accentColor, tip }) {
       const ac = accentColor || C.accentLight;
       return (
         <div onClick={()=>!disabled&&onChange(!checked)} style={{
@@ -485,7 +493,7 @@
             {checked&&<span style={{ color:C.bgDark,fontSize:11,fontWeight:900,lineHeight:1 }}>✓</span>}
           </div>
           <div>
-            <div style={{ color:C.text,fontSize:13 }}>{label}</div>
+            <div style={{ display:"flex",alignItems:"center",gap:3,color:C.text,fontSize:13 }}>{label}{tip && <GlossaryTip term={tip}/>}</div>
             {sub&&<div style={{ color:C.textMuted,fontSize:11,marginTop:1 }}>{sub}</div>}
           </div>
         </div>
@@ -831,7 +839,7 @@
             </div>
           )}
           <Divider/>
-          <SectionHead>Casting Method</SectionHead>
+          <SectionHead tip="castingMethod">Casting Method</SectionHead>
           {CAST_METHODS.map(m=>(
             <RadioCard key={m.id} label={m.label} sub={m.sub}
               selected={d.method===m.id} onClick={()=>{
@@ -1049,7 +1057,7 @@
       return (
         <div>
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
-            <Label>Potency</Label>
+            <Label tip="potency">Potency</Label>
             <div style={{ display:"flex",alignItems:"center",gap:8 }}>
               <span style={{ fontSize:11,color:C.textMuted }}>Standard</span>
               <div onClick={()=>set("advancedPotency",!d.advancedPotency)} style={{
@@ -1081,7 +1089,7 @@
 
           {/* Duration */}
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
-            <Label>Duration</Label>
+            <Label tip="duration">Duration</Label>
             <div style={{ display:"flex",alignItems:"center",gap:8 }}>
               <span style={{ fontSize:11,color:C.textMuted }}>Standard</span>
               <div onClick={()=>set("advancedDuration",!d.advancedDuration)} style={{
@@ -1122,7 +1130,7 @@
 
           {/* Scale */}
           <div style={{ display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6 }}>
-            <Label>Scale</Label>
+            <Label tip="scale">Scale</Label>
             <div style={{ display:"flex",gap:6 }}>
               {["subjects","area"].map(m=>(
                 <button key={m} onClick={()=>{set("scaleMode",m);set("scaleIndex",0);}} style={{
@@ -1171,7 +1179,7 @@
           <Divider/>
 
           {/* Range */}
-          <Field label="Range">
+          <Field label="Range" tip="range">
             <div style={{ display:"flex",flexWrap:"wrap",gap:6 }}>
               {RANGES.map(r=>(
                 <button key={r.id} onClick={()=>set("range",r.id)} style={{
@@ -1212,7 +1220,7 @@
           <Divider/>
 
           {/* Casting Time */}
-          <SectionHead>Casting Time</SectionHead>
+          <SectionHead tip="castingTime">Casting Time</SectionHead>
           {(()=>{
             const mi = CAST_METHODS.find(m=>m.id===d.method);
             const isGrimoire = mi && mi.doubleRitual;
@@ -1241,7 +1249,7 @@
             );
           })()}
           <Divider/>
-          <Field label="Additional Reach" hint="For extra effects, extended durations, etc.">
+          <Field label="Additional Reach" tip="reach" hint="For extra effects, extended durations, etc.">
             <StepperInput value={d.extraReach} min={0} max={10} onChange={v=>set("extraReach",v)}/>
           </Field>
         </div>
@@ -1313,7 +1321,7 @@
             background:over?C.dangerFaint:C.accentFaint,
             border:`1px solid ${over?C.danger:C.accentBorder}`,
           }}>
-            <span style={{ color:C.textMuted,fontSize:12 }}>Yantras selected</span>
+            <span style={{ color:C.textMuted,fontSize:12,display:"flex",alignItems:"center",gap:4 }}>Yantras selected<GlossaryTip term="yantra"/></span>
             <span style={{ color:over?C.danger:C.accentLight,fontSize:20,fontWeight:700 }}>{count} / {max}</span>
           </div>
 
@@ -1365,7 +1373,7 @@
       return (
         <div>
           <SectionHead>Additional Modifiers</SectionHead>
-          <CheckboxRow label="Spend Willpower (+3 dice)" checked={d.spendWP} onChange={v=>set("spendWP",v)}/>
+          <CheckboxRow label="Spend Willpower (+3 dice)" tip="willpower" checked={d.spendWP} onChange={v=>set("spendWP",v)}/>
           <Field label="Teamwork Dice">
             <StepperInput value={d.teamworkDice} min={0} max={20} onChange={v=>set("teamworkDice",v)}/>
           </Field>
@@ -1373,7 +1381,7 @@
             <StepperInput value={d.otherMod} min={-10} max={10} onChange={v=>set("otherMod",v)}/>
           </Field>
           <Divider/>
-          <SectionHead>Mana Summary</SectionHead>
+          <SectionHead tip="mana">Mana Summary</SectionHead>
           {[
             ["Non-Ruling Improvised",  derived.nonRulingMana],
             ["Indefinite Duration",    derived.indefiniteMana],
@@ -1420,7 +1428,7 @@
             <StepperInput value={d.extraManaCost} min={0} max={10} onChange={v=>set("extraManaCost",v)}/>
           </Field>
           <Divider/>
-          <SectionHead>Paradox</SectionHead>
+          <SectionHead tip="paradox">Paradox</SectionHead>
           {!hasParadoxRisk ? (
             <div style={{ padding:"10px 14px",borderRadius:8,background:C.successFaint,border:`1px solid ${C.success}` }}>
               <span style={{ color:C.success,fontSize:13 }}>✓ No Paradox risk — Reach within free allowance</span>
