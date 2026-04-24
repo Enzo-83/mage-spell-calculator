@@ -2493,7 +2493,7 @@
       );
     }
 
-    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, sceneConn, onSaveToLibrary }) {
+    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, sceneConn, onSaveToLibrary, poolActionRef }) {
       const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
               potencyPen, durationPen, scalePen, yantraBonus, basePool,
               durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj,
@@ -2578,6 +2578,10 @@
           setTimeout(()=>setDs(s=>({...s,pool:null})),3000);
         } catch { setDs(s=>({...s,pool:"error"})); setTimeout(()=>setDs(s=>({...s,pool:null})),4000); }
       }
+
+      useEffect(() => {
+        if (poolActionRef) poolActionRef.current = handlePool;
+      });
 
       async function handleCard() {
         if (!cardWebhook) { alert("No Spell Card webhook set in character.discord.spellPreviewWebhook"); return; }
@@ -2871,6 +2875,43 @@
               Configure webhooks in your character JSON under <code style={{ color:C.accentLight }}>discord.dicePoolWebhook</code> / <code style={{ color:C.accentLight }}>discord.spellPreviewWebhook</code>.
             </Hint>
           )}
+
+        </div>
+      );
+    }
+
+    // ── Cast footer (outside scroll area, always visible on Cast step) ─────
+    function CastFooter({ derived, character, poolActionRef }) {
+      const { dicePool } = derived;
+      const [sendState, setSendState] = useState(null);
+      const poolWebhook = character?.discord?.dicePoolWebhook || "";
+      async function handleSend() {
+        if (!poolActionRef?.current) return;
+        setSendState("sending");
+        try {
+          await poolActionRef.current();
+          setSendState("ok");
+          setTimeout(() => setSendState(null), 3000);
+        } catch { setSendState(null); }
+      }
+      return (
+        <div style={{ position:"fixed",bottom:0,left:0,right:0,zIndex:50,
+          maxWidth:440,margin:"0 auto",
+          background:C.bgCard,borderTop:`1px solid ${C.border}`,
+          padding:"10px 16px",display:"flex",alignItems:"center",gap:12,
+          boxShadow:"0 -4px 20px rgba(0,0,0,0.5)" }}>
+          <div style={{ textAlign:"center",minWidth:56 }}>
+            <div style={{ fontSize:28,fontWeight:700,color:C.accentLight,lineHeight:1 }}>{dicePool}</div>
+            <div style={{ fontSize:8,letterSpacing:1.5,textTransform:"uppercase",color:C.textMuted,marginTop:2 }}>dice</div>
+          </div>
+          <button onClick={handleSend} disabled={!!sendState||!poolWebhook}
+            style={{ flex:1,padding:"12px 0",borderRadius:8,cursor:sendState||!poolWebhook?"default":"pointer",
+              fontSize:13,fontWeight:700,border:"none",
+              background:!poolWebhook?"rgba(88,101,242,0.15)":`linear-gradient(135deg,${C.discord},#4752c4)`,
+              color:"#fff",opacity:!poolWebhook?0.4:1,
+              boxShadow:poolWebhook?`0 4px 12px rgba(88,101,242,0.3)`:"none" }}>
+            {sendState==="ok"?"✓ Sent":sendState==="sending"?"Sending…":"Send Dice Pool to Discord"}
+          </button>
         </div>
       );
     }
@@ -3811,28 +3852,33 @@
     }
 
     // ── App root ──────────────────────────────────────────────────────────────
-    function FirstRunScreen({ onLoad, onContinue }) {
+    function FirstRunScreen({ onLoad, onNew, onDismiss }) {
       return (
         <div style={{ display:"flex",flexDirection:"column",alignItems:"center",
-          justifyContent:"center",padding:"40px 24px",minHeight:"60vh",textAlign:"center" }}>
+          justifyContent:"center",padding:"40px 24px",minHeight:"60vh",textAlign:"center",
+          position:"relative" }}>
+          <button onClick={onDismiss} style={{ position:"absolute",top:8,right:8,
+            background:"transparent",border:"none",color:C.textMuted,fontSize:20,
+            cursor:"pointer",padding:8,lineHeight:1 }}
+            aria-label="Dismiss">&times;</button>
           <div style={{ fontSize:48,marginBottom:16,opacity:0.6 }}>⟡</div>
           <h2 style={{ fontFamily:"'Rajdhani',sans-serif",fontSize:26,fontWeight:700,
             color:C.accentLight,marginBottom:8,letterSpacing:1 }}>
-            Electronic Grimoire
+            Welcome to the Spell Wizard
           </h2>
           <p style={{ color:C.textMuted,fontSize:13,lineHeight:1.7,maxWidth:280,marginBottom:32 }}>
-            Load your character to get automatic Arcanum hints, active spell tracking, and mana ledger.
+            Load a character JSON to get started, or create a new one.
           </p>
           <button onClick={onLoad} style={{ width:"100%",maxWidth:280,padding:"14px",
             borderRadius:10,cursor:"pointer",fontSize:15,fontWeight:700,
             background:C.accent,border:"none",color:"#fff",marginBottom:10 }}>
-            Load Character JSON
+            Load Character
           </button>
-          <button onClick={onContinue} style={{ width:"100%",maxWidth:280,padding:"12px",
+          <button onClick={onNew} style={{ width:"100%",maxWidth:280,padding:"12px",
             borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:600,
             background:"transparent",border:`1px solid ${C.border}`,
             color:C.textMuted }}>
-            Continue without character
+            New Character
           </button>
           <p style={{ color:C.textMuted,fontSize:11,marginTop:24,opacity:0.6 }}>
             Your character is stored locally — never uploaded.
@@ -3859,6 +3905,7 @@
       const [compRole, setCompRole]     = useState('player');
       const [suggestSpell, setSuggestSpell] = useState(null);
       const [myTilts, setMyTilts] = useState([]);
+      const castPoolRef = useRef(null);
       const firstRunDismissed = useRef(false);
       const [dismissed, setDismissed] = useState(() => {
         try { return !!localStorage.getItem('mage_current_character'); } catch { return false; }
@@ -4115,7 +4162,7 @@
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
           case "yantras":   return <StepYantras   d={d} set={set}/>;
           case "modifiers": return <StepModifiers d={d} set={set} derived={derived} character={character} sceneConn={sceneConn}/>;
-          case 'cast':      return <StepCast d={d} derived={derived} character={character} onManaChange={handleManaChange} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)} sceneConn={sceneConn} onSaveToLibrary={()=>setSaveLibOpen(true)}/>;
+          case 'cast':      return <StepCast d={d} derived={derived} character={character} onManaChange={handleManaChange} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)} sceneConn={sceneConn} onSaveToLibrary={()=>setSaveLibOpen(true)} poolActionRef={castPoolRef}/>;
           default:          return null;
         }
       }
@@ -4127,7 +4174,12 @@
         firstRunDismissed.current = true;
         setDismissed(true);
       }
-      function handleFirstRunContinue() {
+      function handleFirstRunNew() {
+        handleNew();
+        firstRunDismissed.current = true;
+        setDismissed(true);
+      }
+      function handleFirstRunDismiss() {
         firstRunDismissed.current = true;
         setDismissed(true);
       }
@@ -4174,7 +4226,7 @@
             display:"flex",flexDirection:"column",minHeight:750,overflow:"hidden",position:"relative" }}>
 
           {showFirstRun ? (
-            <FirstRunScreen onLoad={handleFirstRunLoad} onContinue={handleFirstRunContinue}/>
+            <FirstRunScreen onLoad={handleFirstRunLoad} onNew={handleFirstRunNew} onDismiss={handleFirstRunDismiss}/>
           ) : (<>
 
         {clashOpen && <ClashOfWills character={character} gnosis={d.gnosis} onClose={()=>setClashOpen(false)}/>}
@@ -4320,6 +4372,9 @@
                 </button>
               )}
             </div>
+          {currentStep.id === 'cast' && (
+            <CastFooter derived={derived} character={character} poolActionRef={castPoolRef}/>
+          )}
           </>)}
           </div>
         </div>
