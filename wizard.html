@@ -3487,7 +3487,7 @@
       useEffect(() => {
         setLoading(true);
         const unsubscribe = _fsDb.collection('compendium')
-          .where('approved', '==', true)
+          .orderBy('name')
           .onSnapshot(snap => {
             const items = [];
             snap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
