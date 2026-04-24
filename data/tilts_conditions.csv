@@ -1,0 +1,41 @@
+name,type,description
+Arm Wrack,Tilt,One arm is non-functional due to injury
+Beaten Down,Tilt,Character is staggered and reeling from damage
+Blinded,Tilt,Character cannot see
+Burning,Tilt,Character is on fire
+Deafened,Tilt,Character cannot hear
+Drugged,Tilt,Character is under the influence of drugs
+Insane,Tilt,Temporary madness or psychological break
+Knocked Down,Tilt,Character has been knocked prone
+Leg Wrack,Tilt,One leg is non-functional due to injury
+Poisoned,Tilt,Character has been exposed to a toxin
+Sick,Tilt,Character is ill or nauseous
+Stunned,Tilt,Character is dazed and disoriented
+Blizzard,Tilt,Severe winter storm with low visibility
+Earthquake,Tilt,Ground is shaking violently
+Extreme Cold,Tilt,Dangerously low temperatures
+Extreme Heat,Tilt,Dangerously high temperatures
+Flooded,Tilt,Area is covered in water
+Heavy Rain,Tilt,Downpour reducing visibility and footing
+Heavy Winds,Tilt,Strong winds impeding movement
+Ice,Tilt,Surfaces are slippery with ice
+Inferno,Tilt,Area is engulfed in flames
+Poor Light,Tilt,Dim or no illumination
+Amnesia,Condition,Cannot remember identity or past
+Blind,Condition,Permanently or long-term loss of sight
+Broken,Condition,Emotionally or physically shattered
+Connected,Condition,Has a useful contact or network
+Deprived,Condition,Lacking a vital resource
+Embarrassing Secret,Condition,Holds a compromising secret
+Fugue,Condition,Dissociative episode or blackout states
+Guilty,Condition,Tormented by past actions
+Informed,Condition,Has crucial knowledge about a situation
+Inspired,Condition,Creatively or spiritually driven
+Leveraged,Condition,Being blackmailed or coerced
+Madness,Condition,Long-term psychological instability
+Notoriety,Condition,Known for something negative
+Obsession,Condition,Fixated on a goal or idea
+Shaken,Condition,Deeply unsettled by recent events
+Spooked,Condition,Paranoid or easily startled
+Steadfast,Condition,Resolved and hard to dissuade
+Swooned,Condition,Infatuated or emotionally compromised
