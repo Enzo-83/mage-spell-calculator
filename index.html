@@ -2782,7 +2782,8 @@
     <script src="./js/dicePool.js"></script>
     <script src="./js/character.js"></script>
     <script src="./js/spellCompendium.js"></script>
-    
+    <script src="./js/glossary.js"></script>
+
     <!-- Application logic -->
     <script>
         // Wait for DOM to be fully loaded before initializing
@@ -5359,6 +5360,7 @@
     <!-- ── React Spell Form (Phase 3 migration) ──────────────────────────── -->
     <script type="text/babel">
       const { useState: _sf_us, useEffect: _sf_ue } = React;
+      const GlossaryTip = window.GlossaryTip;
 
       // ── Zones that vanilla JS manages — never re-render once mounted ──────
       const SpellControlZone = React.memo(function() {
@@ -5886,7 +5888,7 @@
               <div id="singleSpellControls">
                 <div className="form-grid">
                   <div className="form-group">
-                    <label>Casting Method</label>
+                    <label>Casting Method <GlossaryTip term="castingMethod"/></label>
                     <select id="castingMethod" value={form.castingMethod} onChange={e => onCastingMethod(e.target.value)}>
                       <option value="improvised">Improvised (+1 Mana if not Ruling)</option>
                       <option value="praxis">Praxis (Exceptional at 3)</option>
@@ -5953,7 +5955,7 @@
               <h2>Spell Factors</h2>
               <div className="form-grid">
                 <div className="form-group">
-                  <label>Potency</label>
+                  <label>Potency <GlossaryTip term="potency"/></label>
                   <input type="number" id="potency" min="1" max="20"
                     value={form.potency} onChange={e => set('potency', parseInt(e.target.value)||1)} />
                   <div className="checkbox-group">
@@ -5968,7 +5970,7 @@
                   )}
                 </div>
                 <div className="form-group">
-                  <label>Duration</label>
+                  <label>Duration <GlossaryTip term="duration"/></label>
                   <select id="duration" value={form.durationIndex}
                     onChange={e => set('durationIndex', parseInt(e.target.value)||0)}>
                     {durOpts.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
@@ -5980,7 +5982,7 @@
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Scale</label>
+                  <label>Scale <GlossaryTip term="scale"/></label>
                   <select id="scale" value={form.scaleIndex}
                     onChange={e => set('scaleIndex', parseInt(e.target.value)||0)}>
                     {scaleOpts.map((o, i) => <option key={i} value={i}>{o.label}</option>)}
@@ -6004,7 +6006,7 @@
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Range</label>
+                  <label>Range <GlossaryTip term="range"/></label>
                   <select id="range" value={form.range} onChange={e => set('range', e.target.value)}>
                     <option value="self">Self</option>
                     <option value="touch">Touch</option>
@@ -6017,7 +6019,7 @@
                   <div className="info-text" id="rangeInfo">{rangeDesc}</div>
                 </div>
                 <div className="form-group">
-                  <label>Casting Time</label>
+                  <label>Casting Time <GlossaryTip term="castingTime"/></label>
                   <select id="castingTime" value={form.castingTime} onChange={e => set('castingTime', e.target.value)}>
                     <option value="ritual">Ritual</option>
                     <option value="instant">Instant (+1 Reach)</option>
@@ -6032,7 +6034,7 @@
                   </div>
                 )}
                 <div className="form-group">
-                  <label>Additional Reach</label>
+                  <label>Additional Reach <GlossaryTip term="reach"/></label>
                   <input type="number" id="additionalReach" min="0" max="10"
                     value={form.additionalReach} onChange={e => set('additionalReach', parseInt(e.target.value)||0)} />
                   <div className="info-text">For spell effects (Instant, extra damage, etc.)</div>
@@ -6042,7 +6044,7 @@
 
             {/* ── YANTRAS CARD ── */}
             <div className="card">
-              <h2>Yantras <span className="info-text" id="yantraCount">({yantraCount} / {maxYant} max)</span></h2>
+              <h2>Yantras <GlossaryTip term="yantra"/> <span className="info-text" id="yantraCount">({yantraCount} / {maxYant} max)</span></h2>
               <div className="yantra-grid" id="yantraGrid">
                 <div className="yantra-category">
                   <h4>Places</h4>
@@ -6156,7 +6158,7 @@
                   <label className="checkbox-group" style={{marginBottom:0}}>
                     <input type="checkbox" id="spendWillpower"
                       checked={form.spendWillpower} onChange={e => set('spendWillpower', e.target.checked)} />
-                    <span style={{textTransform:'none'}}>Spend Willpower (+3 dice)</span>
+                    <span style={{textTransform:'none'}}>Spend Willpower (+3 dice) <GlossaryTip term="willpower"/></span>
                   </label>
                 </div>
                 <div className="form-group">
@@ -6175,7 +6177,7 @@
               </div>
               <div className="form-grid" style={{marginTop:12}}>
                 <div className="form-group">
-                  <label>Additional Mana Cost</label>
+                  <label>Additional Mana Cost <GlossaryTip term="mana"/></label>
                   <input type="number" id="additionalManaCost" min="0" max="20"
                     value={form.additionalManaCost} onChange={e => set('additionalManaCost', parseInt(e.target.value)||0)} />
                   <div className="info-text">For spell-specific costs — full Mana summary in Results</div>
@@ -6408,7 +6410,7 @@
                   </div>
                 </div>
                 <div className="card" id="paradoxInputSection">
-                  <h2>Paradox Modifiers</h2>
+                  <h2>Paradox Modifiers <GlossaryTip term="paradox"/></h2>
                   <div className="form-grid">
                     {!pv.auto && (
                       <div className="form-group">
