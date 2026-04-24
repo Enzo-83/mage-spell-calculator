@@ -19,20 +19,11 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192.png">
-    
+
+    <link rel="stylesheet" href="theme.css">
+
     <style>
-        :root {
-            --bg-dark: #1a1a2e;
-            --bg-card: #16213e;
-            --accent: #7b2cbf;
-            --accent-light: #9d4edd;
-            --text: #e6e6e6;
-            --text-muted: #a0a0a0;
-            --danger: #c73e1d;
-            --success: #2a9d8f;
-            --warning: #e9c46a;
-        }
-        
+
         * {
             box-sizing: border-box;
         }
@@ -3308,8 +3299,8 @@
             // Open character editor modal (Phase 5 — delegates to React bridge)
             function openCharacterEditor() {
                 if (!currentCharacter) currentCharacter = createNewCharacter();
-                if (!window.classicCharEditorBridge) return;
-                window.classicCharEditorBridge.open(currentCharacter, function(draft) {
+                if (!window.classicBridge?.charEditor) return;
+                window.classicBridge.charEditor.open(currentCharacter, function(draft) {
                     // Apply all draft fields to the closure-scoped currentCharacter
                     currentCharacter.name                = draft.name;
                     currentCharacter.shadowName          = draft.shadowName;
@@ -3497,8 +3488,8 @@
             window.currentRoteSkillKey = null;
 
             function renderSpellLibrary() {
-                if (window.classicSpellLibBridge?.refresh) {
-                    window.classicSpellLibBridge.refresh(currentCharacter);
+                if (window.classicBridge?.spellLib?.refresh) {
+                    window.classicBridge.spellLib.refresh(currentCharacter);
                     return;
                 }
             }
@@ -3655,8 +3646,8 @@
                     return;
                 }
                 const state = extractCalculatorState();
-                if (window.classicSpellLibBridge?.openSaveToLibrary) {
-                    window.classicSpellLibBridge.openSaveToLibrary(state, sourceSpellId);
+                if (window.classicBridge?.spellLib?.openSaveToLibrary) {
+                    window.classicBridge.spellLib.openSaveToLibrary(state, sourceSpellId);
                     return;
                 }
             }
@@ -4173,9 +4164,9 @@
                 const newMana = Math.max(0, currentCharacter.mana.current - totalMana);
                 currentCharacter.mana.current = newMana;
                 manaAlreadyDeducted = true;
-                if (window.classicResultsBridge) {
-                    window.classicResultsBridge.refreshResults();
-                    window.classicResultsBridge.notifyManaDeducted(`✓ Mana deducted — ${newMana} remaining`);
+                if (window.classicBridge?.results) {
+                    window.classicBridge.results.refreshResults();
+                    window.classicBridge.results.notifyManaDeducted(`✓ Mana deducted — ${newMana} remaining`);
                 }
                 if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
                     scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
@@ -4184,7 +4175,7 @@
 
             function resetManaDeductedFlag() {
                 manaAlreadyDeducted = false;
-                if (window.classicResultsBridge) window.classicResultsBridge.clearManaDeducted();
+                if (window.classicBridge?.results) window.classicBridge.results.clearManaDeducted();
             }
             
             // Send Dice Pool to Discord
@@ -4393,13 +4384,9 @@
                     var pid = sceneGetPlayerId();
                     var myData = scenePlayers[pid];
                     var eff = myData ? Math.max(0, (myData.paradoxRolls || 0) + (myData.stAdjustment || 0)) : 0;
-                    if (window.classicResultsBridge && window.classicResultsBridge.setAutoParadoxRolls) {
-                        window.classicResultsBridge.setAutoParadoxRolls(eff);
-                    }
+                    window.classicBridge?.results?.setAutoParadoxRolls(eff);
                 } else {
-                    if (window.classicResultsBridge && window.classicResultsBridge.clearAutoParadoxRolls) {
-                        window.classicResultsBridge.clearAutoParadoxRolls();
-                    }
+                    window.classicBridge?.results?.clearAutoParadoxRolls();
                 }
             }
 
@@ -4408,11 +4395,11 @@
             window.spellLibraryAPI = {
                 getCharacter:   function () { return currentCharacter; },
                 getCurrentTab:  function () {
-                    return window.classicSpellLibBridge?.getCurrentTab?.() || currentSpellTab;
+                    return window.classicBridge?.spellLib?.getCurrentTab?.() || currentSpellTab;
                 },
                 switchTab: function (tabName) {
                     currentSpellTab = tabName;
-                    if (window.classicSpellLibBridge?.switchTab) window.classicSpellLibBridge.switchTab(tabName);
+                    window.classicBridge?.spellLib?.switchTab(tabName);
                 },
                 renderLibrary:  function () { renderSpellLibrary(); },
                 save:           saveCharacterToLocalStorage
@@ -4427,7 +4414,7 @@
                 onCharacterLoad: function(char) {
                     currentCharacter = char; // keep closure in sync with React-loaded character
                     applyCharacterToForm();
-                    if (window.classicSpellLibBridge?.refresh) window.classicSpellLibBridge.refresh(char);
+                    window.classicBridge?.spellLib?.refresh(char);
                     if (typeof populateClashArcanum === 'function') populateClashArcanum();
                     saveCharacterToLocalStorage();
                 },
@@ -4441,9 +4428,7 @@
                 onEdit: function() { openCharacterEditor(); },
                 onManageActiveSpells: function() {
                     if (!currentCharacter) { showToast('Load or create a character first.'); return; }
-                    if (window.classicActiveSpellsBridge) {
-                        window.classicActiveSpellsBridge.open(currentCharacter.activeSpells || []);
-                    }
+                    window.classicBridge?.activeSpells?.open(currentCharacter.activeSpells || []);
                 },
                 dismissSpell: function(id) { dismissActiveSpell(id); },
                 onSave: function() { saveCharacter(); },
@@ -6394,7 +6379,8 @@
         pvRef.current = pv;
 
         React.useEffect(() => {
-          window.classicResultsBridge = {
+          window.classicBridge = window.classicBridge || {};
+          window.classicBridge.results = {
             refreshResults:        () => {},
             notifyManaDeducted:    (msg) => setNotice(msg),
             clearManaDeducted:     () => setNotice(''),
@@ -6838,7 +6824,8 @@
         const onApplyRef = React.useRef(null);
 
         React.useEffect(() => {
-          window.classicCharEditorBridge = {
+          window.classicBridge = window.classicBridge || {};
+          window.classicBridge.charEditor = {
             open: (char, onApply) => {
               setDraft(JSON.parse(JSON.stringify(char)));
               onApplyRef.current = onApply;
@@ -7115,7 +7102,8 @@
         const [spells, setSpells] = React.useState([]);
 
         React.useEffect(() => {
-          window.classicActiveSpellsBridge = {
+          window.classicBridge = window.classicBridge || {};
+          window.classicBridge.activeSpells = {
             open: (spellList) => {
               setSpells((spellList || []).filter(s => !s.isRelinquished));
               setOpen(true);
@@ -7666,7 +7654,7 @@
             ? window.classicVanilla?.updateSpell?.(sourceSpellId, params, type)
             : window.classicVanilla?.addSpell?.(type, params);
           if (updatedChar) {
-            window.classicSpellLibBridge?.refresh?.(updatedChar);
+            window.classicBridge?.spellLib?.refresh?.(updatedChar);
             window.classicVanilla?.showToast?.(`Saved "${name.trim()}" to library!`, 'success');
           }
           onClose();
@@ -7773,7 +7761,8 @@
 
         // Bridge setup
         _sl_ue(() => {
-          window.classicSpellLibBridge = {
+          window.classicBridge = window.classicBridge || {};
+          window.classicBridge.spellLib = {
             refresh: (char) => setCharacter(char ? {...char} : null),
             openSaveToLibrary: (state, sourceSpellId) => setSaveModal({ state, sourceSpellId }),
             getCurrentTab: () => tab,
@@ -7782,13 +7771,13 @@
           // Init with whatever character is already loaded
           const initChar = window.currentCharacter || null;
           if (initChar) setCharacter({...initChar});
-          return () => { delete window.classicSpellLibBridge; };
+          return () => { if (window.classicBridge) delete window.classicBridge.spellLib; };
         }, []);
 
         // Keep getCurrentTab fresh without re-registering bridge
         _sl_ue(() => {
-          if (window.classicSpellLibBridge) {
-            window.classicSpellLibBridge.getCurrentTab = () => tab;
+          if (window.classicBridge?.spellLib) {
+            window.classicBridge.spellLib.getCurrentTab = () => tab;
           }
         }, [tab]);
 

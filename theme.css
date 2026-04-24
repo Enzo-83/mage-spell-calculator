@@ -1,0 +1,20 @@
+:root {
+    --bg-dark:       #1a1a2e;
+    --bg-card:       #16213e;
+    --bg-deep:       #0f0f23;
+    --accent:        #7b2cbf;
+    --accent-light:  #9d4edd;
+    --accent-faint:  rgba(123, 44, 191, 0.15);
+    --accent-border: rgba(123, 44, 191, 0.4);
+    --text:          #e6e6e6;
+    --text-muted:    #a0a0a0;
+    --danger:        #c73e1d;
+    --danger-faint:  rgba(199, 62, 29, 0.2);
+    --success:       #2a9d8f;
+    --success-faint: rgba(42, 157, 143, 0.15);
+    --warning:       #e9c46a;
+    --warning-faint: rgba(233, 196, 106, 0.15);
+    --border:        rgba(255, 255, 255, 0.1);
+    --border-light:  rgba(255, 255, 255, 0.06);
+    --discord:       #5865F2;
+}

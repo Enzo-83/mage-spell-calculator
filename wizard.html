@@ -9,6 +9,7 @@
   <title>Spell Wizard — Mage: The Awakening 2e</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" href="theme.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -60,25 +61,26 @@
     const { useState, useEffect, useCallback, useRef } = React;
 
     // ── Color tokens ──────────────────────────────────────────────────────────
+    const _g = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
     const C = {
-      bgDark:       "#1a1a2e",
-      bgCard:       "#16213e",
-      bgDeep:       "#0f0f23",
-      accent:       "#7b2cbf",
-      accentLight:  "#9d4edd",
-      accentFaint:  "rgba(123,44,191,0.15)",
-      accentBorder: "rgba(123,44,191,0.4)",
-      text:         "#e0e0e0",
-      textMuted:    "#a0a0a0",
-      danger:       "#c73e1d",
-      dangerFaint:  "rgba(199,62,29,0.2)",
-      success:      "#2a9d8f",
-      successFaint: "rgba(42,157,143,0.15)",
-      warning:      "#e9c46a",
-      warningFaint: "rgba(233,196,106,0.15)",
-      border:       "rgba(255,255,255,0.1)",
-      borderLight:  "rgba(255,255,255,0.06)",
-      discord:      "#5865F2",
+      bgDark:       _g('--bg-dark'),
+      bgCard:       _g('--bg-card'),
+      bgDeep:       _g('--bg-deep'),
+      accent:       _g('--accent'),
+      accentLight:  _g('--accent-light'),
+      accentFaint:  _g('--accent-faint'),
+      accentBorder: _g('--accent-border'),
+      text:         _g('--text'),
+      textMuted:    _g('--text-muted'),
+      danger:       _g('--danger'),
+      dangerFaint:  _g('--danger-faint'),
+      success:      _g('--success'),
+      successFaint: _g('--success-faint'),
+      warning:      _g('--warning'),
+      warningFaint: _g('--warning-faint'),
+      border:       _g('--border'),
+      borderLight:  _g('--border-light'),
+      discord:      _g('--discord'),
     };
 
     // ── Compendium source books ───────────────────────────────────────────────
@@ -559,8 +561,8 @@
                   minWidth:18, textAlign:"center" }}>
                   {d.activeSpells}
                 </span>
-                <span style={{ color:C.textMuted, fontSize:11 }}>
-                  / {d.gnosis} · synced
+                <span style={{ color:C.textMuted, fontSize:11, fontStyle:"italic" }}>
+                  / {d.gnosis}
                 </span>
               </div>
             </Field>
@@ -4282,18 +4284,6 @@
                       fontWeight:i===stepIdx?700:400,marginTop:4 }}>{s.label}</div>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Step header */}
-            <div style={{ padding:"10px 16px 8px",background:C.bgCard,
-              borderBottom:`1px solid ${C.borderLight}`,display:"flex",alignItems:"center",gap:10 }}>
-              <div style={{ width:28,height:28,borderRadius:8,background:C.accentFaint,border:`1px solid ${C.accentBorder}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontFamily:"'Rajdhani',sans-serif",fontSize:15,fontWeight:700,color:C.accentLight }}>{stepIdx+1}</div>
-              <div>
-                <h2 style={{ fontFamily:"'Rajdhani',sans-serif",fontSize:17,fontWeight:700,color:C.text,letterSpacing:1 }}>
-                  {currentStep.label}
-                </h2>
-                <p style={{ color:C.textMuted,fontSize:10 }}>Step {stepIdx+1} of {steps.length}</p>
               </div>
             </div>
 
