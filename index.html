@@ -3276,6 +3276,10 @@
                     updateCharacterHeader();
                     applyCharacterToForm();
                     saveCharacterToLocalStorage();
+                    if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                        scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                        sessionPushSheet(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                    }
                 });
             }
 
@@ -3417,6 +3421,7 @@
                     alert(`Character "${currentCharacter.name}" loaded successfully!`);
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
                         scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                        sessionPushSheet(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                     }
                 } catch (e) {
                     alert('Failed to load character: ' + e.message);
@@ -5033,7 +5038,10 @@
                 const pRef = sceneGetRef(saved.code).child('players/' + pid);
                 pRef.update({ name: getPlayerName(), path: getPlayerPath() });
                 pRef.onDisconnect().remove();
-                if (window.currentCharacter) scenePushStats(saved.code, pid, window.currentCharacter);
+                if (window.currentCharacter) {
+                  scenePushStats(saved.code, pid, window.currentCharacter);
+                  sessionPushSheet(saved.code, pid, window.currentCharacter);
+                }
                 attachListener(saved.code);
               });
             }
@@ -5065,7 +5073,10 @@
             modeRef.current = 'player'; codeRef.current = roomCode;
             setCode(roomCode); setMode('player');
             sceneJoinRoom(roomCode, pid, getPlayerName(), getPlayerPath());
-            if (window.currentCharacter) scenePushStats(roomCode, pid, window.currentCharacter);
+            if (window.currentCharacter) {
+              scenePushStats(roomCode, pid, window.currentCharacter);
+              sessionPushSheet(roomCode, pid, window.currentCharacter);
+            }
             sceneRememberRoom(roomCode, 'player');
             attachListener(roomCode);
             notifyVanilla('player', roomCode, pid, {});
