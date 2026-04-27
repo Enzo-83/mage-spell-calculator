@@ -20,6 +20,11 @@
 //                       activeSpells:[{id,name,arcanum,arcanumLevel,
 //                                      potency,duration,castMethod}],
 //                       maxActiveSpells }
+//       sheet:        { name, shadowName, path, order, legacy, gnosis, wisdom,
+//                       arcana:{death,fate,forces,life,matter,mind,prime,space,spirit,time},
+//                       skills:{…}, rotes:[…], praxes:[…], improvisedFavorites:[…],
+//                       mana:{current,max}, willpower:{current,max},
+//                       health:{max,bashing,lethal,aggravated}, activeSpells:[…] }
 //     scenes/{sceneId}/
 //       number, startedAt, endedAt, active
 //       log/{logId}/  { type, playerId, timestamp, data }
@@ -156,6 +161,54 @@ function sessionPushStats(code, pid, character) {
   });
 }
 
+// ── Full character sheet (pushed by player, read by ST) ───────────────────
+
+function sessionPushSheet(code, pid, character) {
+  if (!code || !pid || !character) return;
+  const h  = character.health    || { max: 7, bashing: 0, lethal: 0, aggravated: 0 };
+  const wp = character.willpower || { current: 5, max: 5 };
+  const spells = (character.activeSpells || [])
+    .filter(s => !s.isRelinquished)
+    .map(s => ({
+      id:           s.id           || "",
+      name:         s.name         || "Unnamed",
+      arcanum:      s.arcanum      || "prime",
+      arcanumLevel: s.arcanumLevel || 1,
+      potency:      s.potency      || 1,
+      duration:     s.duration     || "—",
+      castMethod:   s.castMethod   || "improvised",
+    }));
+  const toArr = list =>
+    (list || []).map(s => ({
+      id:                 s.id                 || "",
+      name:               s.name               || "Unnamed",
+      primaryArcanum:     s.primaryArcanum     || "",
+      primaryArcanumLevel:s.primaryArcanumLevel|| 1,
+      secondaryArcanum:   s.secondaryArcanum   || "",
+      secondaryArcanumLevel: s.secondaryArcanumLevel || 0,
+      description:        s.description        || "",
+      type:               s.type               || "",
+    }));
+  return sessionGetRef(code).child("players/" + pid + "/sheet").set({
+    name:               character.name               || "",
+    shadowName:         character.shadowName         || "",
+    path:               character.path               || "",
+    order:              character.order              || "",
+    legacy:             character.legacy             || "",
+    gnosis:             character.gnosis             || 1,
+    wisdom:             character.wisdom             || 7,
+    arcana:             character.arcana             || {},
+    skills:             character.skills             || {},
+    rotes:              toArr(character.rotes),
+    praxes:             toArr(character.praxes),
+    improvisedFavorites:toArr(character.improvisedFavorites),
+    mana:               { current: character.mana?.current ?? 0, max: character.mana?.max ?? 10 },
+    willpower:          { current: wp.current ?? 5, max: wp.max ?? 5 },
+    health:             { max: h.max || 7, bashing: h.bashing || 0, lethal: h.lethal || 0, aggravated: h.aggravated || 0 },
+    activeSpells:       spells,
+  });
+}
+
 // ── ST stat editing (written by ST, read by player) ───────────────────────
 
 // ST calls this to push a stat override.  Player listener watches for stEdit.
@@ -169,6 +222,14 @@ function sessionSTEditStats(code, pid, statsPartial) {
     ...Object.fromEntries(
       Object.entries(statsPartial).map(([k, v]) => ["stats/" + k, v])
     ),
+  });
+}
+
+// ST calls this to push a sheet override (arcana, etc.). Player listener watches for stEdit.
+function sessionSTEditSheet(code, pid, sheetPartial) {
+  return sessionGetRef(code).child("players/" + pid).update({
+    "stEdit/sheet":    sheetPartial,
+    "stEdit/editedAt": firebase.database.ServerValue.TIMESTAMP,
   });
 }
 

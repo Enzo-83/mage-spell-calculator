@@ -355,6 +355,233 @@ function Stepper({ value, min=0, max=99, onChange, color }) {
   );
 }
 
+// ── PlayerSheetModal ─────────────────────────────────────────────────────
+
+const ARCANA_ORDER = ["death","fate","forces","life","matter","mind","prime","space","spirit","time"];
+const ARCANA_LABEL = { death:"Death", fate:"Fate", forces:"Forces", life:"Life", matter:"Matter",
+                       mind:"Mind", prime:"Prime", space:"Space", spirit:"Spirit", time:"Time" };
+
+function DotRating({ value=0, max=5, color="#a78bfa" }) {
+  return (
+    <span style={{ display:"inline-flex", gap:2, verticalAlign:"middle" }}>
+      {Array.from({ length: max }).map((_, i) => (
+        <span key={i} style={{
+          display:"inline-block", width:8, height:8, borderRadius:"50%",
+          background: i < value ? color : "rgba(255,255,255,0.12)",
+          border: i < value ? "none" : "1px solid rgba(255,255,255,0.15)",
+        }}/>
+      ))}
+    </span>
+  );
+}
+
+function PlayerSheetModal({ sheet, playerName, sessionCode, pid, onClose }) {
+  const rotes   = sheet.rotes              || [];
+  const praxes  = sheet.praxes             || [];
+  const favs    = sheet.improvisedFavorites|| [];
+  const arcana  = sheet.arcana             || {};
+  const pathLabel = sheet.path ? sheet.path.charAt(0).toUpperCase() + sheet.path.slice(1) : "";
+
+  const [spellTab,   setSpellTab]   = useState(rotes.length ? "rotes" : praxes.length ? "praxes" : "favs");
+  const [editMode,   setEditMode]   = useState(false);
+  const [editArcana, setEditArcana] = useState({ ...arcana });
+  const [saving,     setSaving]     = useState(false);
+
+  function toggleEditMode() {
+    if (!editMode) setEditArcana({ ...arcana });
+    setEditMode(e => !e);
+  }
+
+  function setArcDot(arc, val) {
+    setEditArcana(prev => ({ ...prev, [arc]: prev[arc] === val ? val - 1 : val }));
+  }
+
+  function saveSheetEdit() {
+    setSaving(true);
+    sessionSTEditSheet(sessionCode, pid, { arcana: editArcana })
+      .then(() => { setEditMode(false); setSaving(false); })
+      .catch(() => setSaving(false));
+  }
+
+  const spellList = spellTab === "rotes" ? rotes : spellTab === "praxes" ? praxes : favs;
+
+  const tabBtn = (id, label, count) => (
+    <button onClick={() => setSpellTab(id)}
+      style={{ padding:"5px 12px", borderRadius:6, cursor:"pointer", fontSize:11,
+        border: spellTab===id ? `1px solid ${C.accentBorder}` : `1px solid ${C.border}`,
+        background: spellTab===id ? C.accentFaint : "transparent",
+        color: spellTab===id ? C.accentLight : C.textMuted, fontWeight: spellTab===id ? 700 : 400 }}>
+      {label} {count > 0 && <span style={{ opacity:0.7 }}>({count})</span>}
+    </button>
+  );
+
+  return ReactDOM.createPortal(
+    <div onClick={onClose}
+      style={{ position:"fixed", inset:0, zIndex:9999, background:"rgba(0,0,0,0.72)",
+        display:"flex", alignItems:"flex-start", justifyContent:"center",
+        padding:"20px 12px", overflowY:"auto", backdropFilter:"blur(3px)" }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ width:"100%", maxWidth:560, background:C.bgCard,
+          border:`1px solid ${C.accentBorder}`, borderRadius:14, overflow:"hidden",
+          boxShadow:"0 8px 40px rgba(0,0,0,0.6)" }}>
+
+        {/* Header */}
+        <div style={{ padding:"12px 16px", background:`linear-gradient(90deg,${C.bgDeep},${C.bgCard})`,
+          borderBottom:`1px solid ${C.border}`, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div>
+            <div style={{ fontSize:16, fontWeight:700, color:C.text }}>{sheet.name || playerName}</div>
+            {sheet.shadowName && (
+              <div style={{ fontSize:11, color:C.textMuted, marginTop:1 }}>
+                Shadow Name: <span style={{ color:C.accentLight }}>{sheet.shadowName}</span>
+              </div>
+            )}
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            {editMode ? (
+              <>
+                <button onClick={saveSheetEdit} disabled={saving}
+                  style={{ padding:"4px 12px", borderRadius:6, cursor:"pointer", fontSize:11,
+                    border:"none", background:C.accent, color:"#fff", fontWeight:700,
+                    opacity: saving ? 0.6 : 1 }}>
+                  {saving ? "Saving…" : "Save"}
+                </button>
+                <button onClick={toggleEditMode}
+                  style={{ padding:"4px 10px", borderRadius:6, cursor:"pointer", fontSize:11,
+                    border:`1px solid ${C.border}`, background:"transparent", color:C.textMuted }}>
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button onClick={toggleEditMode}
+                style={{ padding:"4px 10px", borderRadius:6, cursor:"pointer", fontSize:11,
+                  border:`1px solid ${C.accentBorder}`, background:C.accentFaint,
+                  color:C.accentLight }}>
+                Edit
+              </button>
+            )}
+            <button onClick={onClose}
+              style={{ width:28, height:28, borderRadius:"50%", border:`1px solid ${C.border}`,
+                background:"transparent", color:C.textMuted, cursor:"pointer", fontSize:16,
+                display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
+          </div>
+        </div>
+
+        <div style={{ padding:"14px 16px", display:"flex", flexDirection:"column", gap:14 }}>
+
+          {/* Identity strip */}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+            {[
+              ["Path",   pathLabel],
+              ["Order",  sheet.order  || "—"],
+              ["Legacy", sheet.legacy || "—"],
+              ["Gnosis", sheet.gnosis || 1],
+              ["Wisdom", sheet.wisdom || 7],
+            ].map(([label, val]) => (
+              <div key={label} style={{ padding:"5px 10px", borderRadius:6, background:C.bgDeep,
+                border:`1px solid ${C.border}`, textAlign:"center", minWidth:60 }}>
+                <div style={{ fontSize:9, color:C.textMuted, letterSpacing:1.2,
+                  textTransform:"uppercase", marginBottom:1 }}>{label}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:C.text }}>{val}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Arcana */}
+          <div>
+            <div style={{ fontSize:9, letterSpacing:1.5, textTransform:"uppercase",
+              color:C.textMuted, marginBottom:6 }}>
+              Arcana {editMode && <span style={{ color:C.accentLight, marginLeft:4 }}>— click dots to edit</span>}
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(5,1fr)", gap:4 }}>
+              {ARCANA_ORDER.map(arc => {
+                const dots  = editMode ? (editArcana[arc] || 0) : (arcana[arc] || 0);
+                const color = ARCANUM_HEX[arc] || "#a78bfa";
+                return (
+                  <div key={arc} style={{ padding:"5px 6px", borderRadius:6, background:C.bgDeep,
+                    border:`1px solid ${dots > 0 ? color + "55" : C.border}`,
+                    opacity: dots > 0 ? 1 : 0.45,
+                    cursor: editMode ? "pointer" : "default" }}>
+                    <div style={{ fontSize:9, color: dots > 0 ? color : C.textMuted,
+                      marginBottom:3, fontWeight:600, whiteSpace:"nowrap",
+                      overflow:"hidden", textOverflow:"ellipsis" }}>{ARCANA_LABEL[arc]}</div>
+                    {editMode ? (
+                      <span style={{ display:"inline-flex", gap:2 }}>
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} onClick={() => setArcDot(arc, i + 1)}
+                            style={{ display:"inline-block", width:8, height:8, borderRadius:"50%",
+                              cursor:"pointer",
+                              background: i < dots ? color : "rgba(255,255,255,0.12)",
+                              border: i < dots ? "none" : "1px solid rgba(255,255,255,0.15)" }}/>
+                        ))}
+                      </span>
+                    ) : (
+                      <DotRating value={dots} max={5} color={color}/>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Spell Library */}
+          {(rotes.length + praxes.length + favs.length) > 0 && (
+            <div>
+              <div style={{ fontSize:9, letterSpacing:1.5, textTransform:"uppercase",
+                color:C.textMuted, marginBottom:6 }}>Spell Library</div>
+              <div style={{ display:"flex", gap:6, marginBottom:8 }}>
+                {tabBtn("rotes",  "Rotes",     rotes.length)}
+                {tabBtn("praxes", "Praxes",    praxes.length)}
+                {tabBtn("favs",   "Improvised", favs.length)}
+              </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:4, maxHeight:220, overflowY:"auto" }}>
+                {spellList.length === 0 ? (
+                  <div style={{ fontSize:12, color:C.textMuted, padding:"8px 0" }}>None saved.</div>
+                ) : spellList.map((sp, i) => {
+                  const arcColor = ARCANUM_HEX[sp.primaryArcanum?.toLowerCase()] || "#a78bfa";
+                  return (
+                    <div key={sp.id || i} style={{ padding:"7px 10px", borderRadius:7, background:C.bgDeep,
+                      border:`1px solid ${C.border}`, borderLeft:`3px solid ${arcColor}` }}>
+                      <div style={{ fontSize:12, fontWeight:600, color:C.text }}>{sp.name}</div>
+                      <div style={{ fontSize:10, color:C.textMuted, marginTop:2 }}>
+                        <span style={{ color:arcColor }}>
+                          {sp.primaryArcanum ? sp.primaryArcanum.charAt(0).toUpperCase()+sp.primaryArcanum.slice(1) : ""}
+                          {" "}{"●".repeat(sp.primaryArcanumLevel||1)}
+                        </span>
+                        {sp.secondaryArcanum && (
+                          <span style={{ color: ARCANUM_HEX[sp.secondaryArcanum?.toLowerCase()]||"#a78bfa" }}>
+                            {" · "}{sp.secondaryArcanum.charAt(0).toUpperCase()+sp.secondaryArcanum.slice(1)}
+                            {" "}{"●".repeat(sp.secondaryArcanumLevel||1)}
+                          </span>
+                        )}
+                      </div>
+                      {sp.description && (
+                        <div style={{ fontSize:10, color:C.textMuted, marginTop:3,
+                          display:"-webkit-box", WebkitLineClamp:2,
+                          WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                          {sp.description}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* No sheet data yet */}
+          {!sheet.name && !Object.values(arcana).some(v=>v>0) && (
+            <div style={{ fontSize:12, color:C.textMuted, textAlign:"center", padding:"12px 0" }}>
+              Waiting for player to connect and share their character sheet.
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── PlayerCard ────────────────────────────────────────────────────────────
 
 function PlayerCard({ pid, player, sessionCode, sceneActive }) {
@@ -364,6 +591,7 @@ function PlayerCard({ pid, player, sessionCode, sceneActive }) {
   const catalog     = TiltsCatalog.useCatalog();
   const [sheetInput,       setSheetInput]       = useState(player.sheetLink || "");
   const [sheetEditing,     setSheetEditing]     = useState(false);
+  const [sheetOpen,        setSheetOpen]        = useState(false);
   const tiltInputRef    = useRef(null);
   const tiltDropdownRef = useRef(null);
 
@@ -514,20 +742,41 @@ function PlayerCard({ pid, player, sessionCode, sceneActive }) {
           )}
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
-          {player.sheetLink && !sheetEditing && (
-            <a href={player.sheetLink} target="_blank" rel="noopener noreferrer"
-              style={{ fontSize:11, padding:"3px 9px", borderRadius:5,
-                background:C.accentFaint, border:`1px solid ${C.accentBorder}`,
-                color:C.accentLight, textDecoration:"none" }}>
-              Sheet ↗
-            </a>
+          {player.sheet ? (
+            <>
+              <button onClick={() => setSheetOpen(true)}
+                style={{ fontSize:11, padding:"3px 9px", borderRadius:5, cursor:"pointer",
+                  background:C.accentFaint, border:`1px solid ${C.accentBorder}`,
+                  color:C.accentLight, fontWeight:600 }}>
+                📋 Sheet
+              </button>
+              {player.sheetLink && (
+                <a href={player.sheetLink} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize:10, padding:"3px 7px", borderRadius:5,
+                    background:"transparent", border:`1px solid ${C.border}`,
+                    color:C.textMuted, textDecoration:"none" }}>
+                  ↗
+                </a>
+              )}
+            </>
+          ) : (
+            <>
+              {player.sheetLink && !sheetEditing && (
+                <a href={player.sheetLink} target="_blank" rel="noopener noreferrer"
+                  style={{ fontSize:11, padding:"3px 9px", borderRadius:5,
+                    background:C.accentFaint, border:`1px solid ${C.accentBorder}`,
+                    color:C.accentLight, textDecoration:"none" }}>
+                  Sheet ↗
+                </a>
+              )}
+              <button
+                onClick={() => { setSheetEditing(e => !e); setSheetInput(player.sheetLink || ""); }}
+                style={{ fontSize:10, padding:"3px 8px", borderRadius:5, cursor:"pointer",
+                  background:"transparent", border:`1px solid ${C.border}`, color:C.textMuted }}>
+                {sheetEditing ? "Cancel" : player.sheetLink ? "Edit" : "+ Sheet"}
+              </button>
+            </>
           )}
-          <button
-            onClick={() => { setSheetEditing(e => !e); setSheetInput(player.sheetLink || ""); }}
-            style={{ fontSize:10, padding:"3px 8px", borderRadius:5, cursor:"pointer",
-              background:"transparent", border:`1px solid ${C.border}`, color:C.textMuted }}>
-            {sheetEditing ? "Cancel" : player.sheetLink ? "Edit" : "+ Sheet"}
-          </button>
         </div>
       </div>
 
@@ -855,6 +1104,16 @@ function PlayerCard({ pid, player, sessionCode, sceneActive }) {
 
       </div>
     </div>
+
+    {sheetOpen && (
+      <PlayerSheetModal
+        sheet={player.sheet || {}}
+        playerName={player.name || pid}
+        sessionCode={sessionCode}
+        pid={pid}
+        onClose={() => setSheetOpen(false)}
+      />
+    )}
   );
 }
 
