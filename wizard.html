@@ -661,11 +661,10 @@
         if (!libOpen || !wrapperRef.current || !trackRef.current) return;
         const ww      = wrapperRef.current.offsetWidth;
         const slideW  = ww - 56;
-        const gap     = 12;
         const offset  = 28;
         trackRef.current.querySelectorAll('.wiz-slide').forEach(s => { s.style.width = slideW + 'px'; });
         trackRef.current.style.transition = 'transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94)';
-        trackRef.current.style.transform  = `translateX(${offset - safeIdx * (slideW + gap)}px)`;
+        trackRef.current.style.transform  = `translateX(${offset - safeIdx * slideW}px)`;
       }, [safeIdx, activeArc, libOpen]);
 
       // Touch swipe on carousel
@@ -1844,7 +1843,8 @@
               myRolls: myP?.paradoxRolls || 0,
               myStAdj: myP?.stAdjustment || 0,
               myLog: myP?.paradoxLog || [],
-              stStatEdit: isNewStEdit ? stEdit.stats : null,
+              stStatEdit:  isNewStEdit ? stEdit.stats : null,
+              stSheetEdit: isNewStEdit ? stEdit.sheet : null,
               myTilts: myP?.tilts || [],
             });
           }
@@ -1933,7 +1933,7 @@
           // Use update() to preserve existing paradoxRolls instead of resetting via set()
           playerRef.update({ name: getPlayerName(), path: getPlayerPath() });
           playerRef.onDisconnect().remove();
-          if (character) scenePushStats(code, pid, character);
+          if (character) { scenePushStats(code, pid, character); sessionPushSheet(code, pid, character); }
           attachListener(code);
           sceneRememberRoom(code, "player");
         }).catch(e => setError("Failed to join: " + e.message));
@@ -3950,7 +3950,7 @@
         setChar(char);
         applyCharacterToForm(char, setD);
         setActiveSpells(char.activeSpells || []);
-        if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, char);
+        if (sceneConn) { scenePushStats(sceneConn.code, sceneConn.playerId, char); sessionPushSheet(sceneConn.code, sceneConn.playerId, char); }
       }
       
       function addActiveSpellWizard(snapshot) {
@@ -4047,6 +4047,18 @@
             return next;
           });
         }
+        // Apply ST sheet override (arcana, etc.) then re-broadcast sheet
+        if (info.stSheetEdit) {
+          setChar(prev => {
+            if (!prev) return prev;
+            const edit = info.stSheetEdit;
+            const next = { ...prev };
+            if (edit.arcana) next.arcana = { ...prev.arcana, ...edit.arcana };
+            try { localStorage.setItem('mage_current_character', JSON.stringify(next)); } catch(e){}
+            setTimeout(() => sessionPushSheet(info.code, info.playerId, next), 100);
+            return next;
+          });
+        }
       }
       function handleManaChange(newMana) {
         if (!character) return;
@@ -4115,6 +4127,7 @@
         setSourceSpellId(fullSpell.id);
         setSourceRoteKey(fullSpell.roteSkill || null);
         try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
+        if (sceneConn) sessionPushSheet(sceneConn.code, sceneConn.playerId, updated);
       }
 
       function handleCompendiumAddSpell(compSpell, type, roteSkill, roteCreator) {
@@ -4153,6 +4166,7 @@
         }
         setChar(updated);
         try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e) {}
+        if (sceneConn) sessionPushSheet(sceneConn.code, sceneConn.playerId, updated);
       }
 
       const steps = d.combined
