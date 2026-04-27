@@ -46,6 +46,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
   const _fbApp = firebase.initializeApp({
     apiKey:            "AIzaSyA9QA2jJvjoClR7W7jEmOG9WTUPqE93Xzc",
@@ -57,6 +58,7 @@
     appId:             "1:1032950336095:web:7a8a44130f14db710429ea"
   });
   const _fbDb = firebase.database();
+  const _fsDb = firebase.firestore();
 </script>
 <script src="shared/session.js"></script>
 
@@ -90,18 +92,232 @@ const ARCANUM_HEX = {
   spirit:"#fb923c", time:"#22d3ee",
 };
 
-// ── Tilt/Condition catalog ───────────────────────────────────────────────
-const tiltCatalogPromise = fetch("data/tilts_conditions.csv")
-  .then(r => r.text())
-  .then(text => {
-    const lines = text.trim().split("\n");
-    const rows = lines.slice(1);
-    return rows.map(line => {
-      const [name, type, ...descParts] = line.split(",");
-      return { name: name.trim(), type: type.trim(), description: descParts.join(",").trim() };
+// ── Tilts & Conditions Catalog ───────────────────────────────────────────
+// Firestore collection "tiltsConditions" — mirrors the Spell Compendium pattern.
+
+const TiltsCatalog = (() => {
+  let _entries   = [];
+  let _listeners = [];
+  let _unsub     = null;
+
+  const VALID_TYPES  = ['tilt', 'condition'];
+  const CSV_COLUMNS  = ['name','type','persistent','environmental','description',
+                        'resolution','beat','effect','causing','ending','sourceBook','sourcePage'];
+
+  function subscribe() {
+    if (_unsub) _unsub();
+    _unsub = _fsDb.collection('tiltsConditions')
+      .orderBy('name')
+      .onSnapshot(snap => {
+        _entries = [];
+        snap.forEach(doc => { const d = doc.data(); d.id = doc.id; _entries.push(d); });
+        _listeners.forEach(fn => fn([..._entries]));
+      }, err => console.error('TiltsCatalog snapshot error:', err));
+  }
+
+  function useCatalog() {
+    const [catalog, setCatalog] = React.useState(_entries);
+    React.useEffect(() => {
+      _listeners.push(setCatalog);
+      setCatalog([..._entries]);
+      return () => { _listeners = _listeners.filter(fn => fn !== setCatalog); };
+    }, []);
+    return catalog;
+  }
+
+  function parseCsvRow(line) {
+    var result = [], cur = '', inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (inQ) {
+        if (ch === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else { inQ = false; } }
+        else { cur += ch; }
+      } else {
+        if (ch === '"')      { inQ = true; }
+        else if (ch === ',') { result.push(cur.trim()); cur = ''; }
+        else                 { cur += ch; }
+      }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+
+  function csvToEntries(text) {
+    const lines = text.replace(/^﻿/, '').split(/\r?\n/);
+    const entries = [];
+    let headerIdx = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i].trim();
+      if (!l || l.startsWith('#')) continue;
+      headerIdx = i; break;
+    }
+    if (headerIdx < 0) return entries;
+    const headers = parseCsvRow(lines[headerIdx]).map(h => h.toLowerCase().trim());
+    for (let i = headerIdx + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith('#')) continue;
+      const cols = parseCsvRow(lines[i]);
+      const row  = {};
+      headers.forEach((h, idx) => { row[h] = (cols[idx] || '').trim(); });
+      if (!row.name) continue;
+      function parseBool(val) {
+        const v = (val || '').toLowerCase();
+        return v === 'yes' || v === 'true' || v === '1';
+      }
+      entries.push({
+        name: row.name, type: (row.type || 'tilt').toLowerCase(),
+        persistent: parseBool(row.persistent), environmental: parseBool(row.environmental),
+        description: row.description || '',
+        resolution: row.resolution || '', beat: row.beat || '',
+        effect: row.effect || '', causing: row.causing || '', ending: row.ending || '',
+        sourceBook: row.sourcebook || '',
+        sourcePage: row.sourcepage ? parseInt(row.sourcepage, 10) : null,
+      });
+    }
+    return entries;
+  }
+
+  function validate(e) {
+    const errs = [];
+    if (!e.name || !e.name.trim()) errs.push('name required');
+    if (VALID_TYPES.indexOf(e.type) === -1) errs.push('type must be tilt or condition');
+    return errs;
+  }
+
+  function sanitise(e) {
+    return {
+      name: String(e.name).trim(), type: e.type,
+      persistent: !!e.persistent, environmental: !!e.environmental,
+      description: String(e.description || '').trim(),
+      resolution: String(e.resolution || '').trim(), beat: String(e.beat || '').trim(),
+      effect: String(e.effect || '').trim(), causing: String(e.causing || '').trim(),
+      ending: String(e.ending || '').trim(),
+      sourceBook: String(e.sourceBook || '').trim(),
+      sourcePage: e.sourcePage ? parseInt(e.sourcePage, 10) : null,
+    };
+  }
+
+  async function doImport(raw, overwrite, onStatus, onProgress) {
+    const entries = raw.filter(e => e && e.name && !e.name.startsWith('#'));
+    if (!entries.length) { onStatus('No valid entries found.', 'warn'); return; }
+    const valid = [], invalid = [];
+    entries.forEach((e, idx) => {
+      const errs = validate(e);
+      if (errs.length) invalid.push({ idx: idx+1, name: e.name || '(unnamed)', errs });
+      else valid.push(sanitise(e));
     });
-  })
-  .catch(() => []);
+    if (invalid.length) {
+      const msgs = invalid.map(e => `#${e.idx} "${e.name}": ${e.errs.join(', ')}`).join('\n');
+      onStatus(`⚠️ ${invalid.length} entries skipped:\n${msgs}`, 'warn');
+    }
+    if (!valid.length) { onStatus('No valid entries after validation.', 'err'); return; }
+    const existingKeys = {};
+    _entries.forEach(e => { existingKeys[e.name.toLowerCase()] = e.id; });
+    const toAdd = [], toUpdate = [];
+    let skipped = 0;
+    valid.forEach(e => {
+      const key = e.name.toLowerCase();
+      if (existingKeys[key]) { if (overwrite) toUpdate.push({ id: existingKeys[key], data: e }); else skipped++; }
+      else toAdd.push(e);
+    });
+    const total = toAdd.length + toUpdate.length;
+    if (!total) { onStatus(`All ${skipped} entries already exist. Enable "Overwrite" to update.`, 'warn'); return; }
+    const CHUNK = 499;
+    const allOps = [...toAdd.map(e => ({ type:'add', data:e })), ...toUpdate.map(u => ({ type:'update', id:u.id, data:u.data }))];
+    let done = 0, errors = 0;
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    for (let i = 0; i < allOps.length; i += CHUNK) {
+      const chunk = allOps.slice(i, i + CHUNK);
+      const batch = _fsDb.batch();
+      chunk.forEach(op => {
+        op.data.updatedAt = now;
+        if (op.type === 'add') { op.data.createdAt = now; batch.set(_fsDb.collection('tiltsConditions').doc(), op.data); }
+        else { batch.update(_fsDb.collection('tiltsConditions').doc(op.id), op.data); }
+      });
+      try { await batch.commit(); done += chunk.length; }
+      catch (e) { errors += chunk.length; console.error('Import batch error:', e); }
+      if (onProgress) onProgress(done + errors, total);
+    }
+    const parts = [];
+    if (toAdd.length)    parts.push(`${toAdd.length} added`);
+    if (toUpdate.length) parts.push(`${toUpdate.length} updated`);
+    if (skipped)         parts.push(`${skipped} skipped`);
+    if (invalid.length)  parts.push(`${invalid.length} invalid`);
+    if (errors)          parts.push(`${errors} batch errors`);
+    onStatus(`✓ Import complete — ${parts.join(', ')}.`, errors ? 'warn' : 'ok');
+  }
+
+  function downloadTemplate() {
+    const header = CSV_COLUMNS.join(',');
+    const note = [
+      '# DELETE these comment rows before importing.',
+      '# type: tilt | condition',
+      '# persistent: yes | no  (Conditions marked "(Persistent)")',
+      '# environmental: yes | no  (Tilts marked "(Environmental)")',
+      '# Conditions: fill description + resolution + beat. Leave effect/causing/ending empty.',
+      '# Tilts: fill description + effect + causing + ending. Leave resolution/beat empty.',
+      '# Wrap text containing commas in double-quotes.',
+      '# sourceBook: optional, e.g. core, signs-of-sorcery',
+    ].join('\n');
+    const sample = ['Addicted','condition','yes','no',
+      '"Your character is addicted to something."',
+      '"Regain a dot of Integrity or lose another dot."',
+      '"Your character chooses a fix over an obligation."',
+      '""','""','""','core','289'].join(',');
+    const csv  = note + '\n' + header + '\n' + sample;
+    const blob = new Blob([csv], { type:'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'tilts-conditions-template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportCsv(onStatus) {
+    function csvCell(val) {
+      if (val === null || val === undefined) return '';
+      const s = String(val);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }
+    if (!_entries.length) { onStatus('No entries in catalog.', 'warn'); return; }
+    const rows = [CSV_COLUMNS.join(',')];
+    _entries.forEach(e => {
+      rows.push([
+        csvCell(e.name), csvCell(e.type),
+        csvCell(e.persistent ? 'yes' : 'no'), csvCell(e.environmental ? 'yes' : 'no'),
+        csvCell(e.description), csvCell(e.resolution), csvCell(e.beat),
+        csvCell(e.effect), csvCell(e.causing), csvCell(e.ending),
+        csvCell(e.sourceBook), csvCell(e.sourcePage),
+      ].join(','));
+    });
+    const blob = new Blob([rows.join('\r\n')], { type:'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tilts-conditions-export-' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    onStatus(`✓ Exported ${_entries.length} entries.`, 'ok');
+  }
+
+  function handleImportFile(file, overwrite, onStatus, onProgress) {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.csv')) { onStatus('Please upload a .csv file.', 'err'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const raw = csvToEntries(e.target.result);
+        if (!raw.length) { onStatus('No data rows found. Check header row.', 'warn'); return; }
+        doImport(raw, overwrite, onStatus, onProgress);
+      } catch (err) { onStatus('CSV parse error — ' + err.message, 'err'); }
+    };
+    reader.readAsText(file);
+  }
+
+  function getEntryCount() { return _entries.length; }
+
+  return { subscribe, useCatalog, handleImportFile, downloadTemplate, exportCsv, getEntryCount };
+})();
 
 // ── Tiny shared components ────────────────────────────────────────────────
 
@@ -145,26 +361,32 @@ function PlayerCard({ pid, player, sessionCode, sceneActive }) {
   const [spellsOpen,       setSpellsOpen]       = useState(false);
   const [tiltInput,        setTiltInput]        = useState("");
   const [tiltDropdownOpen, setTiltDropdownOpen] = useState(false);
-  const [catalog,          setCatalog]          = useState([]);
+  const catalog     = TiltsCatalog.useCatalog();
   const [sheetInput,       setSheetInput]       = useState(player.sheetLink || "");
   const [sheetEditing,     setSheetEditing]     = useState(false);
-  const tiltWrapperRef = useRef(null);
+  const tiltInputRef    = useRef(null);
+  const tiltDropdownRef = useRef(null);
 
   // Keep sheetInput in sync when player.sheetLink changes externally
   useEffect(() => {
     if (!sheetEditing) setSheetInput(player.sheetLink || "");
   }, [player.sheetLink, sheetEditing]);
 
-  useEffect(() => { tiltCatalogPromise.then(setCatalog); }, []);
-
   useEffect(() => {
     function handleClick(e) {
-      if (tiltWrapperRef.current && !tiltWrapperRef.current.contains(e.target)) {
-        setTiltDropdownOpen(false);
-      }
+      const inInput    = tiltInputRef.current    && tiltInputRef.current.parentElement.contains(e.target);
+      const inDropdown = tiltDropdownRef.current && tiltDropdownRef.current.contains(e.target);
+      if (!inInput && !inDropdown) setTiltDropdownOpen(false);
     }
+    function handleDismiss() { setTiltDropdownOpen(false); }
     document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    window.addEventListener("scroll", handleDismiss, true);
+    window.addEventListener("resize", handleDismiss);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      window.removeEventListener("scroll", handleDismiss, true);
+      window.removeEventListener("resize", handleDismiss);
+    };
   }, []);
 
   const s      = player.stats  || {};
@@ -232,14 +454,16 @@ function PlayerCard({ pid, player, sessionCode, sceneActive }) {
     sessionSetTilts(sessionCode, pid, tilts.filter((_, idx) => idx !== i));
   }
 
-  const filteredCatalog = catalog.filter(c =>
-    c.name.toLowerCase().includes(tiltInput.toLowerCase())
-  );
+  const filteredCatalog = tiltInput.trim()
+    ? catalog.filter(c => c.name.toLowerCase().includes(tiltInput.toLowerCase()))
+    : catalog;
   const grouped = {
-    Tilt:      filteredCatalog.filter(c => c.type === "Tilt"),
-    Condition: filteredCatalog.filter(c => c.type === "Condition"),
+    tilt:      filteredCatalog.filter(c => c.type === "tilt"),
+    condition: filteredCatalog.filter(c => c.type === "condition"),
   };
   const exactMatch = catalog.some(c => c.name.toLowerCase() === tiltInput.trim().toLowerCase());
+  const catalogByName = {};
+  catalog.forEach(c => { catalogByName[c.name.toLowerCase()] = c; });
 
   // ── Sheet link ─────────────────────────────────────────────────────────
 
@@ -489,92 +713,144 @@ function PlayerCard({ pid, player, sessionCode, sceneActive }) {
           <FieldLabel>Tilts &amp; Conditions</FieldLabel>
           <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:6,
             minHeight: tilts.length > 0 ? "auto" : 0 }}>
-            {tilts.map((t, i) => (
-              <span key={i} style={{ display:"inline-flex", alignItems:"center", gap:4,
-                padding:"3px 8px", borderRadius:20, fontSize:11,
-                background:C.warningFaint,
-                border:`1px solid rgba(233,196,106,0.3)`,
-                color:C.warning }}>
-                {t}
-                <button onClick={() => removeTilt(i)}
-                  style={{ background:"transparent", border:"none",
-                    color:C.warning, cursor:"pointer", fontSize:13,
-                    lineHeight:1, padding:0, opacity:0.7 }}>
-                  ×
-                </button>
-              </span>
-            ))}
+            {tilts.map((t, i) => {
+              const ce = catalogByName[t.toLowerCase()];
+              return (
+                <span key={i}
+                  title={ce
+                    ? ce.type === "condition"
+                      ? [ce.description, ce.resolution ? "Resolution: " + ce.resolution : "", ce.beat && ce.beat !== "n/a" ? "Beat: " + ce.beat : ""].filter(Boolean).join("\n\n")
+                      : [ce.description, ce.effect ? "Effect: " + ce.effect : "", ce.ending ? "Ending: " + ce.ending : ""].filter(Boolean).join("\n\n")
+                    : t}
+                  style={{ display:"inline-flex", alignItems:"center", gap:4,
+                    padding:"3px 8px", borderRadius:20, fontSize:11,
+                    background: ce?.persistent ? "rgba(199,62,29,0.15)" : ce?.environmental ? "rgba(42,157,143,0.15)" : C.warningFaint,
+                    border:`1px solid ${ce?.persistent ? "rgba(199,62,29,0.3)" : ce?.environmental ? "rgba(42,157,143,0.3)" : "rgba(233,196,106,0.3)"}`,
+                    color: ce?.persistent ? C.danger : ce?.environmental ? "#2a9d8f" : C.warning }}>
+                  {t}
+                  {ce?.persistent    && <span style={{ fontSize:8, opacity:0.7 }}>⟳</span>}
+                  {ce?.environmental && <span style={{ fontSize:8, opacity:0.7 }}>🌍</span>}
+                  <button onClick={() => removeTilt(i)}
+                    style={{ background:"transparent", border:"none",
+                      color: ce?.persistent ? C.danger : ce?.environmental ? "#2a9d8f" : C.warning,
+                      cursor:"pointer", fontSize:13, lineHeight:1, padding:0, opacity:0.7 }}>
+                    ×
+                  </button>
+                </span>
+              );
+            })}
             {tilts.length === 0 && (
               <span style={{ fontSize:11, color:C.textMuted }}>None</span>
             )}
           </div>
-          <div style={{ position:"relative" }} ref={tiltWrapperRef}>
-            <div style={{ display:"flex", gap:6 }}>
-              <input
-                value={tiltInput}
-                onChange={e => { setTiltInput(e.target.value); setTiltDropdownOpen(true); }}
-                onFocus={() => setTiltDropdownOpen(true)}
-                onKeyDown={e => {
-                  if (e.key === "Enter") {
-                    if (exactMatch) {
-                      const match = catalog.find(c => c.name.toLowerCase() === tiltInput.trim().toLowerCase());
-                      if (match) addTiltFromCatalog(match.name);
-                    } else {
-                      addTilt();
-                    }
-                  } else if (e.key === "Escape") {
-                    setTiltDropdownOpen(false);
+          {/* ── Input row ── */}
+          <div style={{ display:"flex", gap:6 }}>
+            <input
+              ref={tiltInputRef}
+              value={tiltInput}
+              onChange={e => { setTiltInput(e.target.value); setTiltDropdownOpen(true); }}
+              onFocus={() => setTiltDropdownOpen(true)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  if (exactMatch) {
+                    const match = catalog.find(c => c.name.toLowerCase() === tiltInput.trim().toLowerCase());
+                    if (match) addTiltFromCatalog(match.name);
+                  } else {
+                    addTilt();
                   }
-                }}
-                placeholder="Add tilt or condition…"
-                style={{ flex:1, padding:"5px 8px", borderRadius:6, fontSize:11,
-                  background:C.bgDeep, border:`1px solid ${C.border}`,
-                  color:C.text, outline:"none" }}
-              />
-              <button onClick={addTilt}
-                style={{ padding:"5px 12px", borderRadius:6, cursor:"pointer",
-                  border:`1px solid ${C.accentBorder}`, background:C.accentFaint,
-                  color:C.accentLight, fontSize:13, fontWeight:700 }}>
-                +
-              </button>
-            </div>
-            {tiltDropdownOpen && tiltInput.trim() && (
-              <div style={{
-                position:"absolute", zIndex:999, left:0, right:0, top:"100%", marginTop:2,
-                maxHeight:220, overflowY:"auto",
-                background:C.bgCard, border:`1px solid ${C.border}`, borderRadius:8,
-                boxShadow:"0 4px 16px rgba(0,0,0,0.4)"
-              }}>
-                {["Tilt","Condition"].map(type => (
-                  grouped[type].length > 0 && (
-                    <div key={type}>
-                      <div style={{ padding:"6px 10px", fontSize:10, color:C.textMuted,
-                        textTransform:"uppercase", letterSpacing:1 }}>{type}s</div>
-                      {grouped[type].map(c => (
-                        <div key={c.name}
-                          onMouseDown={e => { e.preventDefault(); addTiltFromCatalog(c.name); }}
-                          style={{ padding:"6px 10px", cursor:"pointer", fontSize:12, color:C.text }}
-                          onMouseEnter={e => e.currentTarget.style.background = C.bgDeep}
-                          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                          <div style={{ fontWeight:600 }}>{c.name}</div>
-                          {c.description && (
-                            <div style={{ fontSize:10, color:C.textMuted }}>{c.description}</div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )
-                ))}
-                {!exactMatch && tiltInput.trim() && (
-                  <div onMouseDown={e => { e.preventDefault(); addTilt(); }}
-                    style={{ padding:"8px 10px", cursor:"pointer", fontSize:12,
-                      color:C.accentLight, borderTop:`1px solid ${C.border}` }}>
-                    + Add custom: <strong>{tiltInput.trim()}</strong>
-                  </div>
-                )}
-              </div>
-            )}
+                } else if (e.key === "Escape") {
+                  setTiltDropdownOpen(false);
+                }
+              }}
+              placeholder="Add tilt or condition…"
+              style={{ flex:1, padding:"5px 8px", borderRadius:6, fontSize:11,
+                background:C.bgDeep, border:`1px solid ${C.border}`,
+                color:C.text, outline:"none" }}
+            />
+            <button onClick={addTilt}
+              style={{ padding:"5px 12px", borderRadius:6, cursor:"pointer",
+                border:`1px solid ${C.accentBorder}`, background:C.accentFaint,
+                color:C.accentLight, fontSize:13, fontWeight:700 }}>
+              +
+            </button>
           </div>
+          {/* ── Dropdown portaled to body to escape overflow:hidden ── */}
+          {tiltDropdownOpen && (filteredCatalog.length > 0 || tiltInput.trim()) &&
+            ReactDOM.createPortal(
+              (() => {
+                function getDropdownPos() {
+                  if (!tiltInputRef.current) return { top:0, left:0, width:200 };
+                  const rect = tiltInputRef.current.getBoundingClientRect();
+                  const dropdownH = 244;
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  const openUpward = spaceBelow < dropdownH && rect.top > dropdownH;
+                  return {
+                    left:   rect.left,
+                    width:  rect.width + 42,
+                    top:    openUpward ? undefined : rect.bottom + 4,
+                    bottom: openUpward ? (window.innerHeight - rect.top + 4) : undefined,
+                  };
+                }
+                const pos = getDropdownPos();
+                return (
+                  <div ref={tiltDropdownRef} style={{
+                    position:"fixed", zIndex:9999,
+                    left:pos.left, width:pos.width,
+                    top:pos.top, bottom:pos.bottom,
+                    maxHeight:220, overflowY:"auto",
+                    background:C.bgCard, border:`1px solid ${C.border}`, borderRadius:8,
+                    boxShadow:"0 8px 32px rgba(0,0,0,0.6)"
+                  }}>
+                    {["tilt","condition"].map(type => (
+                      grouped[type].length > 0 && (
+                        <div key={type}>
+                          <div style={{ padding:"6px 10px", fontSize:10, color:C.textMuted,
+                            textTransform:"uppercase", letterSpacing:1 }}>
+                            {type === "tilt" ? "Tilts" : "Conditions"}
+                          </div>
+                          {grouped[type].map(c => (
+                            <div key={c.name}
+                              onMouseDown={e => { e.preventDefault(); addTiltFromCatalog(c.name); }}
+                              style={{ padding:"6px 10px", cursor:"pointer", fontSize:12, color:C.text }}
+                              onMouseEnter={e => e.currentTarget.style.background = C.bgDeep}
+                              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                              <div style={{ fontWeight:600 }}>
+                                {c.name}
+                                {c.persistent && (
+                                  <span style={{ marginLeft:6, fontSize:9, padding:"1px 5px",
+                                    borderRadius:4, background:"rgba(199,62,29,0.2)", color:C.danger,
+                                    verticalAlign:"middle" }}>PERSISTENT</span>
+                                )}
+                                {c.environmental && (
+                                  <span style={{ marginLeft:6, fontSize:9, padding:"1px 5px",
+                                    borderRadius:4, background:"rgba(42,157,143,0.2)", color:"#2a9d8f",
+                                    verticalAlign:"middle" }}>ENVIRONMENTAL</span>
+                                )}
+                              </div>
+                              {c.description && (
+                                <div style={{ fontSize:10, color:C.textMuted,
+                                  whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                                  {c.description}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    ))}
+                    {!exactMatch && tiltInput.trim() && (
+                      <div onMouseDown={e => { e.preventDefault(); addTilt(); }}
+                        style={{ padding:"8px 10px", cursor:"pointer", fontSize:12,
+                          color:C.accentLight, borderTop:`1px solid ${C.border}` }}>
+                        + Add custom: <strong>{tiltInput.trim()}</strong>
+                      </div>
+                    )}
+                  </div>
+                );
+              })(),
+              document.body
+            )
+          }
         </div>
 
       </div>
@@ -674,6 +950,117 @@ function SceneLog({ sessionCode, scenes, currentSceneId }) {
   );
 }
 
+// ── TiltsCatalogPanel ────────────────────────────────────────────────────
+
+function TiltsCatalogPanel({ onClose }) {
+  const catalog = TiltsCatalog.useCatalog();
+  const [overwrite,  setOverwrite]  = useState(false);
+  const [status,     setStatus]     = useState(null);   // { msg, type }
+  const [progress,   setProgress]   = useState(null);   // { done, total }
+  const fileRef = useRef(null);
+
+  function onStatus(msg, type) { setStatus({ msg, type }); setProgress(null); }
+  function onProgress(done, total) { setProgress({ done, total }); }
+
+  const statusColor = !status ? C.textMuted
+    : status.type === "ok"   ? C.success
+    : status.type === "warn" ? C.warning
+    : C.danger;
+
+  return ReactDOM.createPortal(
+    <div style={{ position:"fixed", inset:0, zIndex:10000,
+      background:"rgba(0,0,0,0.6)", display:"flex", alignItems:"center",
+      justifyContent:"center", padding:16 }}
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ background:C.bgCard, border:`1px solid ${C.accentBorder}`,
+        borderRadius:12, width:"100%", maxWidth:480, padding:20,
+        boxShadow:"0 16px 48px rgba(0,0,0,0.7)" }}>
+
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between",
+          alignItems:"center", marginBottom:16 }}>
+          <span style={{ fontFamily:"'Rajdhani',sans-serif", fontSize:14, fontWeight:700,
+            letterSpacing:2, textTransform:"uppercase", color:C.accentLight }}>
+            ⚙ Tilts Catalog
+          </span>
+          <span style={{ fontSize:12, color:C.textMuted }}>
+            {catalog.length} entr{catalog.length === 1 ? "y" : "ies"} loaded
+          </span>
+        </div>
+
+        {/* Import row */}
+        <div style={{ background:C.bgDeep, border:`1px solid ${C.border}`,
+          borderRadius:8, padding:12, marginBottom:10 }}>
+          <div style={{ fontSize:11, color:C.textMuted, marginBottom:8,
+            textTransform:"uppercase", letterSpacing:1 }}>Import CSV</div>
+          <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
+            <input ref={fileRef} type="file" accept=".csv"
+              style={{ display:"none" }}
+              onChange={e => {
+                TiltsCatalog.handleImportFile(e.target.files[0], overwrite, onStatus, onProgress);
+                e.target.value = "";
+              }} />
+            <button onClick={() => fileRef.current && fileRef.current.click()}
+              style={{ padding:"6px 14px", borderRadius:6, cursor:"pointer",
+                border:`1px solid ${C.accentBorder}`, background:C.accentFaint,
+                color:C.accentLight, fontSize:12, fontWeight:600 }}>
+              Choose File…
+            </button>
+            <label style={{ display:"flex", alignItems:"center", gap:6,
+              fontSize:12, color:C.textMuted, cursor:"pointer" }}>
+              <input type="checkbox" checked={overwrite}
+                onChange={e => setOverwrite(e.target.checked)} />
+              Overwrite existing
+            </label>
+          </div>
+          {progress && (
+            <div style={{ marginTop:8 }}>
+              <div style={{ height:4, borderRadius:2, background:C.border, overflow:"hidden" }}>
+                <div style={{ height:"100%", borderRadius:2, background:C.accentLight,
+                  width: `${Math.round((progress.done / progress.total) * 100)}%`,
+                  transition:"width 0.2s" }} />
+              </div>
+              <div style={{ fontSize:10, color:C.textMuted, marginTop:4 }}>
+                {progress.done} / {progress.total}
+              </div>
+            </div>
+          )}
+          {status && (
+            <div style={{ marginTop:8, fontSize:11, color:statusColor,
+              whiteSpace:"pre-wrap", wordBreak:"break-word" }}>
+              {status.msg}
+            </div>
+          )}
+        </div>
+
+        {/* Template & Export row */}
+        <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+          <button onClick={() => TiltsCatalog.downloadTemplate()}
+            style={{ flex:1, padding:"7px 0", borderRadius:6, cursor:"pointer",
+              border:`1px solid ${C.border}`, background:"transparent",
+              color:C.textMuted, fontSize:12 }}>
+            Download Template
+          </button>
+          <button onClick={() => TiltsCatalog.exportCsv(onStatus)}
+            style={{ flex:1, padding:"7px 0", borderRadius:6, cursor:"pointer",
+              border:`1px solid ${C.border}`, background:"transparent",
+              color:C.textMuted, fontSize:12 }}>
+            Export CSV
+          </button>
+        </div>
+
+        <button onClick={onClose}
+          style={{ width:"100%", padding:"8px 0", borderRadius:6, cursor:"pointer",
+            border:`1px solid ${C.border}`, background:"transparent",
+            color:C.textMuted, fontSize:12 }}>
+          Close
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ── App ───────────────────────────────────────────────────────────────────
 
 function App() {
@@ -687,7 +1074,10 @@ function App() {
   const [sceneNumber,    setSceneNumber]    = useState(0);
   const [scenes,         setScenes]         = useState({});
   const [currentSceneId, setCurrentSceneId] = useState(null);
+  const [catalogOpen,    setCatalogOpen]    = useState(false);
   const listenerRef = useRef(null);
+
+  useEffect(() => { TiltsCatalog.subscribe(); }, []);
 
   // Reconnect from localStorage on mount
   useEffect(() => {
@@ -905,6 +1295,12 @@ function App() {
         </div>
 
         <div style={{ marginLeft:"auto", display:"flex", gap:8, alignItems:"center" }}>
+          <button onClick={() => setCatalogOpen(true)}
+            style={{ padding:"6px 14px", borderRadius:7, cursor:"pointer",
+              border:`1px solid ${C.accentBorder}`, background:C.accentFaint,
+              color:C.accentLight, fontSize:12 }}>
+            ⚙ Tilts Catalog
+          </button>
           <button onClick={handleToggleScene}
             style={{ padding:"6px 18px", borderRadius:7, cursor:"pointer",
               border:"none", fontSize:12, fontWeight:700,
@@ -918,6 +1314,7 @@ function App() {
             Close Session
           </button>
         </div>
+        {catalogOpen && <TiltsCatalogPanel onClose={() => setCatalogOpen(false)} />}
       </div>
 
       {/* Scrollable content */}
