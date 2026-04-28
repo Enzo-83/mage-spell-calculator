@@ -2511,117 +2511,6 @@
         }
 
         /* Scene Tracker */
-        .scene-tracker-card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 0;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(42, 157, 143, 0.3);
-            overflow: hidden;
-        }
-        .scene-header-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 20px;
-            cursor: pointer;
-            background: rgba(42, 157, 143, 0.08);
-        }
-        .scene-header-bar:hover { background: rgba(42, 157, 143, 0.12); }
-        .scene-header-title {
-            font-size: 1em;
-            font-weight: bold;
-            color: var(--success);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .scene-header-status {
-            font-size: 0.8em;
-            padding: 3px 10px;
-            border-radius: 12px;
-        }
-        .scene-body { padding: 20px; display: none; }
-        .scene-body.open { display: block; }
-        .scene-mode-btn {
-            width: 100%;
-            padding: 14px;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: left;
-            margin-bottom: 8px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: var(--bg-dark);
-            color: var(--text);
-        }
-        .scene-mode-btn:hover { border-color: var(--accent); }
-        .scene-mode-btn .label { font-weight: bold; font-size: 1em; }
-        .scene-mode-btn .sub { font-size: 0.85em; color: var(--text-muted); margin-top: 4px; }
-        .scene-room-code {
-            text-align: center;
-            background: var(--bg-dark);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-        .scene-room-code .code {
-            font-size: 2em;
-            font-weight: bold;
-            letter-spacing: 8px;
-            font-family: monospace;
-            color: var(--accent-light);
-        }
-        .scene-controls { display: flex; gap: 8px; margin-bottom: 16px; }
-        .scene-controls button { flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.9em; }
-        .scene-player-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-        }
-        .scene-player-row:last-child { border-bottom: none; }
-        .scene-player-name { font-weight: bold; font-size: 0.95em; }
-        .scene-player-path { font-size: 0.8em; color: var(--text-muted); margin-left: 6px; }
-        .scene-player-stat { font-size: 0.85em; font-weight: bold; }
-        .scene-adj-row {
-            margin-top: 8px;
-            padding: 8px 10px;
-            background: var(--bg-dark);
-            border-radius: 6px;
-        }
-        .scene-adj-controls {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-        .scene-adj-btn {
-            width: 28px; height: 28px;
-            border-radius: 6px;
-            border: 1px solid rgba(255,255,255,0.2);
-            background: var(--bg-card);
-            color: var(--text);
-            font-size: 16px;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .scene-adj-val {
-            min-width: 32px;
-            text-align: center;
-            font-family: monospace;
-            font-weight: bold;
-        }
-        .scene-adj-note {
-            width: 100%;
-            padding: 5px 8px;
-            border-radius: 5px;
-            background: var(--bg-card);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--text);
-            font-size: 0.8em;
-        }
         .scene-log-chip {
             display: inline-block;
             margin: 2px 4px 2px 0;
@@ -2711,6 +2600,126 @@
             margin-left: 4px;
             vertical-align: middle;
         }
+
+        /* ── Landscape container width ── */
+        @media (min-width: 1024px) {
+            .container { max-width: 1400px; }
+        }
+
+        /* ── Two-panel calculator grid ── */
+        .calculator-landscape { display: block; }
+        @media (min-width: 1024px) {
+            .calculator-landscape {
+                display: grid;
+                grid-template-columns: 1fr 0.8fr;
+                gap: 20px;
+                align-items: start;
+            }
+            .calculator-landscape .output-panel {
+                position: sticky;
+                top: 20px;
+                max-height: calc(100vh - 40px);
+                overflow-y: auto;
+            }
+        }
+
+        /* ── Accordion cards ── */
+        .accordion-card { padding: 0 !important; }
+        .accordion-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+        }
+        .accordion-header h2 {
+            margin: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+            flex: 1;
+        }
+        .accordion-summary {
+            font-size: 0.8em;
+            color: var(--text-muted);
+            font-weight: normal;
+            display: none;
+        }
+        .accordion-chevron {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            display: none;
+        }
+        .accordion-card .accordion-body-inner { padding: 0 24px 24px; }
+        @media (max-width: 1023px) {
+            .accordion-header h2 {
+                border-bottom: 1px solid var(--accent);
+                padding-bottom: 10px;
+                margin-bottom: 4px;
+            }
+            .accordion-card .accordion-body { display: block; }
+        }
+        @media (min-width: 1024px) {
+            .accordion-header { cursor: pointer; }
+            .accordion-header:hover { background: rgba(255,255,255,0.03); border-radius: 12px 12px 0 0; }
+            .accordion-summary, .accordion-chevron { display: block; }
+            .accordion-card .accordion-body {
+                display: grid;
+                grid-template-rows: 0fr;
+                transition: grid-template-rows 0.2s ease;
+            }
+            .accordion-card.open .accordion-body { grid-template-rows: 1fr; }
+            .accordion-card .accordion-body-inner { overflow: hidden; }
+        }
+
+        /* ── Scene Pill ── */
+        .scene-pill-wrapper { position: relative; display: inline-flex; }
+        .scene-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: var(--bg-dark);
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .scene-pill:hover { border-color: rgba(255,255,255,0.28); color: var(--text); }
+        .scene-pill.connected { border-color: rgba(42,157,143,0.45); color: var(--success); }
+        .scene-pill-input {
+            width: 4.5ch;
+            font-family: monospace;
+            font-size: 1em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            outline: none;
+            text-align: center;
+            padding: 0;
+        }
+        .scene-pill-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+            flex-shrink: 0;
+        }
+        .scene-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 300px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            padding: 16px;
+            z-index: 200;
+        }
     </style>
   <!-- React 18 + Babel (Phase 1 migration) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" integrity="sha384-tMH8h3BGESGckSAVGZ82T9n90ztNXxvdwvdM6UoR56cYcf+0iGXBliJ29D+wZ/x8" crossorigin="anonymous"></script>
@@ -2734,15 +2743,9 @@
         <!-- React character header (Phase 1 migration) -->
         <div id="classic-header-root"></div>
         
-        <!-- Scene Tracker (Phase 2: React) -->
-        <div id="classic-scene-root"></div>
-
         <h1>⟡ Spell Factor Calculator ⟡</h1>
-        
+
         <div id="classic-calculator-root"></div>
-        
-        <!-- Clash of Wills (React) -->
-        <div id="classic-clash-root"></div>
         
         <!-- Spell Library (Phase 6 — React ClassicSpellLibraryDrawer) -->
         <div id="classic-spelllib-root"></div>
@@ -4254,10 +4257,7 @@
                 },
                 dismissSpell: function(id) { dismissActiveSpell(id); },
                 onSave: function() { saveCharacter(); },
-                onSceneToggle: function() {
-                    var card = document.getElementById('sceneTrackerCard');
-                    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                },
+                onSceneToggle: function() { /* ScenePill is self-contained in the header */ },
                 onSceneChange: function(data) {
                     sceneMode        = data.mode    || null;
                     sceneRoomCode    = data.code    || '';
@@ -4682,9 +4682,228 @@
         justifyContent:"center", padding:0,
       };
 
+      // ── Scene Pill (replaces full ClassicSceneTracker card) ─────────────────
+      function ScenePill() {
+        const [pillState, setPillState] = useState('idle'); // 'idle'|'typing'|'connected'
+        const [joinInput,    setJoinInput]    = useState('');
+        const [code,         setCode]         = useState('');
+        const [dropdownOpen, setDropdownOpen] = useState(false);
+        const [sceneActive,  setSceneActive]  = useState(false);
+        const [sceneNum,     setSceneNum]     = useState(0);
+        const [players,      setPlayers]      = useState({});
+        const [myTilts,      setMyTilts]      = useState([]);
+        const [error,        setError]        = useState('');
+
+        const listenerRef = useRef(null);
+        const codeRef     = useRef('');
+        const pidRef      = useRef(null);
+        const inputRef    = useRef(null);
+
+        function getPid() {
+          if (pidRef.current) return pidRef.current;
+          const char = window.currentCharacter;
+          const name = char?.shadowName || char?.name || 'player_' + Math.random().toString(36).slice(2,8);
+          pidRef.current = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+          return pidRef.current;
+        }
+        function getPlayerName() {
+          const char = window.currentCharacter;
+          return char?.shadowName || char?.name || 'Unknown Mage';
+        }
+        function getPlayerPath() {
+          const char = window.currentCharacter;
+          if (!char?.path) return '';
+          return (typeof PATHS !== 'undefined' && PATHS[char.path]) ? PATHS[char.path].label : char.path;
+        }
+        function notifyVanilla(m, c, pid, pls) {
+          window.classicVanilla?.onSceneChange({ mode: m, code: c, pid, players: pls });
+        }
+        function detachListener() {
+          if (listenerRef.current) {
+            listenerRef.current.ref.off('value', listenerRef.current.cb);
+            listenerRef.current = null;
+          }
+        }
+        function attachListener(roomCode) {
+          detachListener();
+          const ref = sceneGetRef(roomCode);
+          const cb = ref.on('value', function(snap) {
+            const data = snap.val();
+            if (!data || data.meta?.closed || data.closed) {
+              detachListener(); sceneForgetRoom();
+              codeRef.current = ''; pidRef.current = null;
+              setPillState('idle'); setCode(''); setSceneActive(false);
+              setPlayers({}); setMyTilts([]);
+              setError('Room was closed'); setTimeout(() => setError(''), 3000);
+              notifyVanilla(null, '', null, {});
+              return;
+            }
+            const pls = data.players || {};
+            setSceneActive(!!data.sceneActive);
+            setSceneNum(data.sceneNumber || 0);
+            setPlayers(pls);
+            const pid = getPid();
+            setMyTilts(pls[pid]?.tilts || []);
+            notifyVanilla('player', roomCode, pid, pls);
+          });
+          listenerRef.current = { ref, cb };
+        }
+
+        useEffect(() => {
+          const saved = sceneRecallRoom();
+          if (saved?.code && saved.role === 'player') {
+            codeRef.current = saved.code;
+            sceneGetRef(saved.code).once('value').then(snap => {
+              if (!snap.exists() || snap.val().closed || snap.val().meta?.closed) { sceneForgetRoom(); return; }
+              const pid = getPid();
+              sceneGetRef(saved.code).child('players/' + pid)
+                .update({ name: getPlayerName(), path: getPlayerPath() });
+              sceneGetRef(saved.code).child('players/' + pid).onDisconnect().remove();
+              if (window.currentCharacter) {
+                scenePushStats(saved.code, pid, window.currentCharacter);
+                sessionPushSheet(saved.code, pid, window.currentCharacter);
+              }
+              setCode(saved.code); setPillState('connected');
+              attachListener(saved.code);
+              notifyVanilla('player', saved.code, pid, {});
+            });
+          }
+          return () => detachListener();
+        }, []);
+
+        function joinRoom(roomCode) {
+          setError('');
+          pidRef.current = null;
+          sceneGetRef(roomCode).once('value').then(snap => {
+            if (!snap.exists()) { setError('Room not found'); return; }
+            const pid = getPid();
+            codeRef.current = roomCode;
+            setCode(roomCode); setPillState('connected'); setJoinInput('');
+            sceneJoinRoom(roomCode, pid, getPlayerName(), getPlayerPath());
+            if (window.currentCharacter) {
+              scenePushStats(roomCode, pid, window.currentCharacter);
+              sessionPushSheet(roomCode, pid, window.currentCharacter);
+            }
+            sceneRememberRoom(roomCode, 'player');
+            attachListener(roomCode);
+            notifyVanilla('player', roomCode, pid, {});
+          }).catch(e => setError('Failed: ' + e.message));
+        }
+
+        function disconnect() {
+          const c = codeRef.current;
+          if (c) sceneLeaveRoom(c, getPid());
+          detachListener(); sceneForgetRoom();
+          codeRef.current = ''; pidRef.current = null;
+          setPillState('idle'); setCode(''); setSceneActive(false);
+          setPlayers({}); setMyTilts([]); setDropdownOpen(false); setError('');
+          notifyVanilla(null, '', null, {});
+        }
+
+        useEffect(() => {
+          if (!dropdownOpen) return;
+          const handler = (e) => { if (!e.target.closest('.scene-pill-wrapper')) setDropdownOpen(false); };
+          document.addEventListener('mousedown', handler);
+          return () => document.removeEventListener('mousedown', handler);
+        }, [dropdownOpen]);
+
+        const pid    = getPid();
+        const myP    = players[pid] || {};
+        const rolls  = myP.paradoxRolls || 0;
+        const stAdj  = myP.stAdjustment || 0;
+        const effPdx = Math.max(0, rolls + stAdj);
+
+        if (pillState === 'idle') {
+          return (
+            <button className="scene-pill" onClick={() => {
+              setPillState('typing'); setError('');
+              setTimeout(() => inputRef.current?.focus(), 50);
+            }}>🎭 Scene</button>
+          );
+        }
+
+        if (pillState === 'typing') {
+          return (
+            <div className="scene-pill" style={{padding:'4px 10px',gap:6}}>
+              <span style={{fontSize:'0.9em'}}>🎭</span>
+              <input ref={inputRef} className="scene-pill-input" maxLength={4}
+                value={joinInput} placeholder="CODE"
+                onChange={e => {
+                  const val = e.target.value.toUpperCase().replace(/[^A-Z2-9]/g,'');
+                  setJoinInput(val); setError('');
+                  if (val.length === 4) joinRoom(val);
+                }}
+                onKeyDown={e => { if (e.key==='Escape') { setPillState('idle'); setJoinInput(''); setError(''); }}}
+                onBlur={() => { if (joinInput.length < 4) setTimeout(() => { setPillState('idle'); setJoinInput(''); setError(''); }, 150); }}
+              />
+              {error && <span style={{color:'var(--danger)',fontSize:'0.7em'}}>{error}</span>}
+            </div>
+          );
+        }
+
+        return (
+          <div className="scene-pill-wrapper">
+            <button className="scene-pill connected" onClick={() => setDropdownOpen(o => !o)}>
+              🎭 {code} <span className="scene-pill-dot"/>
+            </button>
+            {dropdownOpen && (
+              <div className="scene-dropdown">
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',flexShrink:0,display:'inline-block',
+                    background:sceneActive?'var(--success)':'var(--text-muted)'}}/>
+                  <span style={{fontSize:'0.9em',fontWeight:'bold',color:sceneActive?'var(--success)':'var(--text-muted)'}}>
+                    {sceneActive ? `Scene ${sceneNum} active` : 'No active scene'}
+                  </span>
+                  <span style={{marginLeft:'auto',fontFamily:'monospace',fontSize:'0.8em',color:'var(--text-muted)'}}>{code}</span>
+                </div>
+                {myTilts.length > 0 && (
+                  <div style={{marginBottom:10,display:'flex',flexWrap:'wrap',gap:4,alignItems:'center'}}>
+                    <span style={{fontSize:'0.7em',letterSpacing:1,textTransform:'uppercase',color:'#e63946',fontWeight:700,marginRight:2}}>Tilts</span>
+                    {myTilts.map((t,i) => (
+                      <span key={i} style={{fontSize:'0.8em',padding:'2px 8px',borderRadius:10,
+                        background:'rgba(230,57,70,0.15)',border:'1px solid rgba(230,57,70,0.35)',color:'#e63946'}}>{t}</span>
+                    ))}
+                  </div>
+                )}
+                <div className="scene-paradox-counter" style={{marginBottom:12}}>
+                  <div>
+                    <div className="scene-paradox-big" style={{color:rolls>0?'var(--danger)':'var(--text)'}}>{rolls}</div>
+                    <div style={{fontSize:'0.65em',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,textAlign:'center'}}>Rolls</div>
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:'0.8em',color:'var(--text-muted)',marginBottom:2}}>Next modifier</div>
+                    <div style={{fontSize:'1.2em',fontWeight:'bold',color:effPdx>0?'var(--danger)':'var(--text)'}}>+{effPdx} dice</div>
+                  </div>
+                </div>
+                {stAdj !== 0 && (
+                  <div className="scene-st-notice" style={{marginBottom:10}}>
+                    <div style={{fontWeight:'bold'}}>ST adjustment: {stAdj>=0?'+':''}{stAdj}</div>
+                    {myP.stNote && <div style={{fontSize:'0.85em',opacity:0.8,marginTop:2}}>{myP.stNote}</div>}
+                  </div>
+                )}
+                {(myP.paradoxLog||[]).length > 0 && (
+                  <div style={{marginBottom:10}}>
+                    <div style={{fontSize:'0.65em',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,marginBottom:5}}>Paradox log</div>
+                    {myP.paradoxLog.map((e,i) => (
+                      <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',
+                        padding:'3px 0',borderBottom:i<myP.paradoxLog.length-1?'1px solid rgba(255,255,255,0.06)':'none',fontSize:'0.8em'}}>
+                        <span>{e.spell} <span style={{color:'var(--text-muted)'}}>{e.paradoxDice==='Chance'?'Chance die':`${e.paradoxDice} dice`}</span></span>
+                        {i>0 && <span style={{color:'var(--danger)',fontWeight:'bold',fontSize:'0.9em'}}>+{i}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {error && <div style={{color:'var(--danger)',fontSize:'0.8em',marginBottom:8}}>{error}</div>}
+                <button className="scene-disconnect-btn" onClick={disconnect}>Leave Room</button>
+              </div>
+            )}
+          </div>
+        );
+      }
+
       function ClassicCharacterHeader({
         character, onLoad, onSave, onNew, onEdit,
-        onManaChange, onHealthChange, onWillpowerChange, onSceneToggle, sceneConnected,
+        onManaChange, onHealthChange, onWillpowerChange,
       }) {
         const fileRef  = useRef(null);
         const [open, setOpen] = useState(null); // 'mana'|'health'|'wp'|null
@@ -4783,17 +5002,7 @@
                 <button className="btn-small" onClick={onEdit} disabled={!character}>Edit</button>
                 <button className="btn-small" onClick={()=>fileRef.current?.click()}>Load</button>
                 <button className="btn-small btn-primary" onClick={onSave} disabled={!character}>Save</button>
-                <button className="btn-small" onClick={onSceneToggle}
-                  style={{position:"relative",
-                    background:sceneConnected?"rgba(42,157,143,0.25)":"",
-                    borderColor:sceneConnected?"var(--success)":"",
-                    color:sceneConnected?"var(--success)":""}}>
-                  🎭 Scene
-                  {sceneConnected && (
-                    <span style={{position:"absolute",top:-3,right:-3,width:8,height:8,
-                      borderRadius:"50%",background:"var(--success)",border:"2px solid var(--bg-card)"}}/>
-                  )}
-                </button>
+                <ScenePill />
               </div>
             </div>
 
@@ -4863,14 +5072,12 @@
 
       // ── App root ────────────────────────────────────────────────────────────
       function ClassicHeaderApp() {
-        const [character,    setCharacter]    = useState(null);
-        const [sceneConn,    setSceneConn]    = useState(false);
+        const [character, setCharacter] = useState(null);
 
         useEffect(() => {
           window.classicBridge = {
             ...(window.classicBridge || {}),
-            setCharacter:     (c) => setCharacter(c ? {...c} : null),
-            setSceneConnected:(v) => setSceneConn(!!v),
+            setCharacter: (c) => setCharacter(c ? {...c} : null),
           };
           if (window.currentCharacter) setCharacter({...window.currentCharacter});
         }, []);
@@ -4906,7 +5113,6 @@
         return (
           <ClassicCharacterHeader
             character={character}
-            sceneConnected={sceneConn}
             onLoad={handleLoad}
             onSave={()=>window.classicVanilla?.onSave()}
             onNew={()=>window.classicVanilla?.onNew()}
@@ -4914,7 +5120,6 @@
             onManaChange={handleManaChange}
             onHealthChange={handleHealthChange}
             onWillpowerChange={handleWillpowerChange}
-            onSceneToggle={()=>window.classicVanilla?.onSceneToggle()}
           />
         );
       }
@@ -4922,451 +5127,8 @@
       ReactDOM.createRoot(document.getElementById('classic-header-root')).render(<ClassicHeaderApp/>);
     </script>
 
-    <!-- ── React Scene Tracker (Phase 2 migration) ───────────────────────── -->
-    <script type="text/babel">
-      const { useState: _useState, useEffect: _useEffect, useRef: _useRef } = React;
+    <!-- Phase 2 (ClassicSceneTracker) removed — replaced by ScenePill in Phase 1 -->
 
-      function ClassicSceneTracker() {
-        const [isOpen,      setIsOpen]      = _useState(true);
-        const [mode,        setMode]        = _useState(null); // null|'st'|'player'|'joining'
-        const [code,        setCode]        = _useState('');
-        const [joinInput,   setJoinInput]   = _useState('');
-        const [sceneActive, setSceneActive] = _useState(false);
-        const [sceneNum,    setSceneNum]    = _useState(0);
-        const [players,     setPlayers]     = _useState({});
-        const [myTilts,     setMyTilts]     = _useState([]);
-        const [error,       setError]       = _useState('');
-
-        const listenerRef  = _useRef(null);
-        const stEditAtRef  = _useRef(0);
-        const modeRef      = _useRef(null);
-        const codeRef      = _useRef('');
-        const pidRef       = _useRef(null);
-
-        function getPid() {
-          if (pidRef.current) return pidRef.current;
-          const char = window.currentCharacter;
-          const name = char?.shadowName || char?.name || 'player_' + Math.random().toString(36).slice(2,8);
-          pidRef.current = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-          return pidRef.current;
-        }
-        function getPlayerName() {
-          const char = window.currentCharacter;
-          return char?.shadowName || char?.name || 'Unknown Mage';
-        }
-        function getPlayerPath() {
-          const char = window.currentCharacter;
-          if (!char?.path) return '';
-          return (typeof PATHS !== 'undefined' && PATHS[char.path]) ? PATHS[char.path].label : char.path;
-        }
-
-        function notifyVanilla(m, c, pid, pls) {
-          window.classicVanilla?.onSceneChange({ mode: m, code: c, pid, players: pls });
-        }
-
-        function detachListener() {
-          if (listenerRef.current) {
-            listenerRef.current.ref.off('value', listenerRef.current.cb);
-            listenerRef.current = null;
-          }
-        }
-
-        function attachListener(roomCode) {
-          detachListener();
-          const ref = sceneGetRef(roomCode);
-          const cb = ref.on('value', function(snap) {
-            const data = snap.val();
-            if (!data || data.meta?.closed || data.closed) {
-              detachListener();
-              sceneForgetRoom();
-              setMode(null); setCode(''); setSceneActive(false);
-              setPlayers({}); setMyTilts([]); stEditAtRef.current = 0; pidRef.current = null;
-              modeRef.current = null; codeRef.current = '';
-              setError('Room was closed by the Storyteller');
-              notifyVanilla(null, '', null, {});
-              window.classicBridge?.setSceneConnected(false);
-              return;
-            }
-            const pls = data.players || {};
-            setSceneActive(!!data.sceneActive);
-            setSceneNum(data.sceneNumber || 0);
-            setPlayers(pls);
-
-            const pid = getPid();
-            const myP = pls[pid];
-
-            // stEdit detection
-            if (myP?.stEdit?.editedAt && myP.stEdit.editedAt !== stEditAtRef.current) {
-              stEditAtRef.current = myP.stEdit.editedAt;
-              const edit = myP.stEdit.stats;
-              if (edit && window.currentCharacter) {
-                const char = window.currentCharacter;
-                if (edit.health)    char.health    = {...(char.health    || {}), ...edit.health};
-                if (edit.mana)      char.mana      = {...(char.mana      || {}), ...edit.mana};
-                if (edit.willpower) char.willpower = {...(char.willpower || {}), ...edit.willpower};
-                window.classicBridge?.setCharacter({...char});
-                if (typeof saveCharacterToLocalStorage === 'function') saveCharacterToLocalStorage();
-                setTimeout(() => scenePushStats(roomCode, pid, char), 100);
-              }
-            }
-
-            setMyTilts(myP?.tilts || []);
-            window.classicBridge?.setSceneConnected(true);
-            notifyVanilla(modeRef.current, roomCode, pid, pls);
-          });
-          listenerRef.current = { ref, cb };
-        }
-
-        // Auto-reconnect on mount
-        _useEffect(() => {
-          const saved = sceneRecallRoom();
-          if (saved?.code) {
-            if (saved.role === 'st') {
-              modeRef.current = 'st'; codeRef.current = saved.code;
-              setMode('st'); setCode(saved.code);
-              attachListener(saved.code);
-            } else {
-              codeRef.current = saved.code;
-              setCode(saved.code);
-              sceneGetRef(saved.code).once('value').then(snap => {
-                if (!snap.exists() || snap.val().closed || snap.val().meta?.closed) {
-                  sceneForgetRoom(); return;
-                }
-                modeRef.current = 'player';
-                setMode('player');
-                const pid = getPid();
-                const pRef = sceneGetRef(saved.code).child('players/' + pid);
-                pRef.update({ name: getPlayerName(), path: getPlayerPath() });
-                pRef.onDisconnect().remove();
-                if (window.currentCharacter) {
-                  scenePushStats(saved.code, pid, window.currentCharacter);
-                  sessionPushSheet(saved.code, pid, window.currentCharacter);
-                }
-                attachListener(saved.code);
-              });
-            }
-          }
-          return () => detachListener();
-        }, []);
-
-        function createRoom() {
-          const roomCode = sceneGenerateCode();
-          setError('');
-          sceneCreateRoom(roomCode, getPlayerName()).then(() => {
-            modeRef.current = 'st'; codeRef.current = roomCode;
-            setCode(roomCode); setMode('st');
-            sceneRememberRoom(roomCode, 'st');
-            attachListener(roomCode);
-            notifyVanilla('st', roomCode, getPid(), {});
-            window.classicBridge?.setSceneConnected(true);
-          }).catch(e => setError('Failed to create room: ' + e.message));
-        }
-
-        function joinRoom() {
-          const roomCode = joinInput.trim().toUpperCase();
-          if (roomCode.length < 3) { setError('Enter a valid room code'); return; }
-          setError('');
-          pidRef.current = null;
-          sceneGetRef(roomCode).once('value').then(snap => {
-            if (!snap.exists()) { setError('Room not found'); return; }
-            const pid = getPid();
-            modeRef.current = 'player'; codeRef.current = roomCode;
-            setCode(roomCode); setMode('player');
-            sceneJoinRoom(roomCode, pid, getPlayerName(), getPlayerPath());
-            if (window.currentCharacter) {
-              scenePushStats(roomCode, pid, window.currentCharacter);
-              sessionPushSheet(roomCode, pid, window.currentCharacter);
-            }
-            sceneRememberRoom(roomCode, 'player');
-            attachListener(roomCode);
-            notifyVanilla('player', roomCode, pid, {});
-            window.classicBridge?.setSceneConnected(true);
-          }).catch(e => setError('Failed to join: ' + e.message));
-        }
-
-        function disconnect() {
-          const m = modeRef.current, c = codeRef.current;
-          if (m === 'player') sceneLeaveRoom(c, getPid());
-          else if (m === 'st' && c) {
-            sceneGetRef(c).update({ closed: true, sceneActive: false });
-            setTimeout(() => sceneGetRef(c).remove(), 5000);
-          }
-          detachListener(); sceneForgetRoom();
-          modeRef.current = null; codeRef.current = ''; pidRef.current = null; stEditAtRef.current = 0;
-          setMode(null); setCode(''); setSceneActive(false); setPlayers({});
-          setMyTilts([]); setError('');
-          notifyVanilla(null, '', null, {});
-          window.classicBridge?.setSceneConnected(false);
-        }
-
-        function toggleScene() {
-          if (sceneActive) {
-            sceneSetActive(code, false);
-            sceneResetAllPlayers(code);
-          } else {
-            sceneIncrementNumber(code);
-            sceneSetActive(code, true);
-            sceneResetAllPlayers(code);
-          }
-        }
-
-        // ── ST player row ──
-        function PlayerRow({ pid, p }) {
-          const eff = Math.max(0, (p.paradoxRolls||0) + (p.stAdjustment||0));
-          const s = p.stats || {};
-          const sh = s.health || {};
-          const shFill = (sh.bashing||0)+(sh.lethal||0)+(sh.aggravated||0);
-          const shMax  = sh.max || 7;
-          const wound  = shFill >= shMax ? -3 : shFill >= shMax-1 ? -2 : shFill >= shMax-2 ? -1 : 0;
-          const hasStats = s.gnosis !== undefined;
-          const manaClr = (s.mana?.current??0) < 3 ? 'var(--danger)' : (s.mana?.current??0) < (s.mana?.max??10)/2 ? 'var(--warning)' : 'var(--text)';
-          const wisClr  = (s.wisdom||7) <= 4 ? 'var(--warning)' : 'var(--text)';
-          const wpC = s.willpower?.current ?? 5, wpM = s.willpower?.max ?? 5;
-
-          return (
-            <div style={{padding:'12px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
-              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8}}>
-                <div>
-                  <span className="scene-player-name">{p.name || pid}</span>
-                  {p.path && <span className="scene-player-path">{p.path}</span>}
-                </div>
-                {sceneActive && (
-                  <span style={{fontSize:'0.75em', fontWeight:'bold', padding:'2px 8px', borderRadius:4,
-                    background: eff>0 ? 'rgba(199,62,29,0.15)' : 'rgba(42,157,143,0.15)',
-                    color: eff>0 ? 'var(--danger)' : 'var(--success)'}}>
-                    {eff>0 ? `${eff} paradox (+${eff})` : '0 paradox'}
-                  </span>
-                )}
-              </div>
-              {hasStats && <>
-                <div style={{display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:4, marginBottom:6}}>
-                  {[['Gnosis',s.gnosis||1,'var(--text)'],['Wisdom',s.wisdom||7,wisClr],
-                    ['Mana',`${s.mana?.current??0}/${s.mana?.max??10}`,manaClr],
-                    ['WP',`${wpC}/${wpM}`,'var(--text)'],
-                    ['Spells',`${(s.activeSpells||[]).length}/${s.maxActiveSpells||1}`,(s.activeSpells||[]).length>=(s.maxActiveSpells||1)?'var(--warning)':'var(--text)']
-                  ].map(([lbl,val,clr])=>(
-                    <div key={lbl} style={{textAlign:'center',padding:'5px 2px',background:'var(--bg-dark)',borderRadius:4}}>
-                      <div style={{fontSize:'0.95em',fontWeight:'bold',color:clr}}>{val}</div>
-                      <div style={{fontSize:'0.6em',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1}}>{lbl}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{marginBottom:6}}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:3}}>
-                    <span style={{fontSize:'0.7em',color:'var(--text-muted)'}}>Health</span>
-                    <span style={{fontSize:'0.7em',color:wound<0?'var(--danger)':'var(--success)'}}>
-                      {wound<0 ? `Wound: ${wound}` : 'No wound penalty'}
-                    </span>
-                  </div>
-                  <div style={{display:'flex',gap:2}}>
-                    {Array.from({length:shMax}).map((_,i)=>{
-                      const agg=sh.aggravated||0, lt=sh.lethal||0, bas=sh.bashing||0;
-                      let sym='',bg='var(--bg-dark)',fg='var(--text-muted)',bd='rgba(255,255,255,0.1)';
-                      if(i<agg){sym='*';bg='rgba(199,62,29,0.2)';fg='var(--danger)';bd='var(--danger)';}
-                      else if(i<agg+lt){sym='X';bg='rgba(233,196,106,0.15)';fg='var(--warning)';bd='var(--warning)';}
-                      else if(i<agg+lt+bas){sym='/';bg='var(--bg-card)';fg='var(--text)';bd='rgba(255,255,255,0.2)';}
-                      return <div key={i} style={{flex:1,textAlign:'center',padding:'3px 0',borderRadius:2,
-                        background:bg,border:`1px solid ${bd}`,fontSize:'0.75em',fontWeight:'bold',
-                        color:fg,minWidth:0}}>{sym||'\u00a0'}</div>;
-                    })}
-                  </div>
-                </div>
-              </>}
-              {sceneActive && (p.paradoxLog||[]).length > 0 && (
-                <div style={{paddingBottom:6}}>
-                  {p.paradoxLog.map((e,i)=>(
-                    <span key={i} className="scene-log-chip">{e.spell}{i>0?` (+${i})`:''}</span>
-                  ))}
-                </div>
-              )}
-              {sceneActive && (
-                <div className="scene-adj-row">
-                  <div className="scene-adj-controls">
-                    <span style={{fontSize:'0.8em',color:'var(--text-muted)'}}>ST adjustment</span>
-                    <div style={{display:'flex',alignItems:'center',gap:6}}>
-                      <button className="scene-adj-btn" onClick={()=>sceneSetPlayerAdjustment(code,pid,(p.stAdjustment||0)-1,p.stNote||'')}>−</button>
-                      <span className="scene-adj-val" style={{color:(p.stAdjustment||0)!==0?'var(--warning)':'var(--text-muted)'}}>
-                        {(p.stAdjustment||0)>=0?'+':''}{p.stAdjustment||0}
-                      </span>
-                      <button className="scene-adj-btn" onClick={()=>sceneSetPlayerAdjustment(code,pid,(p.stAdjustment||0)+1,p.stNote||'')}>+</button>
-                    </div>
-                  </div>
-                  <input className="scene-adj-note" type="text" placeholder="Reason (visible to player)"
-                    defaultValue={p.stNote||''}
-                    onBlur={e=>sceneSetPlayerAdjustment(code,pid,p.stAdjustment||0,e.target.value)} />
-                </div>
-              )}
-            </div>
-          );
-        }
-
-        const pid     = getPid();
-        const myP     = players[pid] || {};
-        const rolls   = myP.paradoxRolls || 0;
-        const stAdj   = myP.stAdjustment || 0;
-        const effPdx  = Math.max(0, rolls + stAdj);
-        const isConn  = mode === 'st' || mode === 'player';
-
-        return (
-          <div className="scene-tracker-card" id="sceneTrackerCard">
-            <div className="scene-header-bar" onClick={()=>setIsOpen(o=>!o)} style={{cursor:'pointer'}}>
-              <span className="scene-header-title">🎭 Scene Tracker</span>
-              <span className="scene-header-status" style={{
-                background: isConn ? 'rgba(42,157,143,0.2)' : 'rgba(255,255,255,0.08)',
-                color: isConn ? 'var(--success)' : 'var(--text-muted)',
-              }}>
-                {isConn
-                  ? (sceneActive ? `Scene ${sceneNum} active` : mode==='st' ? 'Room open' : 'Connected')
-                  : 'Not connected'}
-              </span>
-            </div>
-
-            {isOpen && <div className="scene-body open">
-              {error && (
-                <div style={{padding:'8px 12px',borderRadius:8,marginBottom:12,
-                  background:'rgba(199,62,29,0.15)',border:'1px solid var(--danger)',
-                  color:'var(--danger)',fontSize:'0.85em'}}>{error}</div>
-              )}
-
-              {/* Mode chooser */}
-              {!mode && (
-                <div id="sceneModeChooser">
-                  <button className="scene-mode-btn" onClick={createRoom}>
-                    <div className="label" style={{color:'var(--accent-light)'}}>Create Room (Storyteller)</div>
-                    <div className="sub">Generate a code and manage scenes for your players</div>
-                  </button>
-                  <button className="scene-mode-btn" onClick={()=>{setMode('joining');setError('');}}>
-                    <div className="label" style={{color:'var(--success)'}}>Join Room (Player)</div>
-                    <div className="sub">Enter a room code from your Storyteller</div>
-                  </button>
-                </div>
-              )}
-
-              {/* Join form */}
-              {mode === 'joining' && (
-                <div>
-                  <p style={{color:'var(--text-muted)',fontSize:'0.9em',marginBottom:12}}>
-                    Enter the room code from your Storyteller:
-                  </p>
-                  <div style={{display:'flex',gap:8,marginBottom:12}}>
-                    <input type="text" maxLength={6} placeholder="CODE" value={joinInput}
-                      onChange={e=>setJoinInput(e.target.value.toUpperCase())}
-                      onKeyDown={e=>e.key==='Enter'&&joinRoom()}
-                      style={{flex:1,textAlign:'center',fontFamily:'monospace',fontSize:'1.4em',
-                        letterSpacing:6,padding:10,borderRadius:8,background:'var(--bg-dark)',
-                        border:'1px solid var(--accent)',color:'var(--text)',textTransform:'uppercase'}} />
-                    <button onClick={joinRoom} style={{padding:'10px 20px',borderRadius:8,border:'none',
-                      background:'var(--success)',color:'#fff',fontWeight:'bold',cursor:'pointer',fontSize:'1em'}}>
-                      Join
-                    </button>
-                  </div>
-                  <button onClick={()=>{setMode(null);setError('');}}
-                    style={{background:'none',border:'none',color:'var(--text-muted)',fontSize:'0.85em',cursor:'pointer'}}>
-                    ← Back
-                  </button>
-                </div>
-              )}
-
-              {/* ST view */}
-              {mode === 'st' && (
-                <div>
-                  <div className="scene-room-code">
-                    <div style={{fontSize:'0.7em',color:'var(--text-muted)',letterSpacing:2,textTransform:'uppercase',marginBottom:4}}>Room Code</div>
-                    <div className="code">{code}</div>
-                    <div style={{fontSize:'0.8em',color:'var(--text-muted)',marginTop:6}}>Share this code with your players</div>
-                  </div>
-                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
-                    <span className="scene-status-dot" style={{background:sceneActive?'var(--success)':'var(--text-muted)'}}></span>
-                    <span style={{fontSize:'0.9em',fontWeight:'bold',color:sceneActive?'var(--success)':'var(--text-muted)'}}>
-                      {sceneActive ? `Scene ${sceneNum} active` : 'No active scene'}
-                    </span>
-                  </div>
-                  <div className="scene-controls">
-                    <button onClick={toggleScene}
-                      style={{background:sceneActive?'var(--danger)':'var(--success)',color:'#fff',border:'none'}}>
-                      {sceneActive ? 'End Scene' : 'Start Scene'}
-                    </button>
-                    <button onClick={()=>sceneResetAllPlayers(code)} disabled={!sceneActive}
-                      style={{background:'transparent',color:'var(--text-muted)',
-                        border:'1px solid rgba(255,255,255,0.2)',opacity:sceneActive?1:0.4}}>
-                      Reset Counters
-                    </button>
-                  </div>
-                  <h3 style={{color:'var(--accent-light)',fontSize:'0.9em',marginBottom:10}}>Connected Players</h3>
-                  {Object.keys(players).length === 0
-                    ? <div style={{padding:10,textAlign:'center',color:'var(--text-muted)'}}>No players connected yet</div>
-                    : Object.entries(players).map(([pid,p]) => <PlayerRow key={pid} pid={pid} p={p} />)
-                  }
-                  <button className="scene-disconnect-btn" onClick={disconnect}>Close Room</button>
-                </div>
-              )}
-
-              {/* Player view */}
-              {mode === 'player' && (
-                <div>
-                  {myTilts.length > 0 && (
-                    <div style={{padding:'6px 0',marginBottom:8,display:'flex',flexWrap:'wrap',gap:5,alignItems:'center'}}>
-                      <span style={{fontSize:'0.7em',letterSpacing:1,textTransform:'uppercase',color:'#e63946',fontWeight:700,marginRight:2}}>Tilts</span>
-                      {myTilts.map((t,i)=>(
-                        <span key={i} style={{fontSize:'0.85em',padding:'2px 9px',borderRadius:10,
-                          background:'rgba(230,57,70,0.15)',border:'1px solid rgba(230,57,70,0.35)',color:'#e63946'}}>
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="scene-status-banner" style={{
-                    background: sceneActive?'rgba(42,157,143,0.1)':'var(--bg-dark)',
-                    border: sceneActive?'1px solid rgba(42,157,143,0.3)':'1px solid rgba(255,255,255,0.1)'}}>
-                    <span className="scene-status-dot" style={{background:sceneActive?'var(--success)':'var(--text-muted)'}}></span>
-                    <span style={{fontSize:'0.9em',fontWeight:'bold',color:sceneActive?'var(--success)':'var(--text-muted)'}}>
-                      {sceneActive ? `Scene ${sceneNum} active` : 'No active scene'}
-                    </span>
-                    <span style={{marginLeft:'auto',fontFamily:'monospace',fontSize:'0.85em',color:'var(--text-muted)'}}>{code}</span>
-                  </div>
-                  <div className="scene-paradox-counter">
-                    <div>
-                      <div className="scene-paradox-big">{rolls}</div>
-                      <div style={{fontSize:'0.7em',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,textAlign:'center'}}>Rolls</div>
-                    </div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:'0.85em',color:'var(--text-muted)',marginBottom:4}}>Next spell modifier</div>
-                      <div style={{fontSize:'1.4em',fontWeight:'bold',color:effPdx>0?'var(--danger)':'var(--text)'}}>+{effPdx} dice</div>
-                      <div style={{fontSize:'0.8em',color:'var(--text-muted)',marginTop:2}}>
-                        {effPdx>0 ? 'Added to next Paradox roll' : 'No penalty yet'}
-                      </div>
-                    </div>
-                  </div>
-                  {stAdj !== 0 && (
-                    <div className="scene-st-notice">
-                      <div style={{fontWeight:'bold'}}>ST adjustment: {stAdj>=0?'+':''}{stAdj}</div>
-                      {myP.stNote && <div style={{fontSize:'0.85em',opacity:0.8,marginTop:2}}>{myP.stNote}</div>}
-                    </div>
-                  )}
-                  {(myP.paradoxLog||[]).length > 0 && (
-                    <div style={{marginTop:12}}>
-                      <div style={{fontSize:'0.7em',color:'var(--text-muted)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>Paradox log</div>
-                      {myP.paradoxLog.map((e,i)=>(
-                        <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',
-                          padding:'4px 0',borderBottom:i<myP.paradoxLog.length-1?'1px solid rgba(255,255,255,0.06)':'none'}}>
-                          <span style={{fontSize:'0.85em'}}>{e.spell}
-                            <span style={{color:'var(--text-muted)',fontSize:'0.9em'}}> {e.paradoxDice==='Chance'?'Chance die':`${e.paradoxDice} dice`}</span>
-                          </span>
-                          {i>0 && <span style={{fontSize:'0.8em',color:'var(--danger)',fontWeight:'bold'}}>+{i}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <button className="scene-disconnect-btn" onClick={disconnect}>Leave Room</button>
-                </div>
-              )}
-            </div>}
-          </div>
-        );
-      }
-
-      ReactDOM.createRoot(document.getElementById('classic-scene-root')).render(<ClassicSceneTracker/>);
-    </script>
 
     <!-- ── React Spell Form (Phase 3 migration) ──────────────────────────── -->
     <script type="text/babel">
@@ -5737,10 +5499,28 @@
         additionalManaCost: 0,
       };
 
+      function AccordionCard({ index, activeCard, onToggle, title, summary, children }) {
+        const isOpen = activeCard === index;
+        return (
+          <div className={'card accordion-card' + (isOpen ? ' open' : '')}>
+            <div className="accordion-header" onClick={() => onToggle(index)}>
+              <h2>{title}</h2>
+              <span className="accordion-summary">{!isOpen ? summary : ''}</span>
+              <span className="accordion-chevron">{isOpen ? '▾' : '▸'}</span>
+            </div>
+            <div className="accordion-body">
+              <div className="accordion-body-inner">{children}</div>
+            </div>
+          </div>
+        );
+      }
+
       function ClassicSpellForm({ form, setForm }) {
 
         const set   = (k, v) => setForm(f => ({...f, [k]: v}));
         const merge = (d)    => setForm(f => ({...f, ...d}));
+
+        const [activeCard, setActiveCard] = _sf_us(0);
 
         // Bridge — callers use classicBridge.setSpellForm / setSpellFormField
         _sf_ue(() => {
@@ -5828,13 +5608,46 @@
         const ARCANA = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
         const showWarning = form.activeSpellCount > form.gnosis;
 
+        // ── Accordion summaries ───────────────────────────────────────────────
+        const ARC_LABEL = {death:'Death',fate:'Fate',forces:'Forces',life:'Life',matter:'Matter',
+                           mind:'Mind',prime:'Prime',space:'Space',spirit:'Spirit',time:'Time'};
+        const METHOD_SHORT = {improvised:'Improv',praxis:'Praxis',
+                              roteGrimoire:'Rote',roteOwn:'Rote',roteLearned:'Rote'};
+        const PRACTICE_LABEL = {compelling:'Compelling',knowing:'Knowing',unveiling:'Unveiling',
+                                 ruling:'Ruling',shielding:'Shielding',veiling:'Veiling',
+                                 fraying:'Fraying',perfecting:'Perfecting',weaving:'Weaving',
+                                 patterning:'Patterning',unraveling:'Unraveling',
+                                 making:'Making',unmaking:'Unmaking'};
+        const RANGE_SHORT = {self:'Self',touch:'Touch',aimed:'Aimed',sensory:'Sensory',
+                             remoteView:'Remote',sympathetic:'Sympathy',temporal:'Temporal'};
+        const casterSummary = [
+          'Gnosis ' + form.gnosis,
+          form.spellArcanum ? (ARC_LABEL[form.spellArcanum] || form.spellArcanum) + ' ' + form.arcanumDots : null,
+          METHOD_SHORT[form.castingMethod] || 'Improv',
+        ].filter(Boolean).join(' · ');
+        const spellSummary = [
+          PRACTICE_LABEL[form.practice] || form.practice,
+          form.primaryFactor + ' primary',
+        ].join(' · ');
+        const durLabelShort = (durOpts[form.durationIndex]?.label || '1 Turn').replace(/\s*\([^)]*\)/,'');
+        const factorsSummary = [
+          'Potency ' + form.potency,
+          durLabelShort,
+          RANGE_SHORT[form.range] || form.range,
+        ].join(' · ');
+        const yantrasSummary = yantraCount > 0 ? yantraCount + ' selected' : 'None';
+        const modParts = [];
+        if (form.spendWillpower) modParts.push('WP +3');
+        if (form.teamworkDice > 0) modParts.push('Team +' + form.teamworkDice);
+        if (form.otherModifier !== 0) modParts.push((form.otherModifier > 0 ? '+' : '') + form.otherModifier);
+        const modifiersSummary = modParts.length > 0 ? modParts.join(' · ') : 'None';
+
         // ── Render ────────────────────────────────────────────────────────────
         return (
           <React.Fragment>
 
             {/* ── CASTER CARD ── */}
-            <div className="card">
-              <h2>Caster</h2>
+            <AccordionCard index={0} activeCard={activeCard} onToggle={setActiveCard} title="Caster" summary={casterSummary}>
               <SpellControlZone />
               <div className="form-grid">
                 <div className="form-group">
@@ -5885,11 +5698,10 @@
                   </div>
                 )}
               </div>
-            </div>
+            </AccordionCard>
 
             {/* ── SPELL CARD ── */}
-            <div className="card">
-              <h2>Spell</h2>
+            <AccordionCard index={1} activeCard={activeCard} onToggle={setActiveCard} title="Spell" summary={spellSummary}>
               <div className="form-group spell-name-group">
                 <label>Spell Name <span className="optional-label">(optional)</span></label>
                 <input type="text" id="spellName" placeholder="e.g., Supernal Vision, Counterspell Prime..."
@@ -5959,11 +5771,10 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </AccordionCard>
 
             {/* ── SPELL FACTORS CARD ── */}
-            <div className="card">
-              <h2>Spell Factors</h2>
+            <AccordionCard index={2} activeCard={activeCard} onToggle={setActiveCard} title="Spell Factors" summary={factorsSummary}>
               <div className="form-grid">
                 <div className="form-group">
                   <label>Potency <GlossaryTip term="potency"/></label>
@@ -6051,11 +5862,14 @@
                   <div className="info-text">For spell effects (Instant, extra damage, etc.)</div>
                 </div>
               </div>
-            </div>
+            </AccordionCard>
 
             {/* ── YANTRAS CARD ── */}
-            <div className="card">
-              <h2>Yantras <GlossaryTip term="yantra"/> <span className="info-text" id="yantraCount">({yantraCount} / {maxYant} max)</span></h2>
+            <AccordionCard index={3} activeCard={activeCard} onToggle={setActiveCard} title="Yantras" summary={yantrasSummary}>
+              <div style={{fontSize:'0.85em',color:'var(--text-muted)',marginBottom:8,display:'flex',alignItems:'center',gap:4}}>
+                <GlossaryTip term="yantra"/>
+                <span id="yantraCount">({yantraCount} / {maxYant} max)</span>
+              </div>
               <div className="yantra-grid" id="yantraGrid">
                 <div className="yantra-category">
                   <h4>Places</h4>
@@ -6159,11 +5973,10 @@
               <div className="info-text" style={{marginTop:12}}>
                 First Yantra is reflexive. Each additional adds 1 turn to casting. Max bonus after penalties: +5.
               </div>
-            </div>
+            </AccordionCard>
 
             {/* ── ADDITIONAL MODIFIERS CARD ── */}
-            <div className="card">
-              <h2>Additional Modifiers</h2>
+            <AccordionCard index={4} activeCard={activeCard} onToggle={setActiveCard} title="Additional Modifiers" summary={modifiersSummary}>
               <div className="form-grid">
                 <div className="form-group">
                   <label className="checkbox-group" style={{marginBottom:0}}>
@@ -6194,7 +6007,7 @@
                   <div className="info-text">For spell-specific costs — full Mana summary in Results</div>
                 </div>
               </div>
-            </div>
+            </AccordionCard>
 
           </React.Fragment>
         );
@@ -6635,10 +6448,15 @@
         }, [form]);
 
         return (
-          <React.Fragment>
-            <ClassicSpellForm form={form} setForm={setForm} />
-            <ClassicResultsPanel results={results} />
-          </React.Fragment>
+          <div className="calculator-landscape">
+            <div className="input-panel">
+              <ClassicSpellForm form={form} setForm={setForm} />
+            </div>
+            <div className="output-panel">
+              <ClassicResultsPanel results={results} />
+              <div id="classic-clash-root"></div>
+            </div>
+          </div>
         );
       }
 
