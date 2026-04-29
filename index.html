@@ -2632,6 +2632,18 @@
             .calculator-landscape .yantra-category h4 { font-size: 1em; }
             .calculator-landscape .checkbox-group label,
             .calculator-landscape .radio-group label { font-size: 0.95em; }
+
+            /* Grimoire spell cards — outside .calculator-landscape so need explicit bumps */
+            .spell-card-arcanum { font-size: 0.92em; }
+            .spell-card-type { font-size: 0.82em; }
+            .spell-card-practice { font-size: 0.92em; }
+            .spell-stat { font-size: 0.92em; }
+            .spell-stat-label { font-size: 0.85em; }
+            .spell-dice-breakdown { font-size: 0.85em; }
+            .spell-card-meta { font-size: 0.85em; }
+            .spell-card-reach-title { font-size: 0.82em; }
+            .spell-reach-option { font-size: 0.92em; }
+            .spell-card-actions button { font-size: 0.92em; }
         }
 
         /* ── Accordion cards ── */
@@ -7049,16 +7061,16 @@
             borderRadius:8, padding:"10px 12px", display:"flex", flexDirection:"column", gap:6 }}>
             <div style={{ display:"flex", alignItems:"flex-start", gap:6 }}>
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontWeight:700, fontSize:13, color:"var(--text)", marginBottom:3,
+                <div style={{ fontWeight:700, fontSize:15, color:"var(--text)", marginBottom:3,
                   overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                   {spell.name}
                 </div>
                 <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-                  <span style={{ fontSize:10, padding:"1px 6px", borderRadius:3,
+                  <span style={{ fontSize:12, padding:"1px 6px", borderRadius:3,
                     background:tc.bg, color:tc.tx, border:`1px solid ${tc.bd}` }}>
                     {slTypeLabel(spell.type)}
                   </span>
-                  <span style={{ fontSize:10, padding:"1px 6px", borderRadius:3,
+                  <span style={{ fontSize:12, padding:"1px 6px", borderRadius:3,
                     background:`${arcColor}22`, color:arcColor, border:`1px solid ${arcColor}44` }}>
                     {capitalize(arc)} {'●'.repeat(spell.primaryArcanumLevel || 1)}
                   </span>
@@ -7067,28 +7079,28 @@
               {card && (
                 <div style={{ textAlign:"center", flexShrink:0 }}>
                   <div style={{ fontSize:22, fontWeight:700, color:"var(--accent-light)", lineHeight:1 }}>{card.totalPool}</div>
-                  <div style={{ fontSize:9, color:"var(--text-muted)" }}>dice</div>
+                  <div style={{ fontSize:11, color:"var(--text-muted)" }}>dice</div>
                 </div>
               )}
             </div>
-            <div style={{ fontSize:10, color:"var(--text-muted)" }}>
+            <div style={{ fontSize:12, color:"var(--text-muted)" }}>
               {spell.practice && <span>{spell.practice}</span>}
               {spell.primaryFactor && <span> · {spell.primaryFactor}</span>}
               {spell.type==='rote' && spell.roteSkill && <span> · {getSkillLabel(spell.roteSkill)}</span>}
             </div>
             <div style={{ display:"flex", gap:4, marginTop:2 }}>
               <button onClick={() => onLoad(spell)}
-                style={{ flex:1, padding:"5px 0", borderRadius:5, fontSize:11, fontWeight:600,
+                style={{ flex:1, padding:"5px 0", borderRadius:5, fontSize:13, fontWeight:600,
                   cursor:"pointer", background:"rgba(42,157,143,0.15)",
                   border:"1px solid rgba(42,157,143,0.4)", color:"var(--success)" }}>
                 ▶ Load
               </button>
               <button onClick={() => onEdit(spell)} title="Edit"
-                style={{ padding:"5px 10px", borderRadius:5, fontSize:12, cursor:"pointer",
+                style={{ padding:"5px 10px", borderRadius:5, fontSize:13, cursor:"pointer",
                   background:"transparent", border:"1px solid rgba(255,255,255,0.12)",
                   color:"var(--text-muted)" }}>✎</button>
               <button onClick={() => onDelete(spell)} title="Delete"
-                style={{ padding:"5px 10px", borderRadius:5, fontSize:12, cursor:"pointer",
+                style={{ padding:"5px 10px", borderRadius:5, fontSize:13, cursor:"pointer",
                   background:"rgba(199,62,29,0.1)", border:"1px solid rgba(199,62,29,0.28)",
                   color:"var(--danger)" }}>✕</button>
             </div>
