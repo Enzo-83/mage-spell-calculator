@@ -27,7 +27,10 @@
       "Bash(git fetch:*)",
       "Bash(git branch:*)",
       "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/contents/index.html --jq '.content' -H 'Accept: application/vnd.github.v3+json' --method GET -f ref=gh-pages)",
-      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/contents/index.html -H 'Accept: application/vnd.github.v3+json' --method GET -f ref=gh-pages --jq '.content')"
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" api repos/Enzo-83/mage-spell-calculator/contents/index.html -H 'Accept: application/vnd.github.v3+json' --method GET -f ref=gh-pages --jq '.content')",
+      "Bash('/c/Program Files/GitHub CLI/gh.exe' pr create --title 'Fix PlayerCard JSX syntax error \\(Fragment wrap\\)' --body ' *)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" pr merge --merge --auto)",
+      "Bash(\"/c/Program Files/GitHub CLI/gh.exe\" pr merge 35 --merge)"
     ]
   }
 }
