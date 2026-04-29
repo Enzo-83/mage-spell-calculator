@@ -2614,6 +2614,7 @@
                 grid-template-columns: 1fr 0.8fr;
                 gap: 20px;
                 align-items: start;
+                font-size: 1.05em;
             }
             .calculator-landscape .output-panel {
                 position: sticky;
@@ -2623,32 +2624,14 @@
                 scrollbar-width: thin;
                 scrollbar-color: rgba(123,44,191,0.3) transparent;
             }
-            /* Bottom buffer — absorbs accordion expand/collapse so page height stays stable */
-            .calculator-landscape .input-panel {
-                padding-bottom: 40vh;
-            }
-            /* Font bump — compensates for narrower columns vs old 900px single-column */
-            .calculator-landscape {
-                font-size: 1.05em;
-            }
-            .calculator-landscape label {
-                font-size: 0.92em;
-            }
-            .calculator-landscape .info-text {
-                font-size: 0.9em;
-            }
+            .calculator-landscape .input-panel { padding-bottom: 40vh; }
+            .calculator-landscape label { font-size: 0.92em; }
+            .calculator-landscape .info-text { font-size: 0.9em; }
             .calculator-landscape select,
-            .calculator-landscape input[type="number"] {
-                font-size: 1em;
-                padding: 10px 12px;
-            }
-            .calculator-landscape .yantra-category h4 {
-                font-size: 1em;
-            }
+            .calculator-landscape input[type="number"] { font-size: 1em; padding: 10px 12px; }
+            .calculator-landscape .yantra-category h4 { font-size: 1em; }
             .calculator-landscape .checkbox-group label,
-            .calculator-landscape .radio-group label {
-                font-size: 0.95em;
-            }
+            .calculator-landscape .radio-group label { font-size: 0.95em; }
         }
 
         /* ── Accordion cards ── */
