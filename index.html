@@ -111,11 +111,11 @@
         }
         
         label {
-            font-size: 0.85em;
+            font-size: 0.75em;
             color: var(--text-muted);
             margin-bottom: 6px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 1px;
         }
         
         select, input[type="number"] {
@@ -889,7 +889,7 @@
             background: rgba(255,255,255,0.1);
             padding: 2px 6px;
             border-radius: 10px;
-            font-size: 0.8em;
+            font-size: 0.85em;
             margin-left: 4px;
         }
         
@@ -1549,7 +1549,7 @@
             background: transparent;
             border: 1px solid rgba(255,255,255,0.15);
             color: var(--text-light);
-            font-size: 16px;
+            font-size: 1em;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -2625,13 +2625,13 @@
                 scrollbar-color: rgba(123,44,191,0.3) transparent;
             }
             .calculator-landscape .input-panel { padding-bottom: 40vh; }
-            .calculator-landscape label { font-size: 0.92em; }
+            .calculator-landscape label { font-size: 0.82em; }
             .calculator-landscape .info-text { font-size: 0.9em; }
             .calculator-landscape select,
             .calculator-landscape input[type="number"] { font-size: 1em; padding: 10px 12px; }
             .calculator-landscape .yantra-category h4 { font-size: 1em; }
             .calculator-landscape .checkbox-group label,
-            .calculator-landscape .radio-group label { font-size: 0.95em; }
+            .calculator-landscape .radio-group label { font-size: 0.85em; }
 
             /* Grimoire spell cards — outside .calculator-landscape so need explicit bumps */
             .spell-card-arcanum { font-size: 0.92em; }
@@ -2659,9 +2659,11 @@
             border-bottom: none;
             padding-bottom: 0;
             flex: 1;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         .accordion-summary {
-            font-size: 0.8em;
             color: var(--text-muted);
             font-weight: normal;
             display: none;
