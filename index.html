@@ -27,6 +27,11 @@
         * {
             box-sizing: border-box;
         }
+
+        :focus-visible {
+            outline: 2px solid var(--accent-light);
+            outline-offset: 2px;
+        }
         
         body {
             font-family: 'Segoe UI', system-ui, sans-serif;
@@ -2604,6 +2609,24 @@
         /* ── Landscape container width ── */
         @media (min-width: 1024px) {
             .container { max-width: 1400px; }
+            .container > h1 { display: none; }
+        }
+
+        /* ── App-level 3-column desktop grid ── */
+        #app-layout { display: block; }
+        @media (min-width: 1024px) {
+            #app-layout {
+                display: grid;
+                grid-template-columns: 1fr 360px;
+                gap: 20px;
+                align-items: start;
+            }
+            #classic-spelllib-root {
+                position: sticky;
+                top: 20px;
+                height: calc(100vh - 40px);
+                overflow: hidden;
+            }
         }
 
         /* ── Two-panel calculator grid ── */
@@ -2611,7 +2634,7 @@
         @media (min-width: 1024px) {
             .calculator-landscape {
                 display: grid;
-                grid-template-columns: 1fr 0.8fr;
+                grid-template-columns: 1fr 1fr;
                 gap: 20px;
                 align-items: start;
                 font-size: 1.05em;
@@ -2624,7 +2647,7 @@
                 scrollbar-width: thin;
                 scrollbar-color: rgba(123,44,191,0.3) transparent;
             }
-            .calculator-landscape .input-panel { padding-bottom: 40vh; }
+            .calculator-landscape .input-panel { padding-bottom: 80px; }
             .calculator-landscape label { font-size: 0.82em; }
             .calculator-landscape .info-text { font-size: 0.9em; }
             .calculator-landscape select,
@@ -2753,17 +2776,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js" integrity="sha384-1qlE7MZPM2pHD/pBZCU/yB8UCP52RYL8bge/qNdfNBCWToySp8/M+JL2waXU4hjJ" crossorigin="anonymous"></script>
 </head>
 <body>
-    <div style="position: fixed; top: 12px; right: 12px; z-index: 100;
-      display: flex; gap: 4px; background: rgba(13,13,26,0.9);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 4px;
-      backdrop-filter: blur(8px); font-family: 'Noto Sans', system-ui, sans-serif;">
-      <a href="index.html" style="padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 700;
-        color: #9d4edd; background: rgba(123,44,191,0.15); text-decoration: none;">Calculator</a>
-      <a href="wizard.html" style="padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 400;
-        color: #a0a0a0; background: transparent; text-decoration: none;">Wizard</a>
-      <a href="storyteller.html" style="padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 400;
-        color: #a0a0a0; background: transparent; text-decoration: none;">Storyteller</a>
-    </div>
+    <script src="shared/nav.js"></script>
     <div class="container">
         <!-- Character Header -->
         <!-- React character header (Phase 1 migration) -->
@@ -2771,10 +2784,11 @@
         
         <h1>⟡ Spell Factor Calculator ⟡</h1>
 
-        <div id="classic-calculator-root"></div>
-        
-        <!-- Spell Library (Phase 6 — React ClassicSpellLibraryDrawer) -->
-        <div id="classic-spelllib-root"></div>
+        <div id="app-layout">
+          <div id="classic-calculator-root"></div>
+          <!-- Spell Library (Phase 6 — React ClassicSpellLibraryDrawer) -->
+          <div id="classic-spelllib-root"></div>
+        </div>
         
         <!-- Hidden container for export -->
         <div id="spellLibraryExport"></div>
@@ -5666,7 +5680,7 @@
       };
 
       function AccordionCard({ index, activeCard, onToggle, title, summary, children }) {
-        const isOpen = activeCard === index;
+        const isOpen = activeCard instanceof Set ? activeCard.has(index) : activeCard === index;
         return (
           <div className={'card accordion-card' + (isOpen ? ' open' : '')}>
             <div className="accordion-header" onClick={() => onToggle(index)}>
@@ -5686,7 +5700,18 @@
         const set   = (k, v) => setForm(f => ({...f, [k]: v}));
         const merge = (d)    => setForm(f => ({...f, ...d}));
 
-        const [activeCard, setActiveCard] = _sf_us(0);
+        const isDesktop = () => window.innerWidth >= 1024;
+        const [openCards, setOpenCards] = _sf_us(() =>
+            isDesktop() ? new Set([0, 1, 2, 3, 4]) : new Set([0])
+        );
+        const activeCard = openCards;
+        function setActiveCard(index) {
+            setOpenCards(prev => {
+                const next = new Set(prev);
+                next.has(index) ? next.delete(index) : next.add(index);
+                return next;
+            });
+        }
 
         // Bridge — callers use classicBridge.setSpellForm / setSpellFormField
         _sf_ue(() => {
