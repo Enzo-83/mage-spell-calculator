@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -3272,7 +3272,6 @@
                 // Push to React; also refresh dependent vanilla sections
                 if (window.classicBridge) window.classicBridge.setCharacter(currentCharacter);
                 if (typeof renderSpellLibrary === 'function') renderSpellLibrary();
-                window.classicBridge?.clashPanel?.setCharacter(currentCharacter);
             }
 
             // Open character editor modal (Phase 5 — delegates to React bridge)
@@ -4266,7 +4265,6 @@
                     currentCharacter = char; // keep closure in sync with React-loaded character
                     applyCharacterToForm();
                     window.classicBridge?.spellLib?.refresh(char);
-                    window.classicBridge?.clashPanel?.setCharacter(char);
                     saveCharacterToLocalStorage();
                 },
                 onStatChange: function(char) {
@@ -4708,6 +4706,147 @@
         justifyContent:"center", padding:0,
       };
 
+      // ── Clash Pill ───────────────────────────────────────────────────────────
+      const CLASH_DUR_OPTIONS = [
+        { value: 0, label: "Standard / Scene", bonus: 0 },
+        { value: 1, label: "Day",              bonus: 1 },
+        { value: 2, label: "Week",             bonus: 2 },
+        { value: 3, label: "Month",            bonus: 3 },
+        { value: 4, label: "Year / Indefinite",bonus: 4 },
+      ];
+
+      function ClashPill({ character }) {
+        const [open,      setOpen]      = useState(false);
+        const [arcanum,   setArcanum]   = useState("");
+        const [duration,  setDuration]  = useState(0);
+        const [advPot,    setAdvPot]    = useState(false);
+        const [wp,        setWP]        = useState(false);
+        const [sendState, setSendState] = useState(null);
+        const wrapRef = useRef(null);
+
+        useEffect(() => {
+          if (!open) return;
+          const handler = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false); };
+          document.addEventListener("mousedown", handler);
+          return () => document.removeEventListener("mousedown", handler);
+        }, [open]);
+
+        const arcOptions = [];
+        if (character?.arcana) {
+          for (const [key, dots] of Object.entries(character.arcana)) {
+            if (dots > 0) arcOptions.push({ key, dots, label: key.charAt(0).toUpperCase() + key.slice(1) });
+          }
+          arcOptions.sort((a, b) => b.dots - a.dots);
+        }
+        const selectedArc = arcanum || (arcOptions[0]?.key || "");
+        const arcDots  = character?.arcana?.[selectedArc] || 0;
+        const gnosis   = character?.gnosis || 1;
+        const durBonus = CLASH_DUR_OPTIONS.find(o => o.value === duration)?.bonus || 0;
+        const pool     = gnosis + arcDots + durBonus + (advPot ? 1 : 0) + (wp ? 3 : 0);
+        const arcLabel = selectedArc ? selectedArc.charAt(0).toUpperCase() + selectedArc.slice(1) : "—";
+        const parts    = [`Gnosis ${gnosis}`, `${arcLabel} ${arcDots}`];
+        if (durBonus > 0) parts.push(`Dur +${durBonus}`);
+        if (advPot) parts.push("Adv Pot +1");
+        if (wp)     parts.push("WP +3");
+
+        async function handleSend() {
+          if (!character) return;
+          const webhook = character.discord?.dicePoolWebhook;
+          if (!webhook) { alert("No Dice Pool webhook configured."); return; }
+          const casterName = character.shadowName || character.name || "Mage";
+          setSendState("sending");
+          try {
+            await fetch(webhook, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                username: casterName,
+                embeds: [{
+                  title: `${casterName}'s Clash of Wills`,
+                  color: 0x9d4edd,
+                  fields: [
+                    { name: "⚔ Clash Pool", value: String(pool), inline: true },
+                    { name: "Arcanum",       value: `${arcLabel} ${arcDots}`, inline: true },
+                  ],
+                  footer: { text: parts.join(" + ") },
+                }],
+              }),
+            });
+            await fetch(webhook, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ content: `$cod ${pool}`, username: casterName }),
+            });
+            setSendState("ok");
+            setTimeout(() => setSendState(null), 3000);
+          } catch (e) {
+            console.error("Clash send error:", e);
+            setSendState("error");
+            setTimeout(() => setSendState(null), 4000);
+          }
+        }
+
+        return (
+          <div className="scene-pill-wrapper" ref={wrapRef}>
+            <button className="scene-pill" onClick={() => setOpen(o => !o)}>
+              ⚔ Clash
+            </button>
+            {open && (
+              <div className="scene-dropdown" style={{ minWidth: 360 }}>
+                <div style={{ marginBottom: 8, fontWeight: 700, color: "var(--accent-light)" }}>
+                  Clash of Wills
+                </div>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label>Arcanum for Clash</label>
+                    <select value={selectedArc} onChange={e => setArcanum(e.target.value)}>
+                      {arcOptions.length === 0 && <option value="">Load a character first</option>}
+                      {arcOptions.map(a => (
+                        <option key={a.key} value={a.key}>{a.label} ({a.dots})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Spell Duration</label>
+                    <select value={duration} onChange={e => setDuration(parseInt(e.target.value))}>
+                      {CLASH_DUR_OPTIONS.map(o => (
+                        <option key={o.value} value={o.value}>{o.label} (+{o.bonus})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 16, margin: "8px 0" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 4, textTransform: "none" }}>
+                    <input type="checkbox" checked={advPot} onChange={e => setAdvPot(e.target.checked)} />
+                    Adv Potency (+1)
+                  </label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 4, textTransform: "none" }}>
+                    <input type="checkbox" checked={wp} onChange={e => setWP(e.target.checked)} />
+                    Willpower (+3)
+                  </label>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 8 }}>
+                  <div className="clash-pool-display">
+                    <span className="clash-pool-value">{pool}</span>
+                    <span className="clash-pool-label"> dice</span>
+                  </div>
+                  <div style={{ flex: 1, fontSize: "0.8em", color: "var(--text-muted)" }}>
+                    {parts.join(" + ")}
+                  </div>
+                  <button className="discord-send-btn" onClick={handleSend} disabled={!!sendState}
+                    style={{ padding: "6px 12px", fontSize: "0.8em" }}>
+                    {sendState === "sending" ? "Sending…"
+                     : sendState === "ok"    ? "✓ Sent!"
+                     : sendState === "error" ? "✗ Failed"
+                     : "⚔ Send"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      }
+
       // ── Scene Pill (replaces full ClassicSceneTracker card) ─────────────────
       function ScenePill() {
         const [pillState, setPillState] = useState('idle'); // 'idle'|'typing'|'connected'
@@ -5028,6 +5167,7 @@
                 <button className="btn-small" onClick={onEdit} disabled={!character}>Edit</button>
                 <button className="btn-small" onClick={()=>fileRef.current?.click()}>Load</button>
                 <button className="btn-small btn-primary" onClick={onSave} disabled={!character}>Save</button>
+                <ClashPill character={character} />
                 <ScenePill />
               </div>
             </div>
@@ -6387,169 +6527,6 @@
         );
       }
 
-      // ── ClassicClashPanel ─────────────────────────────────────────────────
-      const CLASH_DUR_OPTIONS = [
-        { value: 0, label: "Standard / Scene", bonus: 0 },
-        { value: 1, label: "Day", bonus: 1 },
-        { value: 2, label: "Week", bonus: 2 },
-        { value: 3, label: "Month", bonus: 3 },
-        { value: 4, label: "Year / Indefinite", bonus: 4 },
-      ];
-
-      function ClassicClashPanel() {
-        const [character, setCharacter] = React.useState(null);
-        const [open, setOpen]           = React.useState(false);
-        const [arcanum, setArcanum]     = React.useState("");
-        const [duration, setDuration]   = React.useState(0);
-        const [advPot, setAdvPot]       = React.useState(false);
-        const [wp, setWP]               = React.useState(false);
-        const [sendState, setSendState] = React.useState(null);
-
-        React.useEffect(() => {
-          window.classicBridge = {
-            ...(window.classicBridge || {}),
-            clashPanel: { setCharacter: (c) => setCharacter(c ? {...c} : null) },
-          };
-          if (window.currentCharacter) setCharacter({...window.currentCharacter});
-        }, []);
-
-        const arcOptions = [];
-        if (character?.arcana) {
-          for (const [key, dots] of Object.entries(character.arcana)) {
-            if (dots > 0) arcOptions.push({ key, dots, label: key.charAt(0).toUpperCase() + key.slice(1) });
-          }
-          arcOptions.sort((a, b) => b.dots - a.dots);
-        }
-        const selectedArc = arcanum || (arcOptions[0]?.key || "");
-        const arcDots = character?.arcana?.[selectedArc] || 0;
-        const gnosis = character?.gnosis || 1;
-        const durBonus = CLASH_DUR_OPTIONS.find(o => o.value === duration)?.bonus || 0;
-        const pool = gnosis + arcDots + durBonus + (advPot ? 1 : 0) + (wp ? 3 : 0);
-
-        const arcLabel = selectedArc ? selectedArc.charAt(0).toUpperCase() + selectedArc.slice(1) : "—";
-        const parts = [`Gnosis ${gnosis}`, `${arcLabel} ${arcDots}`];
-        if (durBonus > 0) parts.push(`Dur +${durBonus}`);
-        if (advPot) parts.push("Adv Pot +1");
-        if (wp) parts.push("WP +3");
-
-        async function handleSend() {
-          if (!character) return;
-          const discord = character.discord || {};
-          const webhook = discord.dicePoolWebhook;
-          if (!webhook) { alert("No Dice Pool webhook configured."); return; }
-
-          const casterName = character.shadowName || character.name || "Mage";
-          setSendState("sending");
-          try {
-            await fetch(webhook, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: casterName,
-                embeds: [{
-                  title: `${casterName}'s Clash of Wills`,
-                  color: 0x9d4edd,
-                  fields: [
-                    { name: "⚔ Clash Pool", value: String(pool), inline: true },
-                    { name: "Arcanum", value: `${arcLabel} ${arcDots}`, inline: true },
-                  ],
-                  footer: { text: parts.join(" + ") },
-                }],
-              }),
-            });
-            await fetch(webhook, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ content: `$cod ${pool}`, username: casterName }),
-            });
-            setSendState("ok");
-            setTimeout(() => setSendState(null), 3000);
-          } catch (e) {
-            console.error("Clash send error:", e);
-            setSendState("error");
-            setTimeout(() => setSendState(null), 4000);
-          }
-        }
-
-        return (
-          <div className="card">
-            <div className="clash-header" onClick={() => setOpen(o => !o)}
-              style={{ cursor:"pointer", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                <span style={{ fontSize:14 }}>{"⚔"}</span>
-                <h2 style={{ margin:0 }}>Clash of Wills</h2>
-              </div>
-              <span className="clash-chevron">{open ? "▼" : "▶"}</span>
-            </div>
-            {open && (
-              <div style={{ marginTop:12 }}>
-                <div className="form-grid">
-                  <div className="form-group">
-                    <label>Arcanum for Clash</label>
-                    <select value={selectedArc} onChange={e => setArcanum(e.target.value)}>
-                      {arcOptions.length === 0 && <option value="">Load a character first</option>}
-                      {arcOptions.map(a => (
-                        <option key={a.key} value={a.key}>{a.label} ({a.dots})</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Spell Duration</label>
-                    <select value={duration} onChange={e => setDuration(parseInt(e.target.value))}>
-                      {CLASH_DUR_OPTIONS.map(o => (
-                        <option key={o.value} value={o.value}>
-                          {o.label} (+{o.bonus})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display:"flex", gap:16, marginTop:4, marginBottom:12 }}>
-                  <div className="checkbox-group">
-                    <input type="checkbox" id="clashAdvPotReact" checked={advPot}
-                      onChange={e => setAdvPot(e.target.checked)} />
-                    <label htmlFor="clashAdvPotReact" style={{ margin:0, textTransform:"none" }}>
-                      Advanced Potency (+1)
-                    </label>
-                  </div>
-                  <div className="checkbox-group">
-                    <input type="checkbox" id="clashWPReact" checked={wp}
-                      onChange={e => setWP(e.target.checked)} />
-                    <label htmlFor="clashWPReact" style={{ margin:0, textTransform:"none" }}>
-                      Willpower (+3)
-                    </label>
-                  </div>
-                </div>
-                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <div className="clash-pool-display">
-                    <span className="clash-pool-value">{pool}</span>
-                    <span className="clash-pool-label">dice</span>
-                  </div>
-                  <div style={{ flex:1, fontSize:"0.85em", color:"var(--text-muted)", lineHeight:1.5 }}>
-                    {parts.join(" + ")}
-                  </div>
-                  <button className="discord-send-btn" onClick={handleSend}
-                    disabled={!!sendState}
-                    title="Send Clash to Discord"
-                    style={{ padding:"8px 14px", fontSize:"0.85em" }}>
-                    {sendState === "sending" ? "Sending…" :
-                     sendState === "ok" ? "✓ Sent!" :
-                     sendState === "error" ? "✗ Failed" : (
-                      <React.Fragment>
-                        <svg className="discord-icon" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-                        </svg>
-                        {" Send"}
-                      </React.Fragment>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      }
-
       // ── ClassicCalculator — owns form + results state ─────────────────────
       function ClassicCalculator() {
         const [form, setForm] = React.useState(DEFAULT_FORM);
@@ -6643,7 +6620,6 @@
             </div>
             <div className="output-panel">
               <ClassicResultsPanel results={results} />
-              <ClassicClashPanel />
             </div>
           </div>
         );
