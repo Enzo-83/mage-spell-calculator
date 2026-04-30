@@ -26,6 +26,7 @@
   </style>
 </head>
 <body>
+  <script src="shared/nav.js"></script>
   <div id="root"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" integrity="sha384-tMH8h3BGESGckSAVGZ82T9n90ztNXxvdwvdM6UoR56cYcf+0iGXBliJ29D+wZ/x8" crossorigin="anonymous"></script>
@@ -4220,25 +4221,6 @@
       return (
         <div style={{ minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",
           background:"radial-gradient(ellipse at 50% 30%,#1a0a2e 0%,#0d0d1a 60%)",padding:"20px 12px" }}>
-
-          {/* Nav pill */}
-          <div style={{ position:"fixed",top:12,left:12,zIndex:100,
-            display:"flex",gap:4,background:"rgba(13,13,26,0.9)",
-            border:`1px solid ${C.border}`,borderRadius:8,padding:4,
-            backdropFilter:"blur(8px)" }}>
-            {[
-              { href:"index.html",       label:"Calculator",  active:false },
-              { href:"wizard.html",      label:"Wizard",      active:true },
-              { href:"storyteller.html", label:"Storyteller", active:false },
-            ].map(({href,label,active}) => (
-              <a key={href} href={href} style={{
-                padding:"5px 10px",borderRadius:5,fontSize:11,fontWeight:active?700:400,
-                color:active?C.accentLight:C.textMuted,
-                background:active?C.accentFaint:"transparent",
-                textDecoration:"none",transition:"all 0.15s",
-              }}>{label}</a>
-            ))}
-          </div>
 
           <input type="file" accept=".json" ref={charFileRef} onChange={handleFirstRunFileChange} style={{ display:"none" }}/>
 
