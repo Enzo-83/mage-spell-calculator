@@ -2612,20 +2612,79 @@
             .container > h1 { display: none; }
         }
 
-        /* ── App-level 3-column desktop grid ── */
+        /* ── App-level layout — single column, grimoire is a drawer ── */
         #app-layout { display: block; }
+
+        /* ── Grimoire drawer (desktop only) ── */
         @media (min-width: 1024px) {
-            #app-layout {
-                display: grid;
-                grid-template-columns: 1fr 360px;
-                gap: 20px;
-                align-items: start;
-            }
             #classic-spelllib-root {
-                position: sticky;
-                top: 20px;
-                height: calc(100vh - 40px);
-                overflow: hidden;
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 420px;
+                height: 100vh;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                z-index: 300;
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(123,44,191,0.3) transparent;
+                box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+            }
+            #classic-spelllib-root.grimoire-open {
+                transform: translateX(0);
+            }
+        }
+
+        /* ── Grimoire edge toggle tab ── */
+        .grimoire-toggle {
+            display: none;
+        }
+        @media (min-width: 1024px) {
+            .grimoire-toggle {
+                display: block;
+                position: fixed;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 301;
+                writing-mode: vertical-rl;
+                text-orientation: mixed;
+                padding: 12px 6px;
+                background: var(--bg-card);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-right: none;
+                border-radius: 8px 0 0 8px;
+                color: var(--accent-light);
+                font-family: 'Rajdhani', sans-serif;
+                font-weight: 700;
+                font-size: 12px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                cursor: pointer;
+                transition: background 0.2s, right 0.3s ease;
+            }
+            .grimoire-toggle:hover {
+                background: rgba(123,44,191,0.15);
+            }
+            .grimoire-toggle.grimoire-open {
+                right: 420px;
+            }
+        }
+
+        /* ── Grimoire backdrop ── */
+        .grimoire-backdrop {
+            display: none;
+        }
+        @media (min-width: 1024px) {
+            .grimoire-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.3);
+                z-index: 299;
+            }
+            .grimoire-backdrop.grimoire-open {
+                display: block;
             }
         }
 
@@ -7595,7 +7654,47 @@
         const [viewMode, setViewMode]     = _sl_us('grid');  // 'grid'|'browse'
         const [editorSpell, setEditorSpell] = _sl_us(null);  // spell being edited (null = closed)
         const [saveModal, setSaveModal]   = _sl_us(null);    // { state, sourceSpellId } | null
+        const [drawerOpen, setDrawerOpen] = _sl_us(false);
         // compUser/compRole removed — spellCompendium.js owns auth for the compendium tab
+
+        // Landscape media query state
+        const [isLandscape, setIsLandscape] = _sl_us(
+          () => window.matchMedia('(min-width: 1024px)').matches
+        );
+        _sl_ue(() => {
+          const mql = window.matchMedia('(min-width: 1024px)');
+          const handler = e => setIsLandscape(e.matches);
+          mql.addEventListener('change', handler);
+          return () => mql.removeEventListener('change', handler);
+        }, []);
+
+        // Escape key closes drawer
+        _sl_ue(() => {
+          if (!drawerOpen) return;
+          const handler = e => { if (e.key === 'Escape') setDrawerOpen(false); };
+          document.addEventListener('keydown', handler);
+          return () => document.removeEventListener('keydown', handler);
+        }, [drawerOpen]);
+
+        // Sync open class on root + static DOM elements, expose window bridge
+        _sl_ue(() => {
+          const root = document.getElementById('classic-spelllib-root');
+          const toggle = document.getElementById('grimoire-toggle-btn');
+          const backdrop = document.getElementById('grimoire-backdrop');
+          const open = drawerOpen && isLandscape;
+          if (root)    root.classList.toggle('grimoire-open', open);
+          if (toggle)  toggle.classList.toggle('grimoire-open', open);
+          if (backdrop) backdrop.classList.toggle('grimoire-open', open);
+        }, [drawerOpen, isLandscape]);
+
+        // Expose bridge so static HTML elements can drive state
+        _sl_ue(() => {
+          window.grimoireDrawer = {
+            toggle: () => setDrawerOpen(o => !o),
+            close:  () => setDrawerOpen(false),
+          };
+          return () => { delete window.grimoireDrawer; };
+        }, []);
 
         // Bridge setup
         _sl_ue(() => {
@@ -7628,6 +7727,7 @@
         // ── Handlers ──
         function handleLoad(spell) {
           window.classicVanilla?.loadSpell?.(spell);
+          setDrawerOpen(false);
         }
         function handleEdit(spell) {
           setEditorSpell({ ...spell });
@@ -7675,6 +7775,7 @@
         ];
 
         return (
+          <>
           <div style={{ background:"var(--bg-card)", borderRadius:8,
             border:"1px solid rgba(255,255,255,0.08)", overflow:"hidden",
             display:"flex", flexDirection:"column", height:"100%" }}>
@@ -7763,6 +7864,7 @@
                 character={character} onClose={()=>setSaveModal(null)}/>
             )}
           </div>
+          </>
         );
       }
 
@@ -7795,5 +7897,11 @@
             });
         }
     </script>
+
+    <!-- Grimoire drawer toggle + backdrop (static, outside any transformed container) -->
+    <button id="grimoire-toggle-btn" class="grimoire-toggle"
+      onclick="window.grimoireDrawer?.toggle()">⚡ Grimoire</button>
+    <div id="grimoire-backdrop" class="grimoire-backdrop"
+      onclick="window.grimoireDrawer?.close()"></div>
 </body>
 </html>
