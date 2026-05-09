@@ -6688,6 +6688,9 @@
           poolResult.combinationPenalty = combinationPenalty;
           poolResult.lowestArcanumInfo  = isCombinedSpell ? _cb.getLowestArcanumInfo() : null;
 
+          window.currentSpellResult = spellResult;
+          window.currentPoolResult  = poolResult;
+
           setResults({ sr: spellResult, pr: poolResult, fs: {
             castingMethod:      castingMethod,
             spellArcanum:       form.spellArcanum,
