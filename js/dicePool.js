@@ -175,7 +175,10 @@ function calculateDicePool(params) {
         paradoxSuccesses = 0,
         
         // Other modifiers
-        otherModifiers = [] // Array of { name, value } for misc bonuses/penalties
+        otherModifiers = [], // Array of { name, value } for misc bonuses/penalties
+
+        // Again override (from spells/effects granting 9-Again or 8-Again)
+        againOverride = 10  // 10 = no override, 9 = 9-again, 8 = 8-again
     } = params;
     
     // Determine if this is a Rote
@@ -194,6 +197,14 @@ function calculateDicePool(params) {
     
     // 3. Get roll quality (pass method info for proper Rote Quality detection)
     const rollQuality = getRollQuality(castingMethod, castingMethodInfo);
+
+    // Apply again-override (from spells/effects granting 9-Again or 8-Again)
+    if (againOverride < rollQuality.againValue) {
+        rollQuality.againValue = againOverride;
+        rollQuality.description = `${againOverride}-Again` +
+            (rollQuality.rerollFailures ? ' (Rote Quality)' : '') +
+            (rollQuality.exceptionalAt === 3 ? ' | Exceptional at 3' : '');
+    }
     
     // 4. Calculate Mudra bonus (Rotes with mudraAvailable only)
     let mudraBonus = 0;

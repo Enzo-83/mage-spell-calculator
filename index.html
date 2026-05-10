@@ -5739,6 +5739,7 @@
         roteSkill: 0, isOrderSkill: false,
         yantras: {}, pathToolDedicated: false, orderToolDedicated: false, personaBonus: 0,
         spendWillpower: false, teamworkDice: 0, otherModifier: 0, otherModifierName: '',
+        againOverride: 10,
         additionalManaCost: 0,
       };
 
@@ -5894,6 +5895,7 @@
         if (form.spendWillpower) modParts.push('WP +3');
         if (form.teamworkDice > 0) modParts.push('Team +' + form.teamworkDice);
         if (form.otherModifier !== 0) modParts.push((form.otherModifier > 0 ? '+' : '') + form.otherModifier);
+        if (form.againOverride < 10) modParts.push(`${form.againOverride}-Again`);
         const modifiersSummary = modParts.length > 0 ? modParts.join(' · ') : 'None';
 
         // ── Render ────────────────────────────────────────────────────────────
@@ -6237,6 +6239,21 @@
                     <input type="checkbox" id="spendWillpower"
                       checked={form.spendWillpower} onChange={e => set('spendWillpower', e.target.checked)} />
                     <span style={{textTransform:'none'}}>Spend Willpower (+3 dice) <GlossaryTip term="willpower"/></span>
+                  </label>
+                </div>
+                <div className="form-group">
+                  <label style={{marginBottom:4, display:'block'}}>Roll Quality Override</label>
+                  <label className="checkbox-group" style={{marginBottom:0}}>
+                    <input type="checkbox" id="againOverride9"
+                      checked={form.againOverride === 9}
+                      onChange={e => set('againOverride', e.target.checked ? 9 : 10)} />
+                    <span style={{textTransform:'none'}}>9-Again</span>
+                  </label>
+                  <label className="checkbox-group" style={{marginBottom:0, marginTop:4}}>
+                    <input type="checkbox" id="againOverride8"
+                      checked={form.againOverride === 8}
+                      onChange={e => set('againOverride', e.target.checked ? 8 : 10)} />
+                    <span style={{textTransform:'none'}}>8-Again</span>
                   </label>
                 </div>
                 <div className="form-group">
@@ -6681,6 +6698,7 @@
             spendWillpower:     form.spendWillpower,
             teamworkDice:       form.teamworkDice,
             otherModifiers:     otherModifiers,
+            againOverride:      form.againOverride,
           });
 
           poolResult.isCombinedSpell    = isCombinedSpell;

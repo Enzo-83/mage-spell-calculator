@@ -58,6 +58,7 @@
 
   <script src="js/scene.js"></script>
   <script src="js/glossary.js"></script>
+  <script src="js/dicePool.js"></script>
 
   <script type="text/babel">
     const { useState, useEffect, useCallback, useRef } = React;
@@ -313,35 +314,56 @@
         ? (parseInt(d.roteSkillDots, 10) || 0) + 1
         : (parseInt(d.roteSkillDots, 10) || 0);
 
-      // Yantra bonus
-      let yantraBonus = 0;
-      if (d.yantras.has("Path Tool"))              yantraBonus += 1;
-      if (d.yantras.has("Order Tool"))             yantraBonus += 1;
-      if (d.yantras.has("Demesne"))                yantraBonus += 2;
-      if (d.yantras.has("Environment"))            yantraBonus += 1;
-      if (d.yantras.has("Supernal Verge"))         yantraBonus += 2;
-      if (d.yantras.has("Concentration"))          yantraBonus += 2;
-      if (d.yantras.has("High Speech"))            yantraBonus += 2;
-      if (d.yantras.has("Mudra") && isRote && methodInfo.mudra) yantraBonus += roteSkillDots;
-      if (d.yantras.has("Rune"))                   yantraBonus += 2;
-      if (d.yantras.has("Material"))               yantraBonus += 2;
-      if (d.yantras.has("Representational"))       yantraBonus += 1;
-      if (d.yantras.has("Normal Sacrament"))       yantraBonus += 1;
-      if (d.yantras.has("Rare Sacrament"))         yantraBonus += 2;
-      if (d.yantras.has("Other Realm Sacrament"))  yantraBonus += 3;
-      yantraBonus += parseInt(d.persona, 10) || 0;
-      yantraBonus += d.ritualIntervals;
+      // Build yantra array for dicePool.js
+      const YANTRA_BONUSES = {
+        "Path Tool": 1, "Order Tool": 1, "Demesne": 2, "Environment": 1,
+        "Supernal Verge": 2, "Concentration": 2, "High Speech": 2, "Rune": 2,
+        "Material": 2, "Representational": 1, "Normal Sacrament": 1,
+        "Rare Sacrament": 2, "Other Realm Sacrament": 3,
+      };
+      const yantrasArray = [];
+      for (const name of d.yantras) {
+        if (name === "Mudra") {
+          if (isRote && methodInfo.mudra) {
+            yantrasArray.push({ name, bonus: roteSkillDots, category: "mudra", isMudra: true });
+          }
+        } else if (name === "Dedicated Tool") {
+          // Reduces paradox, not a dice bonus yantra
+        } else if (YANTRA_BONUSES[name] !== undefined) {
+          yantrasArray.push({ name, bonus: YANTRA_BONUSES[name], category: "yantra" });
+        }
+      }
+      const personaVal = parseInt(d.persona, 10) || 0;
+      if (personaVal > 0) {
+        yantrasArray.push({ name: "Persona", bonus: personaVal, category: "yantra" });
+      }
 
-      // Base pool: MtAw 2e always uses Gnosis + Arcanum. Rote Skill bonus comes via Mudra Yantra.
-      const basePool = d.gnosis + arcanumDots;
-      const wpBonus  = d.spendWP ? 3 : 0;
+      // Delegate pool calculation to shared dicePool.js
+      const poolResult = calculateDicePool({
+        gnosis:             d.gnosis,
+        arcanumDots:        arcanumDots,
+        castingMethod:      d.method,
+        castingMethodInfo:  methodInfo,
+        roteSkill:          0,         // Mudra bonus already baked into yantrasArray
+        isOrderSkill:       false,     // Already included in roteSkillDots
+        spellFactorPenalty: totalFactorPen,
+        ritualBonus:        d.ritualIntervals,
+        yantras:            yantrasArray,
+        spendWillpower:     d.spendWP,
+        teamworkDice:       d.teamworkDice,
+        paradoxSuccesses:   0,         // Wizard tracks paradox separately for display
+        againOverride:      d.againOverride || 10,
+        otherModifiers:     [
+          ...(combinedPenalty !== 0 ? [{ name: "Combined", value: combinedPenalty }] : []),
+          ...(d.otherMod !== 0 ? [{ name: "Other", value: d.otherMod }] : []),
+        ],
+      });
 
-      // Yantra cap: after offsetting spell factor penalties, net yantra bonus can't exceed +5
-      const yantraNet = yantraBonus + totalFactorPen; // totalFactorPen is negative or 0
-      const yantraCapApplied = yantraNet > 5;
-      const yantraCapAdj = yantraCapApplied ? -(yantraNet - 5) : 0;
-
-      const dicePool = Math.max(0, basePool + totalFactorPen + combinedPenalty + yantraBonus + yantraCapAdj + wpBonus + d.teamworkDice + d.otherMod);
+      const dicePool        = poolResult.finalPool;
+      const yantraBonus     = poolResult.yantras.rawBonus;
+      const basePool        = poolResult.basePool.pool;
+      const yantraCapApplied = poolResult.modifiers.yantraCapApplied;
+      const yantraCapAdj    = poolResult.modifiers.yantraCapAdjustment;
 
       // Paradox
       const dedicatedActive    = d.yantras.has("Dedicated Tool") || d.pathToolDedicated || d.orderToolDedicated;
@@ -382,6 +404,7 @@
         yantraBonus, basePool, dicePool, totalMana, nonRulingMana, indefiniteMana, sympathyMana, manaPerTurn,
         isRote, roteSkillDots, spellsOver, methodInfo, yantraCapApplied, yantraCapAdj,
         isCombined, combinedPenalty, advancedPotency: d.advancedPotency,
+        poolResult,
       };
     }
 
@@ -1379,6 +1402,12 @@
           </Field>
           <Field label="Other Modifier">
             <StepperInput value={d.otherMod} min={-10} max={10} onChange={v=>set("otherMod",v)}/>
+          </Field>
+          <Field label="Roll Quality Override">
+            <CheckboxRow label="9-Again" checked={d.againOverride === 9}
+              onChange={v => set("againOverride", v ? 9 : 10)} />
+            <CheckboxRow label="8-Again" checked={d.againOverride === 8}
+              onChange={v => set("againOverride", v ? 8 : 10)} />
           </Field>
           <Divider/>
           <SectionHead tip="mana">Mana Summary</SectionHead>
@@ -2525,9 +2554,7 @@
       const methodLabel   = methodInfo?.label || d.method;
       const arcDots       = "●".repeat(d.casterArcanumDots);
       const interval      = RITUAL_INTERVALS[d.gnosis] || "3 hours";
-      const rollQualityLabel = methodInfo?.roteQuality ? "Rote Quality (reroll 1–7)"
-                             : d.method === "praxis" ? "Exceptional at 3 successes"
-                             : "Standard (10-again)";
+      const rollQualityLabel = derived.poolResult.rollQuality.description;
 
       // Mana tracking
       const manaC   = character?.mana?.current ?? null;
@@ -2545,10 +2572,11 @@
 
       // Build dice bot command: $cod N, $rote N, $cod8 N, etc.
       function formatDiceCommand() {
-        const isRoteQ = methodInfo?.roteQuality;
-        let cmd = "$" + (isRoteQ ? "rote" : "cod");
-        // 8-again or 9-again (not applicable to rote quality, only standard)
-        // No special again handling for spell pool — only paradox witnesses use it
+        const rq = derived.poolResult.rollQuality;
+        const isRote = rq.quality === 'rote';
+        let cmd = "$" + (isRote ? "rote" : "cod");
+        if (rq.againValue === 8) cmd += "8";
+        else if (rq.againValue === 9) cmd += "9";
         return cmd + " " + dicePool;
       }
 
@@ -3385,7 +3413,7 @@
       scaleIndex:0, scaleMode:"subjects", advancedScale:false,
       range:"touch", castTime:"ritual", ritualIntervals:0, extraReach:0,
       yantras:new Set(), pathToolDedicated:false, orderToolDedicated:false, persona:"0",
-      spendWP:false, teamworkDice:0, otherMod:0, extraManaCost:0,
+      spendWP:false, teamworkDice:0, otherMod:0, extraManaCost:0, againOverride:10,
       prevParadox:0, witnesses:"none", inured:false, mitigateMana:0, paradoxChoice:"contain",
     };
 
