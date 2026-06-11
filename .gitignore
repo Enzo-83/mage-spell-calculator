@@ -1,1 +1,6 @@
 *.ps1
+
+# Claude Code local state (per-machine, never commit)
+.claude/worktrees/
+.claude/settings.local.json
+.claude/launch.json
