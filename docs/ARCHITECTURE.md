@@ -90,6 +90,11 @@ offline-capable yet.
   `name,type,description`; the importer also accepts optional `persistent`,
   `environmental`, `resolution`, `beat`, `effect`, `causing`, `ending`, `sourceBook`,
   `sourcePage`.
+- `data/spells.csv` — hand-curated core-book spells (descriptions, Reach effects,
+  Withstand, page refs) in the Spell Compendium's CSV import format. Version-controlled
+  backup of the transcription work behind the Firestore compendium; re-import source.
+- `docs/reference/` — salvaged code kept for reference, not loaded by any page
+  (currently `tiltCatalog.js`, see review plan Phase 9).
 
 ## Development notes
 

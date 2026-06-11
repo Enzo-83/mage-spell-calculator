@@ -1,6 +1,6 @@
 // Service Worker for Mage Spell Calculator PWA
 
-const CACHE_NAME = 'mage-spell-calc-v49';
+const CACHE_NAME = 'mage-spell-calc-v50';
 
 
 // Files to cache for offline use

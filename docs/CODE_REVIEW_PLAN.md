@@ -245,11 +245,25 @@ on all three pages, and ends with a `docs/ARCHITECTURE.md` update.
 - **Verify:** offline reload of all three pages after one online visit; update flow
   (new SW takes over) still works.
 
-### Phase 9 — Compendium unification *(largest; optional / schedule separately)*
+### Phase 9 — Tilt catalog module + player tilt tooltips *(feature-flavored consolidation)*
+Salvaged from an abandoned worktree (2026-06-11): extract storyteller.html's inline
+Firestore tilt catalog into a shared `js/tiltCatalog.js` module exposing
+`window.tiltCatalog` + a `TiltBadge` React component, and use `TiltBadge` in
+wizard.html's tilt strip so **players** see tilt descriptions on hover, not just the
+ST. A clean earlier implementation (written against an older storyteller.html — do not
+merge as-is, re-implement against current code) is preserved as
+`docs/reference/tiltCatalog.js`.
+- **Verify:** ST catalog import/export/dropdown unchanged; wizard tilt badges show
+  hover descriptions for catalog entries and degrade gracefully for custom tilts.
+
+### Phase 10 — Compendium unification *(largest; optional / schedule separately)*
 Converge `js/spellCompendium.js` (vanilla) and wizard's `CompendiumOverlay` (React) on
 one React implementation mounted on both pages. Requires its own design pass — role
 flows, edit/suggest queues, and index's drawer layout differ. Write a short design doc
 first (`docs/compendium-unification.md`).
+
+*(Phase numbering note: Phases 9/10 were renumbered on 2026-06-11 when the tilt
+catalog task was salvaged from an abandoned worktree.)*
 
 ---
 
