@@ -51,7 +51,10 @@ sends, and the export path, exposed to React through `window.classicVanilla`.
 ### A. Duplication & consolidation (highest value)
 
 **A1. The spell engine exists twice.**
-`wizard.html` does **not** load `js/spellFactors.js` or `js/dicePool.js`. It re-declares
+*(Update 2026-06-11: PR #52 started this consolidation — wizard.html now loads
+`js/dicePool.js`. The factor tables and Yantra/Reach/Paradox math below are still
+duplicated; Phase 4 covers the remainder.)*
+`wizard.html` does **not** load `js/spellFactors.js`. It re-declares
 its own copies of the duration/scale tables (`wizard.html:147–183`), Paradox-per-Reach
 chart (`wizard.html:217–218` — the comment literally says *"from GNOSIS_CHART in
 spellFactors.js"*), free-Reach formula, and the full Yantra bonus table
