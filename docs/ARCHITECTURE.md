@@ -96,6 +96,16 @@ offline-capable yet.
 - `docs/reference/` — salvaged code kept for reference, not loaded by any page
   (currently `tiltCatalog.js`, see review plan Phase 9).
 
+## Testing
+
+`node tests/run.mjs` — no dependencies, runs anywhere Node does. Part A is a
+unit suite locking in the shared rules engine (`js/spellFactors.js` +
+`js/dicePool.js`); failures exit non-zero. Part B feeds identical casting
+inputs to the shared engine and to wizard.html's inline engine (extracted live
+from the file) and tallies disagreements — drift is reported, not failed; see
+`docs/engine-drift.md` for the triaged findings. Run it before and after any
+change to the rules math.
+
 ## Development notes
 
 - Serve over HTTP (`npx serve` from the project root) — `file://` breaks Babel/CORS.
