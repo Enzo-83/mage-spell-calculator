@@ -290,6 +290,26 @@ merge rather than overwrite). index.html: 4,872 → ~4,460 lines.)*
   load-from-library, export, combined spells, active spells, scene pill, Discord sends.
 
 ### Phase 7 — Shared Discord layer
+*(Done 2026-06-12: `shared/discord.js` exposes ONE namespaced global,
+`window.DiscordShared` (Babel blocks run in global scope; wizard already had a
+page-local `postDiscord`): post helper, `$cod`/`$rote` + Paradox command
+formatters, embed envelope with arcanum→color via `MageData.arcanumInt`,
+compact pool-summary fields, the embed-then-command two-message pattern, and
+`postClash`. Consumers: index vanilla block (`sendDicePool`/`sendCard`/
+`buildSpellPreviewEmbed`), index `ClashPill`, wizard `handlePool`/`handleCard`/
+clash overlay. The two spell-card layouts differ **by design** (desktop-rich
+vs mobile-flat), so each page still assembles its own card *fields* and the
+shared layer owns the envelope — full API table in ARCHITECTURE.md. Wizard's
+now-unused `ARCANUM_COLORS` deleted; its harness lock replaced by 10 direct
+DiscordShared unit tests. Behavior deltas, both deliberate: Classic's dice-bot
+command message now carries `username` like wizard's (cosmetic; bots parse
+content), and Classic embed timestamps / wizard's lack thereof are preserved
+as-is. §E decided: webhooks STAY in the character JSON export (it is the
+user's backup and must round-trip; Firebase sharing already strips them) —
+Classic's save now toasts a don't-share-publicly warning when webhooks are
+present. sw.js precache + CACHE_NAME bumped (v56). Verified live with a
+stubbed `fetch` capturing payloads from all five send buttons on both pages —
+embeds byte-identical apart from the deltas above.)*
 1. `shared/discord.js`: `postDiscord`, embed builders (dice pool, spell card, paradox,
    clash), color via `gameData`.
 2. index (vanilla + ClashPill) and wizard consume it.

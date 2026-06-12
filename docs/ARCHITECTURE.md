@@ -49,14 +49,33 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | `shared/firebase.js` | all three | Single Firebase init — sets `window._fbApp/_fbDb/_fsDb/_fsAuth` for whichever SDKs the page loads (Phase 2). |
 | `shared/session.js` | all three | Firebase RTDB session layer + schema docs. Also hosts the legacy `scene*` room helpers merged from the former `js/scene.js` (Phase 2) — see the comment there for how they differ from the `session*` flow. |
 | `shared/nav.js` | all three | Floating page-switcher pill. |
+| `shared/discord.js` | index, wizard | `window.DiscordShared` — webhook post helper, dice/Paradox bot-command formatters, embed builders, Clash send (Phase 7). One namespaced global (not bare functions) because Babel blocks run in global scope. Load after `js/gameData.js` (colors come from `MageData.arcanumInt`). |
 | `theme.css` | all three | Color tokens (CSS custom properties). |
 | `classic.css` | index | All Classic page styles, extracted from index.html's inline block (Phase 5). wizard/storyteller style via inline JSX. |
 
-> Consolidation status: identity data (Phase 3) and the rules engine (Phase 4)
-> are single-sourced — wizard.html derives its UI table views and Title-Case
-> data from the modules above and re-declares nothing. The remaining
-> duplication is the compendium UI (vanilla vs React, plan Phase 10) and the
-> Discord send layer (plan Phase 7).
+> Consolidation status: identity data (Phase 3), the rules engine (Phase 4),
+> and the Discord send layer (Phase 7) are single-sourced — wizard.html
+> derives its UI table views and Title-Case data from the modules above and
+> re-declares nothing. The remaining duplication is the compendium UI
+> (vanilla vs React, plan Phase 10).
+
+### `DiscordShared` API (`shared/discord.js`)
+
+| Method | Args | Purpose |
+|--------|------|---------|
+| `postDiscord` | `(url, payload)` | POST one JSON payload to a webhook; throws on network error or non-2xx. |
+| `arcanumColor` | `(name)` | Arcanum name in any case → canonical embed color int (`MageData.arcanumInt`), app-purple `0x7B2CBF` fallback. |
+| `formatDiceCommand` | `(pool, rollQuality)` | Dice-bot command for a casting roll: `$cod`/`$rote` + optional `8`/`9` again-suffix + pool. |
+| `formatParadoxCommand` | `(paradoxResult)` | Dice-bot command for a Paradox roll (always `$cod`; chance die rolls 0). |
+| `buildEmbed` | `({title, arcanum, color, fields, footerText, timestamp})` | Embed envelope. Pass `arcanum` (name) or explicit `color` int. `timestamp: true` adds current time — Classic embeds carry it, wizard embeds don't (historical, kept). |
+| `buildPoolSummaryFields` | `({pool, usedReach, freeReach, excessReach, manaCost, paradoxText})` | The compact 🎲/↑/⬡ field row every "Send Dice Pool" button uses; appends ⚠️ Paradox only when over free Reach. |
+| `postEmbedThenCommand` | `(webhook, username, embed, command)` | The standard two-message send: embed summary, then the bot command as a plain message so dice bots can parse it. |
+| `postClash` | `(webhook, {casterName, pool, arcLabel, arcDots, breakdown})` | Clash of Wills send (identical embed on both pages) via `postEmbedThenCommand`. |
+
+Webhook privacy (§E policy): webhook URLs live on `character.discord.*` and
+**stay in the character JSON export** — the file is the user's backup and must
+round-trip. Classic's save path warns via toast when the export contains them.
+`sessionPushSheet` strips them from shared Firebase paths.
 
 ## Window bridges (index.html only)
 
