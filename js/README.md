@@ -5,6 +5,7 @@ matters: Firebase compat scripts → `shared/session.js` → these files → pag
 
 | File | Used by | Purpose |
 |------|---------|---------|
+| `gameData.js` | all three pages | `MageData` — single source of truth for identity data: Arcana + canonical colors (CSS hex & Discord int), Paths, Orders, Practice names, Title-Case helpers. Load before `character.js`. Rules math stays in `spellFactors.js`. |
 | `spellFactors.js` | index.html | Mage 2e spell factor engine: casting methods, duration/scale/range tables, Reach, Paradox calculation. The rules source of truth. *(wizard.html currently carries its own inline copy of much of this — consolidation planned, see `docs/CODE_REVIEW_PLAN.md` Phase 4.)* |
 | `dicePool.js` | index.html | Final spellcasting dice pool: Gnosis + Arcanum base plus all modifiers (factors, Yantras, conditions). |
 | `character.js` | index.html | Character data structures (PATHS, ORDERS, defaults), localStorage persistence, JSON file import/export. |

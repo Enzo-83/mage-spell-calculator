@@ -42,6 +42,7 @@
   <script src="shared/session.js"></script>
 
   <script src="js/glossary.js"></script>
+  <script src="js/gameData.js"></script>
   <script src="js/dicePool.js"></script>
 
   <script type="text/babel">
@@ -78,32 +79,16 @@
       'tome-of-pentacle': { label: 'Tome of the Pentacle', color: '#9d4edd', short: 'ToP'  },
     };
 
-    // ── Game data ─────────────────────────────────────────────────────────────
-    const ARCANA = ["Death","Fate","Forces","Life","Matter","Mind","Prime","Space","Spirit","Time"];
-    const PATHS = {
-      acanthus:  { rulingArcana: ["Fate","Time"] },
-      mastigos:  { rulingArcana: ["Mind","Space"] },
-      moros:     { rulingArcana: ["Death","Matter"] },
-      obrimos:   { rulingArcana: ["Forces","Prime"] },
-      thyrsus:   { rulingArcana: ["Life","Spirit"] },
-    };
-    const ORDERS = {
-      adamantineArrow:     { roteSkills: ["athletics","intimidation","medicine"] },
-      guardiansOfTheVeil:  { roteSkills: ["investigation","stealth","subterfuge"] },
-      mysterium:           { roteSkills: ["investigation","occult","survival"] },
-      silverLadder:        { roteSkills: ["expression","persuasion","subterfuge"] },
-      freeCouncil:         { roteSkills: ["crafts","persuasion","science"] },
-      seersOfTheThrone:    { roteSkills: ["investigation","occult","persuasion"] },
-      apostate:            { roteSkills: [] },
-      nameless:            { roteSkills: [] },
-    };
-    const PRACTICES = [
-      ["Compelling","Knowing","Unveiling"],
-      ["Ruling","Shielding","Veiling"],
-      ["Fraying","Perfecting","Weaving"],
-      ["Patterning","Unraveling"],
-      ["Making","Unmaking"],
-    ];
+    // ── Game data (from js/gameData.js — single source of truth) ─────────────
+    // The wizard works in Title Case throughout, so derive TC views from the
+    // canonical lowercase data rather than re-declaring it.
+    const ARCANA = MageData.ARCANA_TC;
+    const PATHS = Object.fromEntries(
+      Object.entries(MageData.PATHS).map(([key, p]) =>
+        [key, { rulingArcana: p.rulingArcana.map(MageData.tc) }])
+    );
+    const ORDERS = MageData.ORDERS;
+    const PRACTICES = MageData.PRACTICES_BY_DOTS;
     const ROTE_SKILLS = [
       "Academics","Computer","Crafts","Investigation","Medicine","Occult","Politics","Science",
       "Athletics","Brawl","Drive","Firearms","Larceny","Stealth","Survival","Weaponry",
@@ -203,19 +188,11 @@
     const PARADOX_PER_REACH = { 1:1,2:1,3:2,4:2,5:3,6:3,7:4,8:4,9:5,10:5 };
     const MANA_PER_TURN = { 1:1,2:2,3:3,4:4,5:5,6:6,7:7,8:8,9:9,10:10 };
 
-    // Discord embed accent bar colors by Arcanum (decimal-safe hex literals)
-    const ARCANUM_COLORS = {
-      Death:  0x475569,  // black (dark slate)
-      Fate:   0xE2E8F0,  // white (near-white)
-      Forces: 0xF87171,  // red
-      Life:   0x4ADE80,  // green
-      Matter: 0xD97706,  // brown
-      Mind:   0xFBBF24,  // yellow
-      Prime:  0x60A5FA,  // blue
-      Space:  0xA78BFA,  // purple
-      Spirit: 0xFB923C,  // orange
-      Time:   0x22D3EE,  // cyan
-    };
+    // Discord embed accent bar colors by Arcanum (Title Case view of the
+    // canonical js/gameData.js identities)
+    const ARCANUM_COLORS = Object.fromEntries(
+      MageData.ARCANA_KEYS.map(k => [MageData.tc(k), MageData.ARCANUM_INT[k]])
+    );
 
     const BASE_STEPS = [
       { id:"caster",    label:"Caster",    icon:"⚡" },
@@ -644,12 +621,8 @@
       const wrapperRef               = useRef(null);
       const trackRef                 = useRef(null);
 
-      const ARCANUM_HEX = {
-        death:'#475569', fate:'#e2e8f0', forces:'#f87171', life:'#4ade80',
-        matter:'#d97706', mind:'#fbbf24', prime:'#60a5fa', space:'#a78bfa',
-        spirit:'#fb923c', time:'#22d3ee',
-      };
-      const ARCANA_ORDER = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
+      const ARCANUM_HEX = MageData.ARCANUM_HEX;
+      const ARCANA_ORDER = MageData.ARCANA_KEYS;
 
       // Group all spells by arcanum
       const allSpells = [...rotes, ...praxes, ...favorites];

@@ -39,6 +39,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="shared/firebase.js"></script>
 <script src="shared/session.js"></script>
+<script src="js/gameData.js"></script>
 
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -64,11 +65,8 @@ const C = {
   successFaint: "rgba(42,157,143,0.15)",
 };
 
-const ARCANUM_HEX = {
-  death:"#475569", fate:"#e2e8f0", forces:"#f87171", life:"#4ade80",
-  matter:"#d97706", mind:"#fbbf24", prime:"#60a5fa", space:"#a78bfa",
-  spirit:"#fb923c", time:"#22d3ee",
-};
+// Canonical Arcanum colors — single source of truth in js/gameData.js
+const ARCANUM_HEX = MageData.ARCANUM_HEX;
 
 // ── Tilts & Conditions Catalog ───────────────────────────────────────────
 // Firestore collection "tiltsConditions" — mirrors the Spell Compendium pattern.
@@ -335,9 +333,10 @@ function Stepper({ value, min=0, max=99, onChange, color }) {
 
 // ── PlayerSheetModal ─────────────────────────────────────────────────────
 
-const ARCANA_ORDER = ["death","fate","forces","life","matter","mind","prime","space","spirit","time"];
-const ARCANA_LABEL = { death:"Death", fate:"Fate", forces:"Forces", life:"Life", matter:"Matter",
-                       mind:"Mind", prime:"Prime", space:"Space", spirit:"Spirit", time:"Time" };
+const ARCANA_ORDER = MageData.ARCANA_KEYS;
+const ARCANA_LABEL = Object.fromEntries(
+  MageData.ARCANA_KEYS.map(k => [k, MageData.ARCANA[k].label])
+);
 
 function DotRating({ value=0, max=5, color="#a78bfa" }) {
   return (

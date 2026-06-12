@@ -40,7 +40,8 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 
 | File | Used by | Purpose |
 |------|---------|---------|
-| `js/spellFactors.js` | index | Spell factor engine — casting methods, duration/scale/range tables, Reach, Paradox. Rules source of truth. |
+| `js/gameData.js` | all three | `MageData` — single source of truth for identity data: Arcana (+canonical colors, hex & Discord int), Paths, Orders, Practice names, Title-Case helpers (Phase 3). Load before character.js. |
+| `js/spellFactors.js` | index | Spell factor engine — casting methods, duration/scale/range tables, GNOSIS_CHART, Reach, Paradox. Rules source of truth. |
 | `js/dicePool.js` | index | Final dice pool calculation (Gnosis + Arcanum base plus all modifiers). |
 | `js/character.js` | index | PATHS/ORDERS data, character defaults, localStorage + JSON file persistence. |
 | `js/spellCompendium.js` | index | Vanilla Firestore compendium UI with roles. (wizard has a parallel React `CompendiumOverlay` — unification is plan Phase 9.) |
