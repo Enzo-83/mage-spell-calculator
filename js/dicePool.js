@@ -152,14 +152,11 @@ function calculateDicePool(params) {
         // Caster stats
         gnosis,
         arcanumDots,
-        
+
         // Casting info
         castingMethod = 'improvised',
         castingMethodInfo = null, // Pass the full method info from CASTING_METHODS
-        roteSkill = 0,
-        roteSkillName = '',
-        isOrderSkill = false, // For Mudra: +1 if Order skill
-        
+
         // From spell factors (can pass the result object or individual values)
         spellFactorPenalty = 0, // Total penalty from Potency/Duration/Scale
         ritualBonus = 0, // Bonus dice from ritual intervals
@@ -181,20 +178,20 @@ function calculateDicePool(params) {
         againOverride = 10  // 10 = no override, 9 = 9-again, 8 = 8-again
     } = params;
     
-    // Determine if this is a Rote
-    const isRote = castingMethod.startsWith('rote');
-    
     // 1. Calculate base pool
     const basePool = calculateBasePool({
         gnosis,
-        arcanumDots,
-        castingMethod,
-        roteSkill
+        arcanumDots
     });
-    
+
     // 2. Calculate Yantra bonus
+    // NOTE (Phase 4 / drift finding B1): Mudra is a Yantra — callers bake the
+    // rote skill dice (+1 if Order skill) into the Mudra yantra's own `bonus`,
+    // so it correctly counts toward the +5 net Yantra cap. A previous version
+    // accepted roteSkill/isOrderSkill params here and computed a separate
+    // mudraBonus that was never added to the pool; that dead path is removed.
     const yantraResult = calculateYantraBonus(yantras, gnosis, spellFactorPenalty);
-    
+
     // 3. Get roll quality (pass method info for proper Rote Quality detection)
     const rollQuality = getRollQuality(castingMethod, castingMethodInfo);
 
@@ -206,17 +203,7 @@ function calculateDicePool(params) {
             (rollQuality.exceptionalAt === 3 ? ' | Exceptional at 3' : '');
     }
     
-    // 4. Calculate Mudra bonus (Rotes with mudraAvailable only)
-    let mudraBonus = 0;
-    if (isRote && castingMethodInfo && castingMethodInfo.mudraAvailable) {
-        // Check if Mudra yantra is being used
-        const mudraYantra = yantras.find(y => y.isMudra);
-        if (mudraYantra) {
-            mudraBonus = roteSkill + (isOrderSkill ? 1 : 0);
-        }
-    }
-    
-    // 5. Sum all modifiers
+    // 4. Sum all modifiers
     const willpowerBonus = spendWillpower ? 3 : 0;
     
     let otherModifiersTotal = 0;
@@ -224,7 +211,7 @@ function calculateDicePool(params) {
         otherModifiersTotal += mod.value;
     });
     
-    // 6. Calculate final pool
+    // 5. Calculate final pool
     // Formula: Base + Factor Penalties + Yantras + Ritual + Willpower + Teamwork - Paradox + Other
     const modifiersBreakdown = {
         spellFactors: spellFactorPenalty,
@@ -258,19 +245,19 @@ function calculateDicePool(params) {
     
     const finalPool = Math.max(0, uncappedPool + poolAdjustment);
     
-    // 7. Determine if spell is possible
+    // 6. Determine if spell is possible
     // If final modifier is -10 or worse AND puts pool at chance die, spell is impossible
     const totalPenaltiesOnly = spellFactorPenalty - paradoxSuccesses + 
         otherModifiers.filter(m => m.value < 0).reduce((sum, m) => sum + m.value, 0);
     const isImpossible = totalPenaltiesOnly <= -10 && finalPool <= 0;
     
-    // 8. Determine roll type
+    // 7. Determine roll type
     let rollType = 'normal';
     if (finalPool <= 0) {
         rollType = isImpossible ? 'impossible' : 'chance';
     }
     
-    // 9. Check for doubled ritual time (Grimoire Rotes)
+    // 8. Check for doubled ritual time (Grimoire Rotes)
     const doubleRitualTime = castingMethodInfo ? castingMethodInfo.doubleRitualTime : false;
     
     return {

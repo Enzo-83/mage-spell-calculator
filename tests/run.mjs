@@ -52,13 +52,20 @@ if (startIdx < 0 || endIdx < 0 || endIdx <= startIdx) {
 }
 const wizardCtx = vm.createContext({ console });
 vm.runInContext(read('js/gameData.js'), wizardCtx, { filename: 'gameData.js' });
+vm.runInContext(read('js/spellFactors.js'), wizardCtx, { filename: 'spellFactors.js' });
 vm.runInContext(read('js/dicePool.js'), wizardCtx, { filename: 'dicePool.js' });
-vm.runInContext(wizardHtml.slice(startIdx, endIdx), wizardCtx, { filename: 'wizard-engine.js' });
+// NOTE: Babel standalone executes text/babel blocks in GLOBAL scope, so the
+// wizard block's top-level names must not collide with engine globals (that
+// bit us once: 'PRACTICES'). The IIFE here keeps the vm tidy; real collision
+// safety comes from distinct names in wizard.html itself.
+vm.runInContext(
+  `globalThis.__wizard = (function () {\n${wizardHtml.slice(startIdx, endIdx)}\n` +
+  `return { deriveValues, ARCANUM_COLORS, PATHS }; })();`,
+  wizardCtx, { filename: 'wizard-engine.js' });
 const W = {
-  deriveValues: vm.runInContext('deriveValues', wizardCtx),
-  PARADOX_PER_REACH: vm.runInContext('PARADOX_PER_REACH', wizardCtx),
-  ARCANUM_COLORS: vm.runInContext('ARCANUM_COLORS', wizardCtx),
-  PATHS: vm.runInContext('PATHS', wizardCtx),
+  deriveValues: vm.runInContext('__wizard.deriveValues', wizardCtx),
+  ARCANUM_COLORS: vm.runInContext('__wizard.ARCANUM_COLORS', wizardCtx),
+  PATHS: vm.runInContext('__wizard.PATHS', wizardCtx),
   MageData: vm.runInContext('MageData', wizardCtx),
 };
 
@@ -183,11 +190,21 @@ t('quality: roteOwn has rote quality', S.getRollQuality('roteOwn', S.CASTING_MET
 t('quality: roteLearned has NO rote quality', S.getRollQuality('roteLearned', S.CASTING_METHODS.roteLearned).quality, 'standard');
 t('quality: 8-again override applies', dp({ againOverride: 8 }).rollQuality.againValue, 8);
 
-// Documents CURRENT behavior (suspected bug, see docs/engine-drift.md B1):
-// calculateDicePool computes a Mudra bonus (roteSkill + order) but never adds
-// it to the pool. Callers must bake Mudra dice into the yantra's own bonus.
-t('KNOWN: mudra via roteSkill param adds nothing to pool (B1)',
-  dp({ castingMethod: 'roteOwn', castingMethodInfo: S.CASTING_METHODS.roteOwn, roteSkill: 3, isOrderSkill: true, yantras: [{ name: 'Mudra', isMudra: true, bonus: 0 }] }).finalPool, 6);
+// B1 resolved (Phase 4): Mudra is a Yantra — its dice ride in the yantra's
+// own bonus and count toward the +5 net cap. The dead roteSkill/isOrderSkill
+// params were removed from calculateDicePool.
+t('B1: mudra dice ride in the yantra bonus',
+  dp({ castingMethod: 'roteOwn', castingMethodInfo: S.CASTING_METHODS.roteOwn, yantras: [{ name: 'Mudra', isMudra: true, bonus: 4 }] }).finalPool, 10);
+t('B1: mudra dice count toward the +5 net yantra cap',
+  dp({ castingMethod: 'roteOwn', castingMethodInfo: S.CASTING_METHODS.roteOwn, gnosis: 9,
+       yantras: [{ name: 'Mudra', isMudra: true, bonus: 5 }, { name: 'High Speech', bonus: 2 }] })
+    .modifiers.yantraCapAdjustment, -2);
+
+// B2 resolved (Phase 4): no excess Reach -> no Paradox roll at all.
+t('B2: zero excess reach -> no paradox roll even when inured',
+  pp({ reachExcess: 0, inuredToSpell: true, previousRolls: 3, sleeperWitnesses: 'crowd' }).finalDice, 0);
+t('B2: zero excess reach flags noRoll',
+  pp({ reachExcess: 0 }).noRoll, true);
 
 // Wizard's yantra bonus table must match shared YANTRA_TYPES values
 const yantraPairs = [
@@ -207,9 +224,8 @@ const WIZ_YANTRA_BONUSES = {
 for (const [wName, sKey] of yantraPairs) {
   t(`yantra value parity: ${wName}`, WIZ_YANTRA_BONUSES[wName], S.YANTRA_TYPES[sKey].bonus);
 }
-for (const g of [1, 5, 10]) {
-  t(`wizard PARADOX_PER_REACH g${g} matches shared`, W.PARADOX_PER_REACH[g], S.getParadoxPerReach(g));
-}
+// (The wizard's PARADOX_PER_REACH / MANA_PER_TURN duplicate tables were
+// deleted in Phase 4 — it calls getParadoxPerReach/getManaPerTurn directly.)
 
 // Canonical Arcanum color identities (js/gameData.js) — locked to the table's
 // established values; any change here is a deliberate theme decision.
@@ -264,11 +280,15 @@ const BASE_CASE = {
 };
 
 function buildSharedYantras(c) {
-  // "By the book" shared API usage: Mudra is flagged via isMudra + roteSkill
-  // param; all other yantras carry their own bonus.
+  // One convention since Phase 4 (B1): Mudra dice ride in the yantra's own
+  // bonus (rote skill dots, +1 if Order skill), only for Mudra-capable rotes.
+  const method = METHOD_MAP[c.method];
+  const mudraOk = method.startsWith('rote') && S.CASTING_METHODS[method].mudraAvailable;
   const arr = [];
   for (const name of c.yantras) {
-    if (name === 'Mudra') arr.push({ name, isMudra: true, bonus: 0 });
+    if (name === 'Mudra') {
+      if (mudraOk) arr.push({ name, isMudra: true, bonus: (c.roteSkillDots || 0) + (c.orderSkill ? 1 : 0) });
+    }
     else if (name === 'Dedicated Tool') continue; // paradox-only, no dice
     else arr.push({ name, bonus: WIZ_YANTRA_BONUSES[name] ?? 0 });
   }
@@ -297,8 +317,6 @@ function runShared(c) {
   const pool = S.calculateDicePool({
     gnosis: c.gnosis, arcanumDots: c.dots, castingMethod: method,
     castingMethodInfo: S.CASTING_METHODS[method],
-    roteSkill: c.yantras.includes('Mudra') ? c.roteSkillDots : 0,
-    isOrderSkill: c.orderSkill,
     spellFactorPenalty: f.totals.factorPenalty, ritualBonus: f.totals.ritualBonus,
     yantras: buildSharedYantras(c), spendWillpower: c.spendWP,
     teamworkDice: 0, paradoxSuccesses: 0, otherModifiers: [], againOverride: 10,

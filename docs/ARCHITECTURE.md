@@ -41,8 +41,8 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | File | Used by | Purpose |
 |------|---------|---------|
 | `js/gameData.js` | all three | `MageData` — single source of truth for identity data: Arcana (+canonical colors, hex & Discord int), Paths, Orders, Practice names, Title-Case helpers (Phase 3). Load before character.js. |
-| `js/spellFactors.js` | index | Spell factor engine — casting methods, duration/scale/range tables, GNOSIS_CHART, Reach, Paradox. Rules source of truth. |
-| `js/dicePool.js` | index | Final dice pool calculation (Gnosis + Arcanum base plus all modifiers). |
+| `js/spellFactors.js` | index, wizard | Spell factor engine — casting methods, duration/scale/range tables, GNOSIS_CHART, Reach, Paradox. Rules source of truth. |
+| `js/dicePool.js` | index, wizard | Final dice pool calculation (Gnosis + Arcanum base plus all modifiers). Mudra dice ride in the yantra's `bonus` (see B1 note in the file). |
 | `js/character.js` | index | PATHS/ORDERS data, character defaults, localStorage + JSON file persistence. |
 | `js/spellCompendium.js` | index | Vanilla Firestore compendium UI with roles. (wizard has a parallel React `CompendiumOverlay` — unification is plan Phase 9.) |
 | `js/glossary.js` | index, wizard | Glossary data + `window.GlossaryTip` React component (no JSX). |
@@ -51,9 +51,11 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | `shared/nav.js` | all three | Floating page-switcher pill. |
 | `theme.css` | all three | Color tokens. (Most CSS is still inline per-page; extraction is plan Phase 5.) |
 
-> Known duplication: wizard.html currently re-declares the factor tables, Yantra math,
-> PATHS/ORDERS/PRACTICES, and Arcanum colors instead of using the modules above.
-> Consolidation is the heart of the review plan (Phases 3–4).
+> Consolidation status: identity data (Phase 3) and the rules engine (Phase 4)
+> are single-sourced — wizard.html derives its UI table views and Title-Case
+> data from the modules above and re-declares nothing. The remaining
+> duplication is the compendium UI (vanilla vs React, plan Phase 10) and the
+> Discord send layer (plan Phase 7).
 
 ## Window bridges (index.html only)
 
