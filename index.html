@@ -2865,6 +2865,7 @@
     <script src="shared/firebase.js"></script>
 
     <script src="shared/session.js"></script>
+    <script src="./js/gameData.js"></script>
     <script src="./js/spellFactors.js"></script>
     <script src="./js/dicePool.js"></script>
     <script src="./js/character.js"></script>
@@ -3890,13 +3891,8 @@
                 return command;
             }
             
-            // Discord embed accent bar colors by Arcanum
-            const ARCANUM_COLORS = {
-                death:  0x475569,  fate:   0xE2E8F0,  forces: 0xF87171,
-                life:   0x4ADE80,  matter: 0xD97706,  mind:   0xFBBF24,
-                prime:  0x60A5FA,  space:  0xA78BFA,  spirit: 0xFB923C,
-                time:   0x22D3EE,
-            };
+            // Discord embed accent bar colors by Arcanum (canonical, js/gameData.js)
+            const ARCANUM_COLORS = MageData.ARCANUM_INT;
 
             // Build spell preview embed for Discord
             function buildSpellPreviewEmbed(spellResult, poolResult) {
@@ -7069,19 +7065,11 @@
       const _slFs   = firebase.firestore();
       const _slAuth = firebase.auth();
 
-      // ── Constants ────────────────────────────────────────────────────────────
-      const SL_ARCANA = ['death','fate','forces','life','matter','mind','prime','space','spirit','time'];
-      const SL_ARC_COLORS = {
-        death:'#475569', fate:'#e2e8f0', forces:'#f87171', life:'#4ade80',
-        matter:'#d97706', mind:'#fbbf24', prime:'#60a5fa', space:'#a78bfa',
-        spirit:'#fb923c', time:'#22d3ee',
-      };
-      const SL_PRACTICES = ['Compelling','Knowing','Unveiling','Ruling','Shielding','Veiling',
-        'Fraying','Perfecting','Weaving','Patterning','Unraveling','Making','Unmaking'];
-      const SL_PRACTICE_DOTS = {
-        Compelling:1,Knowing:1,Unveiling:1,Ruling:2,Shielding:2,Veiling:2,
-        Fraying:3,Perfecting:3,Weaving:3,Patterning:4,Unraveling:4,Making:5,Unmaking:5,
-      };
+      // ── Constants (aliases into js/gameData.js — single source of truth) ──────
+      const SL_ARCANA = MageData.ARCANA_KEYS;
+      const SL_ARC_COLORS = MageData.ARCANUM_HEX;
+      const SL_PRACTICES = MageData.PRACTICE_LABELS;
+      const SL_PRACTICE_DOTS = MageData.PRACTICE_DOTS;
       const SL_SKILL_OPTS = [
         {key:'academics',lbl:'Academics'},{key:'computer',lbl:'Computer'},{key:'crafts',lbl:'Crafts'},
         {key:'investigation',lbl:'Investigation'},{key:'medicine',lbl:'Medicine'},{key:'occult',lbl:'Occult'},
