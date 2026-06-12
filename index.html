@@ -2862,26 +2862,9 @@
     <!-- Firebase Firestore (Spell Compendium) + Auth (Role-based editing) -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script>
-      // ─── Firebase Config ─── MUST MATCH wizard.html values ───
-      if (!window._fbApp) {
-        window._fbApp = firebase.initializeApp({
-          apiKey: "AIzaSyA9QA2jJvjoClR7W7jEmOG9WTUPqE93Xzc",
-          authDomain: "electronic-grimoire.firebaseapp.com",
-          databaseURL: "https://electronic-grimoire-default-rtdb.firebaseio.com",
-          projectId: "electronic-grimoire",
-          storageBucket: "electronic-grimoire.appspot.com",
-          messagingSenderId: "1032950336095",
-          appId: "1:1032950336095:web:7a8a44130f14db710429ea"
-        });
-      }
-      if (!window._fbDb) {
-        window._fbDb = firebase.database();
-      }
-    </script>
+    <script src="shared/firebase.js"></script>
 
     <script src="shared/session.js"></script>
-    <script src="js/scene.js"></script>
     <script src="./js/spellFactors.js"></script>
     <script src="./js/dicePool.js"></script>
     <script src="./js/character.js"></script>
@@ -3380,7 +3363,7 @@
                     applyCharacterToForm();
                     saveCharacterToLocalStorage();
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
-                        scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                        sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                         sessionPushSheet(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                     }
                 });
@@ -3464,7 +3447,7 @@
                 saveCharacterToLocalStorage();
                 syncActiveSpellCount();
                 if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
-                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                    sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                 }
 
                 // Brief visual feedback on button
@@ -3485,7 +3468,7 @@
                 saveCharacterToLocalStorage();
                 syncActiveSpellCount();
                 if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
-                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                    sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                 }
             }
 
@@ -3523,7 +3506,7 @@
                     applyCharacterToForm();
                     alert(`Character "${currentCharacter.name}" loaded successfully!`);
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
-                        scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                        sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                         sessionPushSheet(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                     }
                 } catch (e) {
@@ -4094,7 +4077,7 @@
                     window.classicBridge.results.notifyManaDeducted(`✓ Mana deducted — ${newMana} remaining`);
                 }
                 if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
-                    scenePushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                    sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                 }
             }
 
@@ -4190,11 +4173,11 @@
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode && spellResult.reach.excess > 0) {
                         try {
                             var scenePid = sceneGetPlayerId();
-                            sceneGetRef(sceneRoomCode).child('players/' + scenePid + '/paradoxRolls')
+                            sessionGetRef(sceneRoomCode).child('players/' + scenePid + '/paradoxRolls')
                                 .transaction(function(n) { return (n || 0) + 1; });
                             var sceneSpellName = document.getElementById('spellName').value.trim() || 'Unnamed Spell';
                             var sceneParadoxInfo = getCurrentParadoxInfo();
-                            scenePushParadoxLog(sceneRoomCode, scenePid, {
+                            sessionPushParadoxLog(sceneRoomCode, scenePid, {
                                 spell: sceneSpellName,
                                 paradoxDice: sceneParadoxInfo && sceneParadoxInfo.isChanceDie ? 'Chance' : (sceneParadoxInfo ? sceneParadoxInfo.finalDice : 0),
                                 ts: Date.now(),
@@ -4345,7 +4328,7 @@
                 onStatChange: function(char) {
                     updateManaSummary();
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
-                        scenePushStats(sceneRoomCode, sceneGetPlayerId(), char);
+                        sessionPushStats(sceneRoomCode, sceneGetPlayerId(), char);
                     }
                 },
                 onNew:  function() { newCharacter(); },
@@ -4970,7 +4953,7 @@
         }
         function attachListener(roomCode) {
           detachListener();
-          const ref = sceneGetRef(roomCode);
+          const ref = sessionGetRef(roomCode);
           const cb = ref.on('value', function(snap) {
             const data = snap.val();
             if (!data || data.meta?.closed || data.closed) {
@@ -4997,14 +4980,14 @@
           const saved = sceneRecallRoom();
           if (saved?.code && saved.role === 'player') {
             codeRef.current = saved.code;
-            sceneGetRef(saved.code).once('value').then(snap => {
+            sessionGetRef(saved.code).once('value').then(snap => {
               if (!snap.exists() || snap.val().closed || snap.val().meta?.closed) { sceneForgetRoom(); return; }
               const pid = getPid();
-              sceneGetRef(saved.code).child('players/' + pid)
+              sessionGetRef(saved.code).child('players/' + pid)
                 .update({ name: getPlayerName(), path: getPlayerPath() });
-              sceneGetRef(saved.code).child('players/' + pid).onDisconnect().remove();
+              sessionGetRef(saved.code).child('players/' + pid).onDisconnect().remove();
               if (window.currentCharacter) {
-                scenePushStats(saved.code, pid, window.currentCharacter);
+                sessionPushStats(saved.code, pid, window.currentCharacter);
                 sessionPushSheet(saved.code, pid, window.currentCharacter);
               }
               setCode(saved.code); setPillState('connected');
@@ -5018,14 +5001,14 @@
         function joinRoom(roomCode) {
           setError('');
           pidRef.current = null;
-          sceneGetRef(roomCode).once('value').then(snap => {
+          sessionGetRef(roomCode).once('value').then(snap => {
             if (!snap.exists()) { setError('Room not found'); return; }
             const pid = getPid();
             codeRef.current = roomCode;
             setCode(roomCode); setPillState('connected'); setJoinInput('');
             sceneJoinRoom(roomCode, pid, getPlayerName(), getPlayerPath());
             if (window.currentCharacter) {
-              scenePushStats(roomCode, pid, window.currentCharacter);
+              sessionPushStats(roomCode, pid, window.currentCharacter);
               sessionPushSheet(roomCode, pid, window.currentCharacter);
             }
             sceneRememberRoom(roomCode, 'player');
@@ -5036,7 +5019,7 @@
 
         function disconnect() {
           const c = codeRef.current;
-          if (c) sceneLeaveRoom(c, getPid());
+          if (c) sessionLeave(c, getPid());
           detachListener(); sceneForgetRoom();
           codeRef.current = ''; pidRef.current = null;
           setPillState('idle'); setCode(''); setSceneActive(false);

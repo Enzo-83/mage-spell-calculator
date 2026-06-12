@@ -38,25 +38,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="shared/firebase.js"></script>
   <script src="shared/session.js"></script>
-  <script>
-    // ─── Firebase Config ─── PASTE YOUR CONFIG VALUES BELOW ───
-    const _fbApp = firebase.initializeApp({
-      apiKey: "AIzaSyA9QA2jJvjoClR7W7jEmOG9WTUPqE93Xzc",
-      authDomain: "electronic-grimoire.firebaseapp.com",
-      databaseURL: "https://electronic-grimoire-default-rtdb.firebaseio.com",
-      projectId: "electronic-grimoire",
-      storageBucket: "electronic-grimoire.appspot.com",
-      messagingSenderId: "1032950336095",
-      appId: "1:1032950336095:web:7a8a44130f14db710429ea"
-    });
-    const _fbDb  = firebase.database();
-    const _fsDb  = firebase.firestore();
-    const _fsAuth = firebase.auth();
 
-  </script>
-
-  <script src="js/scene.js"></script>
   <script src="js/glossary.js"></script>
   <script src="js/dicePool.js"></script>
 
@@ -1838,7 +1822,7 @@
 
       function attachListener(code) {
         detachListener();
-        const ref = sceneGetRef(code);
+        const ref = sessionGetRef(code);
         const cb = ref.on("value", snap => {
           const data = snap.val();
           if (!data || data.meta?.closed || data.closed) {
@@ -1906,7 +1890,7 @@
 
       // ── ST: Create Room ──
       function handleCreateRoom() {
-        const code = sceneGenerateCode();
+        const code = sessionGenerateCode();
         setRoomCode(code);
         setMode("st");
         sceneCreateRoom(code, getPlayerName()).then(() => {
@@ -1919,16 +1903,16 @@
       function handleToggleScene() {
         if (sceneActive) {
           sceneSetActive(roomCode, false);
-          sceneResetAllPlayers(roomCode);
+          sessionResetAllPlayers(roomCode);
         } else {
           sceneIncrementNumber(roomCode);
           sceneSetActive(roomCode, true);
-          sceneResetAllPlayers(roomCode);
+          sessionResetAllPlayers(roomCode);
         }
       }
 
       function handleResetCounters() {
-        sceneResetAllPlayers(roomCode);
+        sessionResetAllPlayers(roomCode);
       }
 
       // ── ST: Adjust player ──
@@ -1936,12 +1920,12 @@
         const p = players[pid];
         if (!p) return;
         const next = (p.stAdjustment || 0) + delta;
-        sceneSetPlayerAdjustment(roomCode, pid, next, p.stNote || "");
+        sessionSetAdjustment(roomCode, pid, next, p.stNote || "");
       }
       function handleNote(pid, note) {
         const p = players[pid];
         if (!p) return;
-        sceneSetPlayerAdjustment(roomCode, pid, p.stAdjustment || 0, note);
+        sessionSetAdjustment(roomCode, pid, p.stAdjustment || 0, note);
       }
 
       // ── Player: Join ──
@@ -1956,14 +1940,14 @@
 
       function rejoinAsPlayer(code) {
         const pid = getPlayerId();
-        sceneGetRef(code).once("value").then(snap => {
+        sessionGetRef(code).once("value").then(snap => {
           if (!snap.exists()) { setError("Room not found"); setConnected(false); return; }
           setMode("player");
-          const playerRef = sceneGetRef(code).child("players/" + pid);
+          const playerRef = sessionGetRef(code).child("players/" + pid);
           // Use update() to preserve existing paradoxRolls instead of resetting via set()
           playerRef.update({ name: getPlayerName(), path: getPlayerPath() });
           playerRef.onDisconnect().remove();
-          if (character) { scenePushStats(code, pid, character); sessionPushSheet(code, pid, character); }
+          if (character) { sessionPushStats(code, pid, character); sessionPushSheet(code, pid, character); }
           attachListener(code);
           sceneRememberRoom(code, "player");
         }).catch(e => setError("Failed to join: " + e.message));
@@ -1972,10 +1956,10 @@
       // ── Disconnect ──
       function handleDisconnect() {
         if (mode === "player") {
-          sceneLeaveRoom(roomCode, getPlayerId());
+          sessionLeave(roomCode, getPlayerId());
         } else if (mode === "st" && roomCode) {
-          sceneGetRef(roomCode).update({ "meta/closed": true, sceneActive: false });
-          setTimeout(() => sceneGetRef(roomCode).remove(), 5000);
+          sessionGetRef(roomCode).update({ "meta/closed": true, sceneActive: false });
+          setTimeout(() => sessionGetRef(roomCode).remove(), 5000);
         }
         detachListener();
         sceneForgetRoom();
@@ -2602,9 +2586,9 @@
           // 3. Auto-increment Paradox counter in Firebase if connected and spell has Paradox risk
           if (sceneConn && excessReach > 0) {
             try {
-              sceneGetRef(sceneConn.code).child("players/" + sceneConn.playerId + "/paradoxRolls")
+              sessionGetRef(sceneConn.code).child("players/" + sceneConn.playerId + "/paradoxRolls")
                 .transaction(function(n) { return (n || 0) + 1; });
-              scenePushParadoxLog(sceneConn.code, sceneConn.playerId, {
+              sessionPushParadoxLog(sceneConn.code, sceneConn.playerId, {
                 spell: d.spellName || "Unnamed Spell",
                 paradoxDice: chanceOnly ? "Chance" : paradoxDice,
                 ts: Date.now(),
@@ -3979,7 +3963,7 @@
         setChar(char);
         applyCharacterToForm(char, setD);
         setActiveSpells(char.activeSpells || []);
-        if (sceneConn) { scenePushStats(sceneConn.code, sceneConn.playerId, char); sessionPushSheet(sceneConn.code, sceneConn.playerId, char); }
+        if (sceneConn) { sessionPushStats(sceneConn.code, sceneConn.playerId, char); sessionPushSheet(sceneConn.code, sceneConn.playerId, char); }
       }
       
       function addActiveSpellWizard(snapshot) {
@@ -4002,7 +3986,7 @@
         if (character) {
           character.activeSpells = next;
           try { localStorage.setItem('mage_current_character', JSON.stringify(character)); } catch(e){}
-          if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, character);
+          if (sceneConn) sessionPushStats(sceneConn.code, sceneConn.playerId, character);
         }
       }
 
@@ -4013,7 +3997,7 @@
         if (character) {
           character.activeSpells = next;
           try { localStorage.setItem('mage_current_character', JSON.stringify(character)); } catch(e){}
-          if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, character);
+          if (sceneConn) sessionPushStats(sceneConn.code, sceneConn.playerId, character);
         }
       }
       
@@ -4072,7 +4056,7 @@
             if (edit.mana)      next.mana      = { ...prev.mana,      ...edit.mana };
             if (edit.willpower) next.willpower = { ...prev.willpower, ...edit.willpower };
             // Re-broadcast updated stats so ST sees the acknowledged values
-            setTimeout(() => scenePushStats(info.code, info.playerId, next), 100);
+            setTimeout(() => sessionPushStats(info.code, info.playerId, next), 100);
             return next;
           });
         }
@@ -4093,21 +4077,21 @@
         if (!character) return;
         const updated = {...character, mana:{...character.mana, current:newMana}};
         setChar(updated);
-        if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, updated);
+        if (sceneConn) sessionPushStats(sceneConn.code, sceneConn.playerId, updated);
       }
       function handleHealthChange(newHealth) {
         if (!character) return;
         const updated = {...character, health: newHealth};
         setChar(updated);
         try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
-        if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, updated);
+        if (sceneConn) sessionPushStats(sceneConn.code, sceneConn.playerId, updated);
       }
       function handleWillpowerChange(newWP) {
         if (!character) return;
         const updated = {...character, willpower: {...character.willpower, current: newWP}};
         setChar(updated);
         try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
-        if (sceneConn) scenePushStats(sceneConn.code, sceneConn.playerId, updated);
+        if (sceneConn) sessionPushStats(sceneConn.code, sceneConn.playerId, updated);
       }
       function onSpellLoaded(spell) {
         setSourceSpellId(spell.id || null);

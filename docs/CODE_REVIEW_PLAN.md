@@ -194,6 +194,13 @@ bug found: W1, ritual dice leak into Instant casts.)*
 - **Verify:** test page green; drift report written to `docs/engine-drift.md`.
 
 ### Phase 2 — Shared Firebase init + session layer merge
+*(Done 2026-06-11: `shared/firebase.js` created, three inline config blocks
+deleted; duplicate `scene*` call sites renamed to their `session*` equivalents;
+the 7 genuinely unique scene-room helpers moved verbatim into
+`shared/session.js`; `js/scene.js` deleted. Bonus: retired a latent bug —
+scene.js's `scenePushParadoxLog` reassigned a `const` and would have thrown
+once a player's paradox log exceeded 20 entries; the session.js version is
+correct.)*
 1. New `shared/firebase.js`: config + `_fbApp`/`_fbDb` (+ Firestore/Auth init guards).
    All three pages load it; delete the three inline config blocks.
 2. Merge unique `scene*` functions into `shared/session.js`; delete `js/scene.js`;
