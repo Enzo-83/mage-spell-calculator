@@ -260,6 +260,28 @@ loaded theme/classic stylesheets' cssRules.)*
   desktop 3-col grid and mobile) plus wizard/storyteller unchanged.
 
 ### Phase 6 — index.html vanilla cleanup (finish "Phase 8")
+*(Done 2026-06-12: deleted ~440 lines of dead DOM helpers from the vanilla
+block (`populate*Select`, `updateGnosisInfo`, `toggleRitualIntervals`,
+`updateRangeInfo`, `updatePrimaryFactorInfo`, `toggleRoteSkill`,
+`getSelectedYantras`, `updateYantraCount`, `updateDedicatedToolExclusivity`,
+`updateSpellArcanumInfo`, `updateParadoxDisplay` — retiring the redundant B2
+guard with it — `updateManaSummary`, `handleFileLoad`, `sceneGetPlayerName/Path`).
+The audit surfaced and fixed four live bugs: (1) `onStatChange` called the
+broken `updateManaSummary` (TypeError on missing IDs), killing the scene
+stat-push on every header mana/health edit — now does a real results
+re-render (`refreshResults` was a no-op stub, also fixed); (2)
+`setSpellAsActive` read nonexistent `#primaryArcanum`/`#scaleType` ids, so
+active-spell snapshots always recorded "prime"/"subjects"; (3) the
+mana-deducted reset listeners attached before React rendered, so after one
+Discord send mana never deducted again — reset is now driven from React
+(calculator effect + paradox-mana input) via `classicVanilla.resetManaDeducted`;
+(4) loading a character mid-scene didn't push stats/sheet to the session —
+restored in `onCharacterLoad`. D1 follow-up: Classic did NOT forbid
+Instant + Grimoire — now disabled in the select and coerced via a form
+effect, mirroring the wizard. The five Babel blocks are merged into one
+(components in document order, all five roots mounted at the end to avoid
+TDZ on cross-block consts; safe because all `classicBridge` registrations
+merge rather than overwrite). index.html: 4,872 → ~4,460 lines.)*
 1. Dead-code audit of the `2890–4405` block; delete helpers superseded by React state.
 2. Consolidate the five Babel blocks into one.
 3. Write the surviving `classicVanilla` API into `docs/ARCHITECTURE.md` (name, args,
