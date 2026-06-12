@@ -1,105 +1,15 @@
 /**
  * Mage: The Awakening 2nd Edition - Character System
  * Character data structures, persistence, and management
+ *
+ * Requires js/gameData.js loaded first — PATHS / ORDERS / ARCANA identity
+ * data lives there (single source of truth); these aliases preserve the
+ * names the rest of this file and index.html reference.
  */
 
-// =============================================================================
-// PATHS - Determines Ruling and Inferior Arcana
-// =============================================================================
-
-const PATHS = {
-    acanthus: {
-        label: "Acanthus",
-        watchtower: "Watchtower of the Lunargent Thorn",
-        realm: "Arcadia",
-        rulingArcana: ["fate", "time"],
-        inferiorArcanum: "forces"
-    },
-    mastigos: {
-        label: "Mastigos",
-        watchtower: "Watchtower of the Iron Gauntlet",
-        realm: "Pandemonium",
-        rulingArcana: ["mind", "space"],
-        inferiorArcanum: "matter"
-    },
-    moros: {
-        label: "Moros",
-        watchtower: "Watchtower of the Lead Coin",
-        realm: "Stygia",
-        rulingArcana: ["death", "matter"],
-        inferiorArcanum: "spirit"
-    },
-    obrimos: {
-        label: "Obrimos",
-        watchtower: "Watchtower of the Golden Key",
-        realm: "Aether",
-        rulingArcana: ["forces", "prime"],
-        inferiorArcanum: "death"
-    },
-    thyrsus: {
-        label: "Thyrsus",
-        watchtower: "Watchtower of the Stone Book",
-        realm: "Primal Wild",
-        rulingArcana: ["life", "spirit"],
-        inferiorArcanum: "mind"
-    }
-};
-
-// =============================================================================
-// ORDERS
-// =============================================================================
-
-const ORDERS = {
-    adamantineArrow: {
-        label: "Adamantine Arrow",
-        roteSkills: ["athletics", "intimidation", "medicine"]
-    },
-    guardiansOfTheVeil: {
-        label: "Guardians of the Veil",
-        roteSkills: ["investigation", "stealth", "subterfuge"]
-    },
-    mysterium: {
-        label: "Mysterium",
-        roteSkills: ["investigation", "occult", "survival"]
-    },
-    silverLadder: {
-        label: "Silver Ladder",
-        roteSkills: ["expression", "persuasion", "subterfuge"]
-    },
-    freeCouncil: {
-        label: "Free Council",
-        roteSkills: ["crafts", "persuasion", "science"]
-    },
-    seersOfTheThrone: {
-        label: "Seers of the Throne",
-        roteSkills: ["investigation", "occult", "persuasion"]
-    },
-    apostate: {
-        label: "Apostate",
-        roteSkills: []
-    },
-    nameless: {
-        label: "Nameless",
-        roteSkills: []
-    }
-};
-
-// =============================================================================
-// ARCANA
-// =============================================================================
-
-const ARCANA = {
-    death:  { label: "Death",  description: "Ghosts, decay, and the Underworld" },
-    fate:   { label: "Fate",   description: "Destiny, luck, and oaths" },
-    forces: { label: "Forces", description: "Energy, light, and elements" },
-    life:   { label: "Life",   description: "Healing, shapeshifting, and biology" },
-    matter: { label: "Matter", description: "Alchemy, shaping, and transmutation" },
-    mind:   { label: "Mind",   description: "Telepathy, emotions, and Goetia" },
-    prime:  { label: "Prime",  description: "Mana, enchantment, and the Supernal" },
-    space:  { label: "Space",  description: "Scrying, teleportation, and sympathy" },
-    spirit: { label: "Spirit", description: "Spirits, the Shadow, and ephemera" },
-    time:   { label: "Time",   description: "Prophecy, time travel, and postcognition" }
-};
+const PATHS  = MageData.PATHS;
+const ORDERS = MageData.ORDERS;
+const ARCANA = MageData.ARCANA;
 
 // =============================================================================
 // SKILLS

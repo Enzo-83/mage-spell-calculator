@@ -209,6 +209,16 @@ correct.)*
   compendium still loads in index.
 
 ### Phase 3 — Single source of truth for game data
+*(Done 2026-06-11: `js/gameData.js` exposes `MageData` — Arcana with canonical
+colors in hex + Discord-int forms, Paths, Orders, Practice names, Title-Case
+helpers. character.js aliases it; index (`SL_*`, Discord `ARCANUM_COLORS`),
+wizard (5 declarations + an in-component `ARCANUM_HEX`/`ARCANA_ORDER`), and
+storyteller (`ARCANUM_HEX`/`ARCANA_ORDER`/`ARCANA_LABEL`) all consume it.
+Deviation from the original task text: `GNOSIS_CHART` deliberately stays in
+js/spellFactors.js — it is rules math, already single-sourced in the engine;
+wizard's duplicate Gnosis-keyed tables die in Phase 4. 15 new harness
+assertions lock the canonical colors; drift count unchanged, confirming a
+behavior-neutral migration.)*
 1. New `js/gameData.js`: `ARCANA`, `PATHS`, `ORDERS`, `PRACTICES`, `GNOSIS_CHART`,
    and `ARCANUM_COLORS` with **both** CSS hex and Discord int forms (canonical values
    in §A2), lowercase keys + a Title Case lookup helper.

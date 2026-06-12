@@ -42,7 +42,7 @@ const S = {
 
 // ── Extract + load the wizard's inline engine ──────────────────────────────
 const wizardHtml = read('wizard.html');
-const startMark = '// ── Game data ──';
+const startMark = '// ── Game data'; // prefix match — the full heading carries a note
 const endMark = '// ── UI atoms ──';
 const startIdx = wizardHtml.indexOf(startMark);
 const endIdx = wizardHtml.indexOf(endMark);
@@ -51,11 +51,15 @@ if (startIdx < 0 || endIdx < 0 || endIdx <= startIdx) {
   process.exit(2);
 }
 const wizardCtx = vm.createContext({ console });
+vm.runInContext(read('js/gameData.js'), wizardCtx, { filename: 'gameData.js' });
 vm.runInContext(read('js/dicePool.js'), wizardCtx, { filename: 'dicePool.js' });
 vm.runInContext(wizardHtml.slice(startIdx, endIdx), wizardCtx, { filename: 'wizard-engine.js' });
 const W = {
   deriveValues: vm.runInContext('deriveValues', wizardCtx),
   PARADOX_PER_REACH: vm.runInContext('PARADOX_PER_REACH', wizardCtx),
+  ARCANUM_COLORS: vm.runInContext('ARCANUM_COLORS', wizardCtx),
+  PATHS: vm.runInContext('PATHS', wizardCtx),
+  MageData: vm.runInContext('MageData', wizardCtx),
 };
 
 // ── Tiny test runner ────────────────────────────────────────────────────────
@@ -206,6 +210,26 @@ for (const [wName, sKey] of yantraPairs) {
 for (const g of [1, 5, 10]) {
   t(`wizard PARADOX_PER_REACH g${g} matches shared`, W.PARADOX_PER_REACH[g], S.getParadoxPerReach(g));
 }
+
+// Canonical Arcanum color identities (js/gameData.js) — locked to the table's
+// established values; any change here is a deliberate theme decision.
+const CANONICAL_HEX = {
+  death: '#475569', fate: '#e2e8f0', forces: '#f87171', life: '#4ade80',
+  matter: '#d97706', mind: '#fbbf24', prime: '#60a5fa', space: '#a78bfa',
+  spirit: '#fb923c', time: '#22d3ee',
+};
+const MD = W.MageData;
+t('gameData: ARCANUM_HEX matches canonical table', MD.ARCANUM_HEX, CANONICAL_HEX);
+for (const k of Object.keys(CANONICAL_HEX)) {
+  t(`gameData: ARCANUM_INT[${k}] = parsed hex`, MD.ARCANUM_INT[k], parseInt(CANONICAL_HEX[k].slice(1), 16));
+}
+t('gameData: arcanumHex is case-insensitive', MD.arcanumHex('Death'), '#475569');
+t('gameData: arcanumInt falls back to accent purple', MD.arcanumInt('unknown'), 0x7B2CBF);
+t('wizard ARCANUM_COLORS derives from canonical ints',
+  W.ARCANUM_COLORS, Object.fromEntries(MD.ARCANA_KEYS.map(k => [MD.tc(k), MD.ARCANUM_INT[k]])));
+t('wizard PATHS ruling arcana = Title Case view of canonical',
+  Object.fromEntries(Object.entries(W.PATHS).map(([k, p]) => [k, p.rulingArcana])),
+  Object.fromEntries(Object.entries(MD.PATHS).map(([k, p]) => [k, p.rulingArcana.map(MD.tc)])));
 
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 
