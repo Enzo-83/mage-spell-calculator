@@ -332,6 +332,30 @@ three pages, not just index.)*
   (new SW takes over) still works.
 
 ### Phase 9 — Tilt catalog module + player tilt tooltips *(feature-flavored consolidation)*
+*(Done 2026-06-12: `js/tiltCatalog.js` extracts storyteller's inline
+`TiltsCatalog` IIFE **verbatim** — the current 12-column CSV implementation,
+not the stale reference file — exposing `window.tiltCatalog` (subscribe,
+`useCatalog`, `getByName`, `csvToEntries`, `handleImportFile`,
+`downloadTemplate`, `exportCsv`, `getEntryCount`) plus `window.TiltBadge`,
+a no-JSX `React.createElement` component (glossary.js pattern, loads before
+Babel). Additions over the inline version: `useCatalog` lazily auto-subscribes
+so badge-only pages need no wiring, `getByName` for badge lookups, and
+`csvToEntries` is exported for the harness (7 new CSV unit tests; suite now
+136, 0 drift). `TiltBadge` shows name — type label (Persistent Condition /
+Environmental Tilt / …), description, and the same type-specific fields the
+ST chips use (conditions: Resolution+Beat; tilts: Effect+Ending); flips to the
+right viewport edge; custom tilts render as the bare name with no tooltip.
+Consumers: storyteller (catalog management, references renamed
+`TiltsCatalog.*` → `tiltCatalog.*`, behavior unchanged), wizard's ST-applied
+tilts banner, **and** Classic's ScenePill tilt chips (same chip, trivial add —
+plan only required wizard). sw.js precache + CACHE_NAME bumped (v57).
+Verified live: ST session → Tilts Catalog panel renders import/template/export
+through the module; TiltBadge tooltip + custom-tilt degradation exercised on
+the wizard page (catalog lookup stubbed in-page: the live `tiltsConditions`
+collection is empty and Firestore rules correctly deny unauthenticated writes,
+so the Firestore path was verified as connect + clean empty snapshot). Note
+for the future: the production catalog has no entries yet — the ST must
+import a CSV before players see tooltips.)*
 Salvaged from an abandoned worktree (2026-06-11): extract storyteller.html's inline
 Firestore tilt catalog into a shared `js/tiltCatalog.js` module exposing
 `window.tiltCatalog` + a `TiltBadge` React component, and use `TiltBadge` in

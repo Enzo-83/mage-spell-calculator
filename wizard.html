@@ -44,6 +44,7 @@
   <script src="js/glossary.js"></script>
   <script src="js/gameData.js"></script>
   <script src="shared/discord.js"></script>
+  <script src="js/tiltCatalog.js"></script>
   <script src="js/spellFactors.js"></script>
   <script src="js/dicePool.js"></script>
 
@@ -4258,7 +4259,7 @@
                   <span key={i} style={{ fontSize:11, padding:"2px 9px", borderRadius:10,
                     background:"rgba(230,57,70,0.15)", border:"1px solid rgba(230,57,70,0.35)",
                     color:"#e63946" }}>
-                    {tilt}
+                    <TiltBadge name={tilt}/>
                   </span>
                 ))}
               </div>

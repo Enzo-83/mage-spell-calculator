@@ -58,6 +58,7 @@
     <script src="shared/session.js"></script>
     <script src="./js/gameData.js"></script>
     <script src="shared/discord.js"></script>
+    <script src="./js/tiltCatalog.js"></script>
     <script src="./js/spellFactors.js"></script>
     <script src="./js/dicePool.js"></script>
     <script src="./js/character.js"></script>
@@ -1767,7 +1768,9 @@
                     <span style={{fontSize:'0.7em',letterSpacing:1,textTransform:'uppercase',color:'#e63946',fontWeight:700,marginRight:2}}>Tilts</span>
                     {myTilts.map((t,i) => (
                       <span key={i} style={{fontSize:'0.8em',padding:'2px 8px',borderRadius:10,
-                        background:'rgba(230,57,70,0.15)',border:'1px solid rgba(230,57,70,0.35)',color:'#e63946'}}>{t}</span>
+                        background:'rgba(230,57,70,0.15)',border:'1px solid rgba(230,57,70,0.35)',color:'#e63946'}}>
+                        <TiltBadge name={t}/>
+                      </span>
                     ))}
                   </div>
                 )}
