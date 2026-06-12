@@ -20,3 +20,6 @@ Related shared code lives in `shared/`:
   the top documents the full `sessions/{code}/...` schema — read it first. Also hosts
   the legacy `scene*` room helpers (merged from the former `js/scene.js`).
 - `shared/nav.js` — floating page-switcher (Calculator / Wizard / Storyteller).
+- `shared/discord.js` — `window.DiscordShared`: Discord webhook post helper, dice-bot
+  command formatters, and embed builders used by index.html and wizard.html. Load after
+  `gameData.js` (embed colors come from `MageData.arcanumInt`).

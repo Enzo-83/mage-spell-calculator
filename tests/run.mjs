@@ -60,11 +60,10 @@ vm.runInContext(read('js/dicePool.js'), wizardCtx, { filename: 'dicePool.js' });
 // safety comes from distinct names in wizard.html itself.
 vm.runInContext(
   `globalThis.__wizard = (function () {\n${wizardHtml.slice(startIdx, endIdx)}\n` +
-  `return { deriveValues, ARCANUM_COLORS, PATHS }; })();`,
+  `return { deriveValues, PATHS }; })();`,
   wizardCtx, { filename: 'wizard-engine.js' });
 const W = {
   deriveValues: vm.runInContext('__wizard.deriveValues', wizardCtx),
-  ARCANUM_COLORS: vm.runInContext('__wizard.ARCANUM_COLORS', wizardCtx),
   PATHS: vm.runInContext('__wizard.PATHS', wizardCtx),
   MageData: vm.runInContext('MageData', wizardCtx),
 };
@@ -241,8 +240,28 @@ for (const k of Object.keys(CANONICAL_HEX)) {
 }
 t('gameData: arcanumHex is case-insensitive', MD.arcanumHex('Death'), '#475569');
 t('gameData: arcanumInt falls back to accent purple', MD.arcanumInt('unknown'), 0x7B2CBF);
-t('wizard ARCANUM_COLORS derives from canonical ints',
-  W.ARCANUM_COLORS, Object.fromEntries(MD.ARCANA_KEYS.map(k => [MD.tc(k), MD.ARCANUM_INT[k]])));
+// ── shared/discord.js (Phase 7) ────────────────────────────────────────────
+const discordCtx = vm.createContext({ console });
+vm.runInContext(read('js/gameData.js'), discordCtx, { filename: 'gameData.js' });
+vm.runInContext(read('shared/discord.js'), discordCtx, { filename: 'discord.js' });
+const DS = vm.runInContext('DiscordShared', discordCtx);
+t('discord: rote command', DS.formatDiceCommand(7, { quality: 'rote', againValue: 10 }), '$rote 7');
+t('discord: 8-again command', DS.formatDiceCommand(5, { quality: 'normal', againValue: 8 }), '$cod8 5');
+t('discord: 9-again command', DS.formatDiceCommand(4, { quality: 'normal', againValue: 9 }), '$cod9 4');
+t('discord: 10-again command', DS.formatDiceCommand(6, { quality: 'normal', againValue: 10 }), '$cod 6');
+t('discord: paradox chance die rolls 0',
+  DS.formatParadoxCommand({ isChanceDie: true, finalDice: 1, rollQuality: { againValue: 10 } }), '$cod 0');
+t('discord: paradox command with 9-again',
+  DS.formatParadoxCommand({ isChanceDie: false, finalDice: 3, rollQuality: { againValue: 9 } }), '$cod9 3');
+t('discord: embed color resolves Title Case arcanum',
+  DS.buildEmbed({ title: 't', arcanum: 'Forces', fields: [] }).color, MD.ARCANUM_INT.forces);
+t('discord: embed color falls back to accent purple',
+  DS.buildEmbed({ title: 't', arcanum: null, fields: [] }).color, 0x7B2CBF);
+t('discord: pool summary omits paradox when within free Reach',
+  DS.buildPoolSummaryFields({ pool: 8, usedReach: 1, freeReach: 2, excessReach: 0, manaCost: 0, paradoxText: '' }).length, 3);
+t('discord: pool summary adds paradox field when over Reach',
+  DS.buildPoolSummaryFields({ pool: 8, usedReach: 3, freeReach: 2, excessReach: 1, manaCost: 1, paradoxText: '2 dice' }).pop(),
+  { name: '⚠️ Paradox', value: '2 dice', inline: true });
 t('wizard PATHS ruling arcana = Title Case view of canonical',
   Object.fromEntries(Object.entries(W.PATHS).map(([k, p]) => [k, p.rulingArcana])),
   Object.fromEntries(Object.entries(MD.PATHS).map(([k, p]) => [k, p.rulingArcana.map(MD.tc)])));
