@@ -25,11 +25,15 @@ over 84 targeted cases and 4,000 seeded-random cases.
 >   cap). Both pages already did this.
 > - **B2 (fixed):** `calculateParadoxPool` now returns a `noRoll` result with
 >   zero dice when `reachExcess <= 0` — callers no longer need external
->   guards (index.html's guard remains harmlessly; Phase 6 may drop it).
+>   guards (index.html's leftover guard was deleted in Phase 6 with the rest
+>   of the dead `updateParadoxDisplay` helper).
 > - **D1 (resolved by convention):** the engine charges +1 Reach for Instant
 >   on any method, including Grimoire rotes; the *UI* is responsible for
->   forbidding Instant + Grimoire (wizard already does — **Phase 6 must
->   verify Classic's form does too**).
+>   forbidding Instant + Grimoire. The wizard already did; Phase 6 audited
+>   Classic and found it did **not** — the form now disables the Instant
+>   option for Grimoire rotes and coerces `castingTime` back to `ritual`
+>   (covers both manual selection and loading a Grimoire rote while Instant
+>   was selected).
 > - **Mana layering (kept as-is):** the non-Ruling-Arcanum +1 Mana stays at
 >   page level — it needs character path knowledge the engine doesn't model.
 >

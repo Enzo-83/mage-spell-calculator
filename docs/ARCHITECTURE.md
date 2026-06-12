@@ -2,7 +2,7 @@
 
 **Living document.** Every refactor phase (see [CODE_REVIEW_PLAN.md](CODE_REVIEW_PLAN.md))
 updates this file so the written description never drifts from the code.
-*Last updated: 2026-06-11 (Phase 0).*
+*Last updated: 2026-06-12 (Phase 6).*
 
 ## Overview
 
@@ -23,7 +23,7 @@ Backend is Firebase:
 
 | Page | Role | Tech |
 |------|------|------|
-| `index.html` | **Classic** — desktop-first calculator, all fields visible at once. Editable spell library (rotes/praxes/favorites), combined spell casting (Classic-only), character editor. | Hybrid: vanilla JS core + React components in `text/babel` blocks, connected by window bridges (below) |
+| `index.html` | **Classic** — desktop-first calculator, all fields visible at once. Editable spell library (rotes/praxes/favorites), combined spell casting (Classic-only), character editor. | Hybrid: one vanilla JS block (state/persistence/Discord) + one React `text/babel` block (all UI), connected by window bridges (below) |
 | `wizard.html` | **Wizard** — step-by-step mobile casting flow (440px card). Saves to library but doesn't manage it. | Fully React, single Babel block |
 | `storyteller.html` | **ST Screen** — player cards (health/mana/WP/paradox), tilt management with CSV-importable catalog, scene log, sheet viewer with ST edit overrides. | Fully React, single Babel block |
 
@@ -60,15 +60,81 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 
 ## Window bridges (index.html only)
 
-Classic is mid-migration: React owns the UI, a vanilla block owns persistence,
-Discord sends, and the spell library store. They talk through window globals:
+Classic is split into two cooperating halves (Phase 6 finished the cleanup):
 
-| Global | Direction | Purpose |
-|--------|-----------|---------|
-| `window.classicVanilla` | React → vanilla | Vanilla callbacks React invokes: `onCharacterLoad`, `onStatChange`, `onEdit/onSave/onNew`, `addSpell/updateSpell/deleteSpell`, `loadSpell`, `openSaveToLibrary`, `setSpellAsActive`, `sendDicePool`, `sendCard`, `exportSpellLibrary`, `showToast`, `onSceneChange`, `dismissSpell` |
-| `window.classicBridge` | vanilla → React | React state setters, **accumulated by merge** (`{...window.classicBridge, ...}`) from several components: `setCharacter`, `setSpellForm`, `setSpellFormField`, `setActiveSpellCount`, `recalculate`, plus editor/modal open functions |
-| `window.classicCombinedBridge` | React → vanilla/React | Combined-spell state: `isEnabled`, `getSpells`, penalty/reach helpers |
-| `window.spellLibraryAPI` | vanilla → compendium | Spell library access for `js/spellCompendium.js` |
+- **One vanilla `<script>` block** (top of the page) owning *state and I/O*:
+  the `currentCharacter` closure, localStorage/JSON-file persistence, spell
+  library CRUD, the PNG/print export, Discord webhook sends, and the
+  scene-connection closure vars.
+- **One `text/babel` block** owning *all UI*: header, calculator form, results
+  panel, combined-spell panel, character editor, active-spells modal, spell
+  library drawer. Components are defined in document order and every root is
+  mounted at the end of the block (after all top-level consts — beware TDZ if
+  reordering). Bridge objects are registered from component `useEffect`s and
+  **accumulated by merge** (`{...window.classicBridge, ...}` or property
+  assignment), so registration order doesn't matter.
+
+### `window.classicVanilla` — React → vanilla (the contract)
+
+Lifecycle / character:
+
+| Method | Args | Purpose |
+|--------|------|---------|
+| `onCharacterLoad` | `(char)` | A character was loaded in the React header (file picker or localStorage restore). Syncs the vanilla closure, pushes gnosis/highest-arcanum into the form, refreshes the library drawer, persists, and pushes stats + sheet to the live scene if connected. |
+| `onStatChange` | `(char)` | Header mana/health/willpower edit. Forces a results-panel re-render (mana ledger) and pushes stats to the live scene. |
+| `onNew` | `()` | New character (confirm-guarded), then opens the editor. |
+| `onEdit` | `()` | Opens the React character editor pre-filled; vanilla applies the draft back to `currentCharacter` on save. |
+| `onSave` | `()` | Downloads the current character as JSON. |
+
+Spell library (drawer calls these; each returns the updated character or `null` if none loaded):
+
+| Method | Args | Purpose |
+|--------|------|---------|
+| `addSpell` | `(type, spellData)` | Append a `'rote' \| 'praxis' \| 'improvised'` spell; persists. |
+| `updateSpell` | `(spellId, spellData, newType)` | Replace a spell in place (moves between type lists if `newType` differs); persists. |
+| `deleteSpell` | `(spellId)` | Remove a spell; persists. |
+| `loadSpell` | `(spellOrId)` | Load a library spell into the calculator via `classicBridge.setSpellForm`; remembers `sourceSpellId` for "update existing" saves. |
+| `openSaveToLibrary` | `()` | Snapshot the calculator state (DOM-reads the React-rendered form by element id) and open the save-to-library modal. |
+| `exportSpellLibrary` | `()` | Render all spell cards to a PNG (html2canvas) or a printable window fallback. |
+
+Casting / results:
+
+| Method | Args | Purpose |
+|--------|------|---------|
+| `setSpellAsActive` | `()` | Snapshot the current cast (name/arcanum/factors/reach/mana) onto `character.activeSpells`; persists and pushes stats to the scene. |
+| `dismissSpell` | `(spellId)` | Remove an active spell; persists, re-syncs counts, pushes stats. |
+| `sendDicePool` / `sendCard` | `()` | Discord webhook sends (compact embed + dice-bot command / full spell-card embed). `sendDicePool` also deducts mana once and increments the scene Paradox counter when the cast risks Paradox. |
+| `resetManaDeducted` | `()` | Clears the once-per-spell mana-deduction latch. React calls it whenever a cost-relevant form field changes (calculator effect + paradox-mitigation input). |
+| `showToast` | `(message, duration?)` | Toast notification (default 2500 ms). |
+
+Scene:
+
+| Method | Args | Purpose |
+|--------|------|---------|
+| `onSceneChange` | `({mode, code, pid, players})` | ScenePill reports connection state; vanilla mirrors it into closure vars (used by all `sessionPush*` calls) and auto-fills the previous-Paradox-rolls input. |
+| `onSceneToggle` | `()` | No-op, kept for compatibility (ScenePill is self-contained). |
+
+### `window.classicBridge` — vanilla → React
+
+| Member | Registered by | Purpose |
+|--------|---------------|---------|
+| `setCharacter(char)` | header | Push character into the header display. |
+| `setSpellForm(patch)` / `setSpellFormField(k, v)` | form | Merge into / set one field of the calculator form state. |
+| `setActiveSpellCount(n)` | form | Active-spell count (feeds the engine's Reach math). |
+| `recalculate()` | form | Force a recompute with unchanged form state. |
+| `results.{refreshResults, notifyManaDeducted, clearManaDeducted, setAutoParadoxRolls, clearAutoParadoxRolls, getParadoxInputs}` | results panel | Re-render results; show/clear the "mana deducted" notice; drive/clear the scene-fed Paradox-rolls input; read paradox inputs. |
+| `charEditor.{open(char, onApply), close}` | character editor | Modal control; `onApply(draft)` receives the edited draft. |
+| `activeSpells.{open(spellList), close}` | active-spells modal | Modal control. |
+| `spellLib.{refresh(char), openSaveToLibrary(state, sourceSpellId), getCurrentTab, switchTab(t)}` | library drawer | Drawer data refresh, save modal, tab control. |
+
+### Other globals
+
+| Global | Purpose |
+|--------|---------|
+| `window.classicCombinedBridge` | Combined-spell state read by the calculator effect: `isEnabled`, `getSpells`, `getLowestArcanumInfo`, `getCombinationPenalty`, `getCombinedAdditionalReach`, `areAllPraxes`, `getCasterLowestArcanumDots`. |
+| `window.spellLibraryAPI` | Controlled access for `js/spellCompendium.js`: `getCharacter`, `getCurrentTab`, `switchTab`, `renderLibrary`, `save`. |
+| `window.grimoireDrawer` | `toggle`/`close` for the drawer, used by the static FAB/backdrop `onclick`s. |
+| `window.currentCharacter`, `window.currentSpellResult`, `window.currentPoolResult`, `window.currentCastingArcanum`, `window.currentRoteSkillKey` | Shared snapshots both halves read (results panel renders from them; Discord/export read them). |
 
 Gotchas (learned during migration, still true):
 
@@ -77,6 +143,9 @@ Gotchas (learned during migration, still true):
   and `classicVanilla` never gets defined.
 - Babel's DOMContentLoaded listener usually runs before the vanilla one, so React
   elements are *usually* in the DOM by vanilla init — but not guaranteed.
+- UI rule the engine doesn't enforce (drift item D1): Grimoire rotes can't be cast
+  Instant. The form disables the option and coerces `castingTime` back to `ritual`
+  (wizard.html enforces the same rule its own way).
 
 ## PWA
 
