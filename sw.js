@@ -15,7 +15,7 @@
 // CACHE_NAME only needs bumping if the caching strategy or layout changes —
 // NOT per release (network-first refreshes entries on every successful fetch).
 
-const CACHE_NAME = 'mage-grimoire-v56'; // bumped: precache layout changed (shared/discord.js)
+const CACHE_NAME = 'mage-grimoire-v57'; // bumped: precache layout changed (js/tiltCatalog.js)
 
 // Everything needed to boot all three pages offline.
 const PRECACHE = [
@@ -36,6 +36,7 @@ const PRECACHE = [
   './js/character.js',
   './js/spellCompendium.js',
   './js/glossary.js',
+  './js/tiltCatalog.js',
   './icons/icon-152.png',
   './icons/icon-192.png',
   './icons/icon-512.png',

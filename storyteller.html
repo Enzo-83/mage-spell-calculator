@@ -40,6 +40,7 @@
 <script src="shared/firebase.js"></script>
 <script src="shared/session.js"></script>
 <script src="js/gameData.js"></script>
+<script src="js/tiltCatalog.js"></script>
 
 <script type="text/babel">
 const { useState, useEffect, useRef } = React;
@@ -69,231 +70,7 @@ const C = {
 const ARCANUM_HEX = MageData.ARCANUM_HEX;
 
 // ── Tilts & Conditions Catalog ───────────────────────────────────────────
-// Firestore collection "tiltsConditions" — mirrors the Spell Compendium pattern.
-
-const TiltsCatalog = (() => {
-  let _entries   = [];
-  let _listeners = [];
-  let _unsub     = null;
-
-  const VALID_TYPES  = ['tilt', 'condition'];
-  const CSV_COLUMNS  = ['name','type','persistent','environmental','description',
-                        'resolution','beat','effect','causing','ending','sourceBook','sourcePage'];
-
-  function subscribe() {
-    if (_unsub) _unsub();
-    _unsub = _fsDb.collection('tiltsConditions')
-      .orderBy('name')
-      .onSnapshot(snap => {
-        _entries = [];
-        snap.forEach(doc => { const d = doc.data(); d.id = doc.id; _entries.push(d); });
-        _listeners.forEach(fn => fn([..._entries]));
-      }, err => console.error('TiltsCatalog snapshot error:', err));
-  }
-
-  function useCatalog() {
-    const [catalog, setCatalog] = React.useState(_entries);
-    React.useEffect(() => {
-      _listeners.push(setCatalog);
-      setCatalog([..._entries]);
-      return () => { _listeners = _listeners.filter(fn => fn !== setCatalog); };
-    }, []);
-    return catalog;
-  }
-
-  function parseCsvRow(line) {
-    var result = [], cur = '', inQ = false;
-    for (var i = 0; i < line.length; i++) {
-      var ch = line[i];
-      if (inQ) {
-        if (ch === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else { inQ = false; } }
-        else { cur += ch; }
-      } else {
-        if (ch === '"')      { inQ = true; }
-        else if (ch === ',') { result.push(cur.trim()); cur = ''; }
-        else                 { cur += ch; }
-      }
-    }
-    result.push(cur.trim());
-    return result;
-  }
-
-  function csvToEntries(text) {
-    const lines = text.replace(/^﻿/, '').split(/\r?\n/);
-    const entries = [];
-    let headerIdx = -1;
-    for (let i = 0; i < lines.length; i++) {
-      const l = lines[i].trim();
-      if (!l || l.startsWith('#')) continue;
-      headerIdx = i; break;
-    }
-    if (headerIdx < 0) return entries;
-    const headers = parseCsvRow(lines[headerIdx]).map(h => h.toLowerCase().trim());
-    for (let i = headerIdx + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line || line.startsWith('#')) continue;
-      const cols = parseCsvRow(lines[i]);
-      const row  = {};
-      headers.forEach((h, idx) => { row[h] = (cols[idx] || '').trim(); });
-      if (!row.name) continue;
-      function parseBool(val) {
-        const v = (val || '').toLowerCase();
-        return v === 'yes' || v === 'true' || v === '1';
-      }
-      entries.push({
-        name: row.name, type: (row.type || 'tilt').toLowerCase(),
-        persistent: parseBool(row.persistent), environmental: parseBool(row.environmental),
-        description: row.description || '',
-        resolution: row.resolution || '', beat: row.beat || '',
-        effect: row.effect || '', causing: row.causing || '', ending: row.ending || '',
-        sourceBook: row.sourcebook || '',
-        sourcePage: row.sourcepage ? parseInt(row.sourcepage, 10) : null,
-      });
-    }
-    return entries;
-  }
-
-  function validate(e) {
-    const errs = [];
-    if (!e.name || !e.name.trim()) errs.push('name required');
-    if (VALID_TYPES.indexOf(e.type) === -1) errs.push('type must be tilt or condition');
-    return errs;
-  }
-
-  function sanitise(e) {
-    return {
-      name: String(e.name).trim(), type: e.type,
-      persistent: !!e.persistent, environmental: !!e.environmental,
-      description: String(e.description || '').trim(),
-      resolution: String(e.resolution || '').trim(), beat: String(e.beat || '').trim(),
-      effect: String(e.effect || '').trim(), causing: String(e.causing || '').trim(),
-      ending: String(e.ending || '').trim(),
-      sourceBook: String(e.sourceBook || '').trim(),
-      sourcePage: e.sourcePage ? parseInt(e.sourcePage, 10) : null,
-    };
-  }
-
-  async function doImport(raw, overwrite, onStatus, onProgress) {
-    const entries = raw.filter(e => e && e.name && !e.name.startsWith('#'));
-    if (!entries.length) { onStatus('No valid entries found.', 'warn'); return; }
-    const valid = [], invalid = [];
-    entries.forEach((e, idx) => {
-      const errs = validate(e);
-      if (errs.length) invalid.push({ idx: idx+1, name: e.name || '(unnamed)', errs });
-      else valid.push(sanitise(e));
-    });
-    if (invalid.length) {
-      const msgs = invalid.map(e => `#${e.idx} "${e.name}": ${e.errs.join(', ')}`).join('\n');
-      onStatus(`⚠️ ${invalid.length} entries skipped:\n${msgs}`, 'warn');
-    }
-    if (!valid.length) { onStatus('No valid entries after validation.', 'err'); return; }
-    const existingKeys = {};
-    _entries.forEach(e => { existingKeys[e.name.toLowerCase()] = e.id; });
-    const toAdd = [], toUpdate = [];
-    let skipped = 0;
-    valid.forEach(e => {
-      const key = e.name.toLowerCase();
-      if (existingKeys[key]) { if (overwrite) toUpdate.push({ id: existingKeys[key], data: e }); else skipped++; }
-      else toAdd.push(e);
-    });
-    const total = toAdd.length + toUpdate.length;
-    if (!total) { onStatus(`All ${skipped} entries already exist. Enable "Overwrite" to update.`, 'warn'); return; }
-    const CHUNK = 499;
-    const allOps = [...toAdd.map(e => ({ type:'add', data:e })), ...toUpdate.map(u => ({ type:'update', id:u.id, data:u.data }))];
-    let done = 0, errors = 0;
-    const now = firebase.firestore.FieldValue.serverTimestamp();
-    for (let i = 0; i < allOps.length; i += CHUNK) {
-      const chunk = allOps.slice(i, i + CHUNK);
-      const batch = _fsDb.batch();
-      chunk.forEach(op => {
-        op.data.updatedAt = now;
-        if (op.type === 'add') { op.data.createdAt = now; batch.set(_fsDb.collection('tiltsConditions').doc(), op.data); }
-        else { batch.update(_fsDb.collection('tiltsConditions').doc(op.id), op.data); }
-      });
-      try { await batch.commit(); done += chunk.length; }
-      catch (e) { errors += chunk.length; console.error('Import batch error:', e); }
-      if (onProgress) onProgress(done + errors, total);
-    }
-    const parts = [];
-    if (toAdd.length)    parts.push(`${toAdd.length} added`);
-    if (toUpdate.length) parts.push(`${toUpdate.length} updated`);
-    if (skipped)         parts.push(`${skipped} skipped`);
-    if (invalid.length)  parts.push(`${invalid.length} invalid`);
-    if (errors)          parts.push(`${errors} batch errors`);
-    onStatus(`✓ Import complete — ${parts.join(', ')}.`, errors ? 'warn' : 'ok');
-  }
-
-  function downloadTemplate() {
-    const header = CSV_COLUMNS.join(',');
-    const note = [
-      '# DELETE these comment rows before importing.',
-      '# type: tilt | condition',
-      '# persistent: yes | no  (Conditions marked "(Persistent)")',
-      '# environmental: yes | no  (Tilts marked "(Environmental)")',
-      '# Conditions: fill description + resolution + beat. Leave effect/causing/ending empty.',
-      '# Tilts: fill description + effect + causing + ending. Leave resolution/beat empty.',
-      '# Wrap text containing commas in double-quotes.',
-      '# sourceBook: optional, e.g. core, signs-of-sorcery',
-    ].join('\n');
-    const sample = ['Addicted','condition','yes','no',
-      '"Your character is addicted to something."',
-      '"Regain a dot of Integrity or lose another dot."',
-      '"Your character chooses a fix over an obligation."',
-      '""','""','""','core','289'].join(',');
-    const csv  = note + '\n' + header + '\n' + sample;
-    const blob = new Blob([csv], { type:'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'tilts-conditions-template.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async function exportCsv(onStatus) {
-    function csvCell(val) {
-      if (val === null || val === undefined) return '';
-      const s = String(val);
-      if (s.includes(',') || s.includes('"') || s.includes('\n')) return '"' + s.replace(/"/g, '""') + '"';
-      return s;
-    }
-    if (!_entries.length) { onStatus('No entries in catalog.', 'warn'); return; }
-    const rows = [CSV_COLUMNS.join(',')];
-    _entries.forEach(e => {
-      rows.push([
-        csvCell(e.name), csvCell(e.type),
-        csvCell(e.persistent ? 'yes' : 'no'), csvCell(e.environmental ? 'yes' : 'no'),
-        csvCell(e.description), csvCell(e.resolution), csvCell(e.beat),
-        csvCell(e.effect), csvCell(e.causing), csvCell(e.ending),
-        csvCell(e.sourceBook), csvCell(e.sourcePage),
-      ].join(','));
-    });
-    const blob = new Blob([rows.join('\r\n')], { type:'text/csv' });
-    const url  = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tilts-conditions-export-' + new Date().toISOString().slice(0,10) + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    onStatus(`✓ Exported ${_entries.length} entries.`, 'ok');
-  }
-
-  function handleImportFile(file, overwrite, onStatus, onProgress) {
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith('.csv')) { onStatus('Please upload a .csv file.', 'err'); return; }
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const raw = csvToEntries(e.target.result);
-        if (!raw.length) { onStatus('No data rows found. Check header row.', 'warn'); return; }
-        doImport(raw, overwrite, onStatus, onProgress);
-      } catch (err) { onStatus('CSV parse error — ' + err.message, 'err'); }
-    };
-    reader.readAsText(file);
-  }
-
-  function getEntryCount() { return _entries.length; }
-
-  return { subscribe, useCatalog, handleImportFile, downloadTemplate, exportCsv, getEntryCount };
-})();
+// Extracted to js/tiltCatalog.js (Phase 9) — exposed as window.tiltCatalog.
 
 // ── Tiny shared components ────────────────────────────────────────────────
 
@@ -565,7 +342,7 @@ function PlayerCard({ pid, player, sessionCode, sceneActive }) {
   const [spellsOpen,       setSpellsOpen]       = useState(false);
   const [tiltInput,        setTiltInput]        = useState("");
   const [tiltDropdownOpen, setTiltDropdownOpen] = useState(false);
-  const catalog     = TiltsCatalog.useCatalog();
+  const catalog     = tiltCatalog.useCatalog();
   const [sheetInput,       setSheetInput]       = useState(player.sheetLink || "");
   const [sheetEditing,     setSheetEditing]     = useState(false);
   const [sheetOpen,        setSheetOpen]        = useState(false);
@@ -1191,7 +968,7 @@ function SceneLog({ sessionCode, scenes, currentSceneId }) {
 // ── TiltsCatalogPanel ────────────────────────────────────────────────────
 
 function TiltsCatalogPanel({ onClose }) {
-  const catalog = TiltsCatalog.useCatalog();
+  const catalog = tiltCatalog.useCatalog();
   const [overwrite,  setOverwrite]  = useState(false);
   const [status,     setStatus]     = useState(null);   // { msg, type }
   const [progress,   setProgress]   = useState(null);   // { done, total }
@@ -1235,7 +1012,7 @@ function TiltsCatalogPanel({ onClose }) {
             <input ref={fileRef} type="file" accept=".csv"
               style={{ display:"none" }}
               onChange={e => {
-                TiltsCatalog.handleImportFile(e.target.files[0], overwrite, onStatus, onProgress);
+                tiltCatalog.handleImportFile(e.target.files[0], overwrite, onStatus, onProgress);
                 e.target.value = "";
               }} />
             <button onClick={() => fileRef.current && fileRef.current.click()}
@@ -1273,13 +1050,13 @@ function TiltsCatalogPanel({ onClose }) {
 
         {/* Template & Export row */}
         <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-          <button onClick={() => TiltsCatalog.downloadTemplate()}
+          <button onClick={() => tiltCatalog.downloadTemplate()}
             style={{ flex:1, padding:"7px 0", borderRadius:6, cursor:"pointer",
               border:`1px solid ${C.border}`, background:"transparent",
               color:C.textMuted, fontSize:12 }}>
             Download Template
           </button>
-          <button onClick={() => TiltsCatalog.exportCsv(onStatus)}
+          <button onClick={() => tiltCatalog.exportCsv(onStatus)}
             style={{ flex:1, padding:"7px 0", borderRadius:6, cursor:"pointer",
               border:`1px solid ${C.border}`, background:"transparent",
               color:C.textMuted, fontSize:12 }}>
@@ -1315,7 +1092,7 @@ function App() {
   const [catalogOpen,    setCatalogOpen]    = useState(false);
   const listenerRef = useRef(null);
 
-  useEffect(() => { TiltsCatalog.subscribe(); }, []);
+  useEffect(() => { tiltCatalog.subscribe(); }, []);
 
   // Reconnect from localStorage on mount
   useEffect(() => {

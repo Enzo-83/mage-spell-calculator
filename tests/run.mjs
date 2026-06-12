@@ -262,6 +262,32 @@ t('discord: pool summary omits paradox when within free Reach',
 t('discord: pool summary adds paradox field when over Reach',
   DS.buildPoolSummaryFields({ pool: 8, usedReach: 3, freeReach: 2, excessReach: 1, manaCost: 1, paradoxText: '2 dice' }).pop(),
   { name: '⚠️ Paradox', value: '2 dice', inline: true });
+
+// ── js/tiltCatalog.js (Phase 9) — CSV parsing ───────────────────────────────
+const tiltCtx = vm.createContext({ console });
+vm.runInContext(read('js/tiltCatalog.js'), tiltCtx, { filename: 'tiltCatalog.js' });
+const TC = vm.runInContext('tiltCatalog', tiltCtx);
+t('tiltCatalog: parses a simple row',
+  TC.csvToEntries('name,type,persistent,environmental,description\nBlinded,tilt,no,no,Cannot see.'),
+  [{ name: 'Blinded', type: 'tilt', persistent: false, environmental: false,
+     description: 'Cannot see.', resolution: '', beat: '', effect: '', causing: '',
+     ending: '', sourceBook: '', sourcePage: null }]);
+t('tiltCatalog: quoted cells keep commas and escaped quotes',
+  TC.csvToEntries('name,type,description\nAddicted,condition,"Needs a ""fix"", badly."')[0].description,
+  'Needs a "fix", badly.');
+t('tiltCatalog: skips comment and blank lines, finds header after comments',
+  TC.csvToEntries('# note\n\nname,type\n# another\nLeg Wrack,tilt\n\n').length, 1);
+t('tiltCatalog: rows without a name are dropped',
+  TC.csvToEntries('name,type\n,tilt\nStunned,tilt').map(e => e.name), ['Stunned']);
+t('tiltCatalog: type defaults to tilt, sourcePage parses to int',
+  (e => ({ type: e.type, page: e.sourcePage }))(
+    TC.csvToEntries('name,sourcepage\nKnocked Down,285')[0]),
+  { type: 'tilt', page: 285 });
+t('tiltCatalog: persistent accepts yes/true/1',
+  TC.csvToEntries('name,type,persistent\nA,condition,yes\nB,condition,true\nC,condition,1\nD,condition,no')
+    .map(e => e.persistent),
+  [true, true, true, false]);
+t('tiltCatalog: getByName is null-safe on empty catalog', TC.getByName('Blinded'), null);
 t('wizard PATHS ruling arcana = Title Case view of canonical',
   Object.fromEntries(Object.entries(W.PATHS).map(([k, p]) => [k, p.rulingArcana])),
   Object.fromEntries(Object.entries(MD.PATHS).map(([k, p]) => [k, p.rulingArcana.map(MD.tc)])));

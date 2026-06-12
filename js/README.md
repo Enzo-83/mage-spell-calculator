@@ -11,6 +11,7 @@ matters: Firebase compat scripts → `shared/session.js` → these files → pag
 | `character.js` | index.html | Character data structures (PATHS, ORDERS, defaults), localStorage persistence, JSON file import/export. |
 | `spellCompendium.js` | index.html | Firestore-backed global spell compendium with role-based editing (admin/editor/sub-editor/suggester). Exposes `window.initCompendium()` and `window.renderCompendiumTab()`. wizard.html has a separate React `CompendiumOverlay` against the same Firestore collection. |
 | `glossary.js` | index.html, wizard.html | Glossary term data + `window.GlossaryTip` React component (plain `createElement`, no JSX — safe to load before Babel). |
+| `tiltCatalog.js` | all three pages | `window.tiltCatalog` — Firestore-backed Tilts & Conditions catalog (subscribe, `useCatalog` hook, `getByName`, CSV import/export/template) + `window.TiltBadge` hover-tooltip component (plain `createElement`, no JSX). Storyteller manages the catalog; wizard and Classic render badges so players see descriptions. |
 
 Related shared code lives in `shared/`:
 

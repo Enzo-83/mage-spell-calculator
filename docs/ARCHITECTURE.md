@@ -46,6 +46,7 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | `js/character.js` | index | PATHS/ORDERS data, character defaults, localStorage + JSON file persistence. |
 | `js/spellCompendium.js` | index | Vanilla Firestore compendium UI with roles. (wizard has a parallel React `CompendiumOverlay` — unification is plan Phase 9.) |
 | `js/glossary.js` | index, wizard | Glossary data + `window.GlossaryTip` React component (no JSX). |
+| `js/tiltCatalog.js` | all three | `window.tiltCatalog` — Firestore `tiltsConditions` catalog (live subscribe, `useCatalog` React hook with lazy auto-subscribe, `getByName`, CSV import/export/template) + `window.TiltBadge`, a no-JSX React component rendering a tilt/condition name with a hover description tooltip; custom tilts degrade to the bare name (Phase 9). Extracted from storyteller.html. |
 | `shared/firebase.js` | all three | Single Firebase init — sets `window._fbApp/_fbDb/_fsDb/_fsAuth` for whichever SDKs the page loads (Phase 2). |
 | `shared/session.js` | all three | Firebase RTDB session layer + schema docs. Also hosts the legacy `scene*` room helpers merged from the former `js/scene.js` (Phase 2) — see the comment there for how they differ from the `session*` flow. |
 | `shared/nav.js` | all three | Floating page-switcher pill. |
