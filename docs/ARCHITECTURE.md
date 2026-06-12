@@ -76,12 +76,24 @@ Gotchas (learned during migration, still true):
 
 ## PWA
 
-`sw.js` (cache-first, manually versioned `CACHE_NAME`, currently `v49`) +
-`manifest.json`. Registered from index.html only. Known limitations (overhaul is plan
-Phase 8): the asset list omits storyteller.html, `theme.css`, `shared/`, glossary,
-and icons; HTML is cache-first so users run stale code until the version bump; CDN
-dependencies (React/Babel/Firebase) are never cached, so the app is not genuinely
-offline-capable yet.
+`sw.js` + `manifest.json`, registered from all three pages. Strategy (Phase 8):
+
+- **Same-origin** (our HTML/JS/CSS/icons): **network-first** with cache
+  fallback — online users always run the latest deployed code; offline serves
+  the last-seen copy. The full asset set for all three pages is precached on
+  install.
+- **Versioned CDN runtime** (React, Babel, Firebase SDKs on
+  cdnjs/`www.gstatic.com`, Google Fonts): **cache-first** — the URLs are
+  immutable, so cached copies never go stale. This makes the app genuinely
+  offline-capable. CDN entries are fetched in CORS mode so SRI-tagged script
+  tags can be answered from cache.
+- **All other cross-origin traffic** (Firebase data on
+  firebaseio.com/firestore.googleapis.com, Discord webhooks): **never
+  intercepted, never cached**.
+
+`CACHE_NAME` (`mage-grimoire-vNN`) only needs bumping when the caching
+strategy/layout itself changes — **not per release**; network-first refreshes
+cached entries on every successful fetch.
 
 ## Data files
 
@@ -113,5 +125,5 @@ change to the rules math.
 - Arcanum color identities are canon (see `docs/CODE_REVIEW_PLAN.md` §A2 for the
   table) — any feature touching an Arcanum uses those exact values.
 - Deployment: push to `main` → GitHub Pages via `.github/workflows/deploy.yml`.
-  Remember to bump `CACHE_NAME` in `sw.js` when shipping user-facing changes (until
-  Phase 8 automates this).
+  No service-worker cache bump needed per release (network-first since Phase 8);
+  bump `CACHE_NAME` only if the caching strategy or precache layout changes.
