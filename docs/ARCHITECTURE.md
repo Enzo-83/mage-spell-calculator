@@ -49,7 +49,8 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | `shared/firebase.js` | all three | Single Firebase init — sets `window._fbApp/_fbDb/_fsDb/_fsAuth` for whichever SDKs the page loads (Phase 2). |
 | `shared/session.js` | all three | Firebase RTDB session layer + schema docs. Also hosts the legacy `scene*` room helpers merged from the former `js/scene.js` (Phase 2) — see the comment there for how they differ from the `session*` flow. |
 | `shared/nav.js` | all three | Floating page-switcher pill. |
-| `theme.css` | all three | Color tokens. (Most CSS is still inline per-page; extraction is plan Phase 5.) |
+| `theme.css` | all three | Color tokens (CSS custom properties). |
+| `classic.css` | index | All Classic page styles, extracted from index.html's inline block (Phase 5). wizard/storyteller style via inline JSX. |
 
 > Consolidation status: identity data (Phase 3) and the rules engine (Phase 4)
 > are single-sourced — wizard.html derives its UI table views and Title-Case

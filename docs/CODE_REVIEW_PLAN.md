@@ -244,6 +244,15 @@ see the resolution header in docs/engine-drift.md.)*
   and Wizard.
 
 ### Phase 5 — CSS extraction
+*(Done 2026-06-12: index.html's ~2,800-line inline style block extracted
+verbatim to classic.css (index.html: 7,650 → ~4,870 lines); SW precache +
+v55. The "promote shared primitives to theme.css" sub-task was deliberately
+skipped: wizard/storyteller style via inline JSX and consume only theme.css
+tokens, so promoted classes would have zero consumers — revisit only if a
+page starts using CSS classes. The nested `<style>` in the export fallback
+was real: it cloned the inline block via `document.querySelector('style')`,
+which would have returned null after extraction — now rebuilt from the
+loaded theme/classic stylesheets' cssRules.)*
 1. Move `index.html` inline CSS to `classic.css`; promote shared primitives to
    `theme.css`; leave page-specific rules page-local.
 2. Investigate the nested `<style>` inside the export template (`index.html:~3815`).
