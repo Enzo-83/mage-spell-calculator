@@ -183,6 +183,9 @@ on all three pages, and ends with a `docs/ARCHITECTURE.md` update.
 - **Verify:** `git status` clean; all pages still load (no file moves touch runtime).
 
 ### Phase 1 — Test harness for the rules engine *(prerequisite for Phase 4)*
+*(Done 2026-06-11: `tests/run.mjs` — 105 unit tests + 4,084-case drift sweep.
+All drift traced to four causes; see `docs/engine-drift.md`. One live wizard
+bug found: W1, ritual dice leak into Instant casts.)*
 1. Add `tests/engine.html` (or `tests/run.mjs` with a tiny loader) exercising
    `spellFactors.js` + `dicePool.js`: free Reach, Paradox per Gnosis, factor penalties,
    Yantra caps, casting-method differences.
@@ -282,9 +285,9 @@ catalog task was salvaged from an abandoned worktree.)*
 
 ## 5. Documentation deliverables checklist
 
-- [ ] `docs/ARCHITECTURE.md` — living overview (Phase 0, updated every phase)
-- [ ] `js/README.md` — real module index (done with this plan)
-- [ ] `docs/engine-drift.md` — Classic vs Wizard rules-math drift + decisions (Phases 1/4)
+- [x] `docs/ARCHITECTURE.md` — living overview (Phase 0, updated every phase)
+- [x] `js/README.md` — real module index (done with this plan)
+- [x] `docs/engine-drift.md` — Classic vs Wizard rules-math drift + decisions (Phase 1; Phase 4 records resolutions)
 - [ ] `docs/firebase-rules.md` — exported RTDB/Firestore rules for review (§E)
 - [ ] `docs/compendium-unification.md` — design doc before Phase 9
 - [ ] `docs/archive/` — completed HANDOFF docs moved out of the root
