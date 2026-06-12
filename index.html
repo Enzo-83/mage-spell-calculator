@@ -80,414 +80,12 @@
                 return str.charAt(0).toUpperCase() + str.slice(1);
             }
             
-            // Populate duration dropdown based on scale type
-            function populateDurationSelect(useAdvanced) {
-                const select = document.getElementById('duration');
-                const scale = getDurationOptions(useAdvanced);
-                select.innerHTML = scale.map((entry, index) => 
-                    `<option value="${index}">${entry.label}</option>`
-                ).join('');
-            }
-            
-            // Populate scale dropdown based on scale type
-            function populateScaleSelect(useAdvanced, scaleType) {
-                const select = document.getElementById('scale');
-                const scale = getScaleOptions(useAdvanced, scaleType);
-                select.innerHTML = scale.map((entry, index) => 
-                    `<option value="${index}">${entry.label}</option>`
-                ).join('');
-            }
-            
-            // Update Gnosis info display
-            function updateGnosisInfo() {
-                const gnosis = parseInt(document.getElementById('gnosis').value) || 1;
-                const interval = getRitualInterval(gnosis);
-                const maxYantras = getMaxYantras(gnosis);
-                document.getElementById('gnosisInfo').textContent = 
-                    `Ritual: ${interval} | Max Yantras: ${maxYantras}`;
-                document.getElementById('yantraCount').textContent = 
-                    `(${getSelectedYantras().length} / ${maxYantras} max)`;
-                
-                // Update active spells info
-                const activeSpellsInfo = document.getElementById('activeSpellsInfo');
-                if (activeSpellsInfo) {
-                    activeSpellsInfo.textContent = `Max: ${gnosis} (Gnosis). Exceeding adds Reach.`;
-                }
-            }
-            
-            // Toggle ritual intervals visibility
-            function toggleRitualIntervals() {
-                const castingTime = document.getElementById('castingTime').value;
-                const group = document.getElementById('ritualIntervalsGroup');
-                group.style.display = castingTime === 'ritual' ? 'flex' : 'none';
-            }
-            
-            // Update Range info display
-            function updateRangeInfo() {
-                const rangeKey = document.getElementById('range').value;
-                const rangeInfo = RANGE_OPTIONS[rangeKey];
-                const infoElement = document.getElementById('rangeInfo');
-                if (rangeInfo && infoElement) {
-                    infoElement.textContent = rangeInfo.description;
-                }
-            }
-            
-            // Update Primary Factor info display
-            function updatePrimaryFactorInfo() {
-                const defaultPF = document.getElementById('defaultPrimaryFactor').value;
-                const chosenPF = document.getElementById('primaryFactor').value;
-                const infoElement = document.getElementById('primaryFactorInfo');
-                
-                if (defaultPF !== chosenPF) {
-                    infoElement.textContent = `Changed from ${defaultPF} (+1 Reach)`;
-                    infoElement.style.color = 'var(--warning)';
-                } else {
-                    infoElement.textContent = '';
-                }
-            }
-            
-            // Toggle Rote skill visibility and Mudra based on casting method
-            function toggleRoteSkill() {
-                const castingMethod = document.getElementById('castingMethod').value;
-                const roteGroup = document.getElementById('roteSkillGroup');
-                const mudraOption = document.getElementById('mudraOption');
-                
-                // Check if this is any type of Rote
-                const isRote = castingMethod.startsWith('rote');
-                
-                // Get method info to check mudraAvailable
-                const methodInfo = CASTING_METHODS[castingMethod];
-                const mudraAvailable = methodInfo ? methodInfo.mudraAvailable : false;
-                
-                if (isRote) {
-                    roteGroup.style.display = 'flex';
-                    // Only show Mudra if available for this Rote type
-                    mudraOption.style.display = mudraAvailable ? 'flex' : 'none';
-                    // Uncheck Mudra if it was checked but is no longer available
-                    if (!mudraAvailable) {
-                        const mudraCheckbox = mudraOption.querySelector('input');
-                        if (mudraCheckbox) mudraCheckbox.checked = false;
-                    }
-                } else {
-                    roteGroup.style.display = 'none';
-                    mudraOption.style.display = 'none';
-                    // Uncheck Mudra if it was checked
-                    const mudraCheckbox = mudraOption.querySelector('input');
-                    if (mudraCheckbox) mudraCheckbox.checked = false;
-                }
-            }
-            
-            // Get selected Yantras
-            function getSelectedYantras() {
-                const yantras = [];
-                
-                // Checkbox yantras
-                document.querySelectorAll('.yantra-option input[type="checkbox"]:checked').forEach(checkbox => {
-                    const yantraName = checkbox.dataset.yantra;
-                    let bonus = parseInt(checkbox.dataset.bonus) || 0;
-                    const special = checkbox.dataset.special;
-                    
-                    // Handle Mudra special case
-                    if (special === 'mudra') {
-                        const roteSkill = parseInt(document.getElementById('roteSkill').value) || 0;
-                        const isOrderSkill = document.getElementById('isOrderSkill').checked;
-                        bonus = roteSkill + (isOrderSkill ? 1 : 0);
-                    }
-                    
-                    yantras.push({
-                        name: yantraName,
-                        bonus: bonus,
-                        special: special,
-                        isMudra: special === 'mudra'
-                    });
-                });
-                
-                // Persona select
-                const personaBonus = parseInt(document.getElementById('personaBonus').value) || 0;
-                if (personaBonus > 0) {
-                    yantras.push({
-                        name: 'persona',
-                        bonus: personaBonus,
-                        special: null,
-                        isMudra: false
-                    });
-                }
-                
-                return yantras;
-            }
-            
-            // Update Yantra count display
-            function updateYantraCount() {
-                const gnosis = parseInt(document.getElementById('gnosis').value) || 1;
-                const maxYantras = getMaxYantras(gnosis);
-                const selectedCount = getSelectedYantras().length;
-                document.getElementById('yantraCount').textContent = 
-                    `(${selectedCount} / ${maxYantras} max)`;
-            }
-            
-            // Handle mutual exclusivity of Dedicated Tool options
-            function updateDedicatedToolExclusivity(activeId) {
-                const dedicatedTool = document.querySelector('[data-yantra="dedicatedTool"]');
-                const pathToolDedicated = document.getElementById('pathToolDedicated');
-                const orderToolDedicated = document.getElementById('orderToolDedicated');
-                const pathToolOption = document.getElementById('pathToolDedicatedOption');
-                const orderToolOption = document.getElementById('orderToolDedicatedOption');
-                
-                // Reset all to enabled
-                dedicatedTool.disabled = false;
-                dedicatedTool.closest('.yantra-option').classList.remove('disabled');
-                pathToolDedicated.disabled = false;
-                pathToolOption.classList.remove('disabled');
-                orderToolDedicated.disabled = false;
-                orderToolOption.classList.remove('disabled');
-                
-                if (activeId === 'dedicatedTool' && dedicatedTool.checked) {
-                    // Standalone Dedicated Tool is checked - disable others
-                    pathToolDedicated.disabled = true;
-                    pathToolDedicated.checked = false;
-                    pathToolOption.classList.add('disabled');
-                    orderToolDedicated.disabled = true;
-                    orderToolDedicated.checked = false;
-                    orderToolOption.classList.add('disabled');
-                } else if (activeId === 'pathToolDedicated' && pathToolDedicated.checked) {
-                    // Path Tool is also Dedicated - disable others
-                    dedicatedTool.disabled = true;
-                    dedicatedTool.checked = false;
-                    dedicatedTool.closest('.yantra-option').classList.add('disabled');
-                    orderToolDedicated.disabled = true;
-                    orderToolDedicated.checked = false;
-                    orderToolOption.classList.add('disabled');
-                } else if (activeId === 'orderToolDedicated' && orderToolDedicated.checked) {
-                    // Order Tool is also Dedicated - disable others
-                    dedicatedTool.disabled = true;
-                    dedicatedTool.checked = false;
-                    dedicatedTool.closest('.yantra-option').classList.add('disabled');
-                    pathToolDedicated.disabled = true;
-                    pathToolDedicated.checked = false;
-                    pathToolOption.classList.add('disabled');
-                }
-            }
-            
             // Helper function to check if any Dedicated Tool option is active
             function isDedicatedToolActive() {
                 const dedicatedTool = document.querySelector('[data-yantra="dedicatedTool"]');
                 const pathToolDedicated = document.getElementById('pathToolDedicated');
                 const orderToolDedicated = document.getElementById('orderToolDedicated');
                 return (dedicatedTool?.checked || pathToolDedicated?.checked || orderToolDedicated?.checked) || false;
-            }
-            
-            // Update Spell Arcanum info text (ruling/inferior indicator)
-            function updateSpellArcanumInfo() {
-                const infoEl = document.getElementById('spellArcanumInfo');
-                const selectedArcanum = document.getElementById('spellArcanum').value;
-                
-                if (!selectedArcanum || !currentCharacter) {
-                    infoEl.textContent = '';
-                    infoEl.style.color = '';
-                    return;
-                }
-                
-                if (isRulingArcanum(currentCharacter, selectedArcanum)) {
-                    infoEl.textContent = '✓ Ruling Arcanum (no extra Mana)';
-                    infoEl.style.color = 'var(--success)';
-                } else if (isInferiorArcanum(currentCharacter, selectedArcanum)) {
-                    infoEl.textContent = '✗ Inferior Arcanum (+1 Mana if improvised)';
-                    infoEl.style.color = 'var(--danger)';
-                } else {
-                    infoEl.textContent = 'Common Arcanum (+1 Mana if improvised)';
-                    infoEl.style.color = 'var(--warning)';
-                }
-            }
-            
-            
-            // Update Paradox display based on inputs
-            function updateParadoxDisplay() {
-                const result = window.currentSpellResult;
-                const poolResult = window.currentPoolResult;
-                const maxManaResult = window.maxManaResult;
-                
-                if (!result || result.reach.excess <= 0) return;
-                
-                // Get Paradox inputs
-                const previousRolls = parseInt(document.getElementById('previousParadoxRolls').value) || 0;
-                const sleeperWitnesses = document.getElementById('sleeperWitnesses').value;
-                const inuredToSpell = document.getElementById('inuredToSpell').checked;
-                const paradoxMana = parseInt(document.getElementById('paradoxMana').value) || 0;
-                
-                // Check if Dedicated Tool is selected in Yantras (standalone or via Path/Order Tool)
-                const dedicatedTool = isDedicatedToolActive();
-                
-                // Calculate Paradox pool
-                const paradoxResult = calculateParadoxPool({
-                    reachExcess: result.reach.excess,
-                    gnosis: result.gnosis,
-                    previousRolls: previousRolls,
-                    sleeperWitnesses: sleeperWitnesses,
-                    inuredToSpell: inuredToSpell,
-                    dedicatedTool: dedicatedTool,
-                    manaMitigation: paradoxMana
-                });
-                
-                // Update preview paradox display
-                const poolText = paradoxResult.isChanceDie ? '1 chance' : `${paradoxResult.finalDice} dice`;
-                document.getElementById('previewParadoxPool').textContent = poolText;
-                
-                // Roll quality
-                const qualityEl = document.getElementById('previewParadoxQuality');
-                if (paradoxResult.rollQuality.label) {
-                    qualityEl.textContent = paradoxResult.rollQuality.label;
-                } else {
-                    qualityEl.textContent = '';
-                }
-                
-                // Breakdown - condensed
-                const breakdownParts = paradoxResult.breakdown.map(item => {
-                    const sign = item.value > 0 ? '+' : '';
-                    return `${sign}${item.value} ${item.label}`;
-                });
-                document.getElementById('previewParadoxBreakdown').textContent = breakdownParts.join(' | ');
-            }
-            
-            // Update Mana Summary display
-            function updateManaSummary() {
-                const result = window.currentSpellResult;
-                
-                if (!result) return;
-                
-                // Calculate mana costs
-                let manaNonRuling = 0;
-                let manaIndefinite = 0;
-                let manaParadox = 0;
-                let manaAdditional = parseInt(document.getElementById('additionalManaCost').value) || 0;
-                
-                // Non-Ruling Improvised: +1 Mana
-                const castingMethod = document.getElementById('castingMethod').value;
-                const isImprovised = castingMethod === 'improvised';
-                
-                if (isImprovised && currentCharacter) {
-                    const selectedArcanum = document.getElementById('spellArcanum').value;
-                    
-                    if (selectedArcanum) {
-                        // Direct check: is this specific arcanum a ruling arcanum?
-                        const isRuling = isRulingArcanum(currentCharacter, selectedArcanum);
-                        if (!isRuling) {
-                            manaNonRuling = 1;
-                        }
-                    } else {
-                        // No arcanum selected — assume non-ruling to be safe
-                        manaNonRuling = 1;
-                    }
-                }
-                
-                // Indefinite Duration: +1 Mana
-                const advancedDuration = document.getElementById('advancedDuration').checked;
-                const durationIndex = parseInt(document.getElementById('duration').value) || 0;
-                if (advancedDuration && durationIndex === 5) { // Index 5 is Indefinite in advanced
-                    manaIndefinite = 1;
-                }
-                
-                // Paradox Mitigation
-                manaParadox = parseInt(document.getElementById('paradoxMana').value) || 0;
-                
-                // Sympathetic / Temporal range: +1 Mana
-                let manaSympathy = 0;
-                const rangeVal = document.getElementById('range').value;
-                if (rangeVal === 'sympathetic' || rangeVal === 'temporal') {
-                    manaSympathy = 1;
-                }
-                
-                // Update display
-                document.getElementById('manaNonRuling').textContent = manaNonRuling;
-                document.getElementById('manaIndefinite').textContent = manaIndefinite;
-                document.getElementById('manaSympathy').textContent = manaSympathy;
-                document.getElementById('manaParadox').textContent = manaParadox;
-                document.getElementById('manaAdditional').textContent = manaAdditional;
-                
-                const totalMana = manaNonRuling + manaIndefinite + manaSympathy + manaParadox + manaAdditional;
-                document.getElementById('manaTotalCost').textContent = totalMana;
-                
-                // Sync Status Row in Live Preview
-                document.getElementById('previewMana').textContent = totalMana;
-                
-                // Update pool status
-                const poolStatus = document.getElementById('manaPoolStatus');
-                const poolDisplay = document.getElementById('manaPoolDisplay');
-                const exceedWarning = document.getElementById('manaExceedWarning');
-                const ledger = document.getElementById('manaLedger');
-                const validation = document.getElementById('manaValidation');
-                
-                if (currentCharacter) {
-                    const currentMana = currentCharacter.mana.current;
-                    const maxMana = currentCharacter.mana.max;
-                    const manaAfter = currentMana - totalMana;
-                    
-                    poolDisplay.textContent = `Character Mana: ${currentMana} / ${maxMana}`;
-                    
-                    // Check Mana per turn limit for instant spells
-                    const gnosis = currentCharacter.gnosis;
-                    const manaPerTurn = getManaPerTurn(gnosis);
-                    const castingTimeType = document.getElementById('castingTime').value;
-                    const isRitual = castingTimeType === 'ritual';
-                    
-                    // Update mana ledger
-                    if (totalMana > 0) {
-                        ledger.style.display = 'block';
-                        document.getElementById('manaLedgerCurrent').textContent = currentMana;
-                        document.getElementById('manaLedgerCost').textContent = '−' + totalMana;
-                        const afterEl = document.getElementById('manaLedgerAfter');
-                        afterEl.textContent = Math.max(0, manaAfter);
-                        afterEl.style.color = manaAfter > 0 ? 'var(--success)' : manaAfter === 0 ? 'var(--warning)' : 'var(--danger)';
-                        document.getElementById('manaPerTurnInfo').textContent = `Per-turn limit: ${manaPerTurn} mana (Gnosis ${gnosis})`;
-                    } else {
-                        ledger.style.display = 'none';
-                    }
-                    
-                    // Update validation banner
-                    if (totalMana > 0) {
-                        validation.style.display = 'block';
-                        if (manaAfter < 0) {
-                            validation.className = 'mana-validation block';
-                            validation.textContent = `✗ Insufficient mana — need ${totalMana}, have ${currentMana}`;
-                        } else if (manaAfter === 0) {
-                            validation.className = 'mana-validation warn';
-                            validation.textContent = '⚠ This will use your last mana — 0 remaining';
-                        } else {
-                            validation.className = 'mana-validation ok';
-                            validation.textContent = `✓ Mana sufficient — ${manaAfter} remaining after cast`;
-                        }
-                    } else {
-                        validation.style.display = 'none';
-                    }
-                    
-                    let warningText = '';
-                    poolStatus.className = 'mana-pool-status';
-                    
-                    if (totalMana > currentMana) {
-                        poolStatus.classList.add('danger');
-                        warningText = `Not enough Mana! Need ${totalMana}, have ${currentMana}.`;
-                    } else if (!isRitual && totalMana > manaPerTurn) {
-                        poolStatus.classList.add('warning');
-                        warningText = `Mana per turn limit: ${manaPerTurn}. Total ${totalMana} Mana requires ${Math.ceil(totalMana / manaPerTurn)} turns to spend.`;
-                    } else {
-                        poolStatus.classList.add('');
-                    }
-                    
-                    if (warningText) {
-                        exceedWarning.style.display = 'block';
-                        document.getElementById('manaExceedText').textContent = warningText;
-                    } else {
-                        exceedWarning.style.display = 'none';
-                    }
-                } else {
-                    poolDisplay.textContent = 'No character loaded';
-                    poolStatus.className = 'mana-pool-status';
-                    exceedWarning.style.display = 'none';
-                    ledger.style.display = 'none';
-                    validation.style.display = 'none';
-                }
-                
-                // Reset deducted notice when spell changes
-                document.getElementById('manaDeductedNotice').style.display = 'none';
             }
             
             // Paradox inputs and mana summary are now reactive via ClassicResultsPanel (Phase 4)
@@ -602,7 +200,7 @@
             function getActiveScaleLabel() {
                 const useAdv = document.getElementById('advancedScale')?.checked;
                 const idx    = parseInt(document.getElementById('scale')?.value) || 0;
-                const mode   = document.getElementById('scaleType')?.value || 'subjects';
+                const mode   = getScaleType();
                 if (useAdv) {
                     const pool = mode === 'aoe' ? SCALE_ADVANCED_AOE : SCALE_ADVANCED_SUBJECTS;
                     return pool[idx]?.label || '—';
@@ -616,9 +214,8 @@
 
                 const result = window.currentSpellResult;
                 const name   = (document.getElementById('spellName')?.value?.trim()
-                             || document.getElementById('librarySpellName')?.value?.trim()
                              || 'Unnamed Spell');
-                const arcanum = (document.getElementById('primaryArcanum')?.value
+                const arcanum = (document.getElementById('spellArcanum')?.value
                               || 'prime').toLowerCase();
                 const dots    = parseInt(document.getElementById('arcanumDots')?.value) || 1;
                 const method  = document.getElementById('castingMethod')?.value || 'improvised';
@@ -675,9 +272,6 @@
                 const infoEl  = document.getElementById('activeSpellsInfo');
                 if (countEl) countEl.textContent = count;
                 if (infoEl)  infoEl.textContent  = `/ ${max} max`;
-                // Modal badge
-                const badgeEl = document.getElementById('activeSpellsModalCount');
-                if (badgeEl) badgeEl.textContent = count > 0 ? `(${count})` : '';
             }
 
             function saveCharacterToLocalStorage() {
@@ -687,27 +281,6 @@
                 } catch(e) { /* quota */ }
             }
             
-            // Handle file load
-            async function handleFileLoad(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                
-                try {
-                    currentCharacter = await loadCharacterFromFile(file);
-                    updateCharacterHeader();
-                    applyCharacterToForm();
-                    alert(`Character "${currentCharacter.name}" loaded successfully!`);
-                    if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
-                        sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
-                        sessionPushSheet(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
-                    }
-                } catch (e) {
-                    alert('Failed to load character: ' + e.message);
-                }
-                
-                // Reset file input
-                event.target.value = '';
-            }
             
             // =================================================================
             // SPELL LIBRARY MANAGEMENT
@@ -1439,12 +1012,6 @@
             
             // Mana/health buttons removed — now handled by React (classic-header-root)
             
-            // Reset mana deducted flag when spell parameters change
-            ['castingMethod','arcanumDots','spellRequirement','gnosis','potency','advancedPotency',
-             'duration','advancedDuration','castingTime','additionalManaCost','paradoxMana'].forEach(function(id) {
-                const el = document.getElementById(id);
-                if (el) el.addEventListener('change', resetManaDeductedFlag);
-            });
             
             // initSpellLibrary() removed — Phase 6 React ClassicSpellLibraryDrawer owns all spell library DOM
 
@@ -1467,13 +1034,6 @@
                 var name = (currentCharacter?.shadowName || currentCharacter?.name || 'player_' + Math.random().toString(36).slice(2,8));
                 sceneMyPlayerId = name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
                 return sceneMyPlayerId;
-            }
-            function sceneGetPlayerName() {
-                return currentCharacter?.shadowName || currentCharacter?.name || 'Unknown Mage';
-            }
-            function sceneGetPlayerPath() {
-                var pathData = currentCharacter?.path ? (typeof PATHS !== 'undefined' && PATHS[currentCharacter.path] ? PATHS[currentCharacter.path].label : currentCharacter.path) : '';
-                return pathData;
             }
 
             // ── Auto-fill prevParadox (called by onSceneChange after closure vars are updated) ──
@@ -1514,9 +1074,14 @@
                     applyCharacterToForm();
                     window.classicBridge?.spellLib?.refresh(char);
                     saveCharacterToLocalStorage();
+                    if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
+                        sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                        sessionPushSheet(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
+                    }
                 },
                 onStatChange: function(char) {
-                    updateManaSummary();
+                    // Mana ledger / validation live in React — force a results re-render
+                    window.classicBridge?.results?.refreshResults?.();
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
                         sessionPushStats(sceneRoomCode, sceneGetPlayerId(), char);
                     }
@@ -1569,6 +1134,7 @@
                 return currentCharacter;
             };
             window.classicVanilla.showToast = showToast;
+            window.classicVanilla.resetManaDeducted = resetManaDeductedFlag;
             window.classicVanilla.loadSpell = loadSpellToCalculator;
             window.classicVanilla.exportSpellLibrary = exportSpellLibrary;
             window.classicVanilla.setSpellAsActive = setSpellAsActive;
@@ -1936,8 +1502,13 @@
         </div>
     </div>
 
-    <!-- ── React Character Header (Phase 1 migration) ─────────────────────── -->
+    <!-- ═══════════════════════════════════════════════════════════════
+         REACT UI — single Babel block (consolidated Phase 6 of the
+         code-review plan; one parse/compile instead of five).
+         Components run in document order; all roots mount at the end.
+         ═══════════════════════════════════════════════════════════════ -->
     <script type="text/babel">
+      // ── React Character Header (Phase 1 migration) ───────────────────────
       const { useState, useEffect, useRef } = React;
 
       const MANA_PT = {1:1,2:1,3:1,4:2,5:2,6:3,7:3,8:4,9:4,10:5};
@@ -2542,14 +2113,7 @@
         );
       }
 
-      ReactDOM.createRoot(document.getElementById('classic-header-root')).render(<ClassicHeaderApp/>);
-    </script>
-
-    <!-- Phase 2 (ClassicSceneTracker) removed — replaced by ScenePill in Phase 1 -->
-
-
-    <!-- ── React Spell Form (Phase 3 migration) ──────────────────────────── -->
-    <script type="text/babel">
+      // ── React Spell Form (Phase 3 migration) ─────────────────────────────
       const { useState: _sf_us, useEffect: _sf_ue } = React;
       const GlossaryTip = window.GlossaryTip;
 
@@ -2970,6 +2534,15 @@
           }
         }, [form.combinedEnabled]);
 
+        // Grimoire rotes are always ritual-cast — Instant is forbidden (engine
+        // drift item D1: the engine charges +1 Reach for Instant on any method;
+        // the UI is responsible for disallowing the combination)
+        _sf_ue(() => {
+          if (form.castingMethod === 'roteGrimoire' && form.castingTime === 'instant') {
+            set('castingTime', 'ritual');
+          }
+        }, [form.castingMethod, form.castingTime]);
+
         // ── Derived ──────────────────────────────────────────────────────────
         const isRote    = form.castingMethod.startsWith('rote');
         const mInfo     = typeof CASTING_METHODS !== 'undefined' ? CASTING_METHODS[form.castingMethod] : null;
@@ -3275,7 +2848,9 @@
                   <label>Casting Time <GlossaryTip term="castingTime"/></label>
                   <select id="castingTime" value={form.castingTime} onChange={e => set('castingTime', e.target.value)}>
                     <option value="ritual">Ritual</option>
-                    <option value="instant">Instant (+1 Reach)</option>
+                    <option value="instant" disabled={form.castingMethod === 'roteGrimoire'}>
+                      {form.castingMethod === 'roteGrimoire' ? 'Instant — not allowed (Grimoire)' : 'Instant (+1 Reach)'}
+                    </option>
                   </select>
                 </div>
                 {form.castingTime === 'ritual' && (
@@ -3469,7 +3044,8 @@
         React.useEffect(() => {
           window.classicBridge = window.classicBridge || {};
           window.classicBridge.results = {
-            refreshResults:        () => {},
+            // Force a re-render so character-derived values (mana ledger) refresh
+            refreshResults:        () => setPv(p => ({ ...p })),
             notifyManaDeducted:    (msg) => setNotice(msg),
             clearManaDeducted:     () => setNotice(''),
             setAutoParadoxRolls:   (n) => setPv(p => ({...p, rolls:n, auto:true})),
@@ -3720,7 +3296,11 @@
                     <div className="form-group">
                       <label>Mana for Paradox Mitigation</label>
                       <input type="number" id="paradoxMana" min="0" max="20"
-                        value={pv.mana} onChange={e => setPv(p => ({...p, mana:parseInt(e.target.value)||0}))} />
+                        value={pv.mana} onChange={e => {
+                          const v = parseInt(e.target.value)||0;
+                          setPv(p => ({...p, mana:v}));
+                          window.classicVanilla?.resetManaDeducted?.();
+                        }} />
                       <div className="info-text" id="manaLimitInfo">-1 die per Mana</div>
                     </div>
                   </div>
@@ -3811,6 +3391,14 @@
       function ClassicCalculator() {
         const [form, setForm] = React.useState(DEFAULT_FORM);
         const [results, setResults] = React.useState(null);
+
+        // Reset the "mana deducted" flag when spell parameters change
+        // (same field list the old vanilla change-listeners covered)
+        React.useEffect(() => {
+          window.classicVanilla?.resetManaDeducted?.();
+        }, [form.castingMethod, form.arcanumDots, form.spellRequirement, form.gnosis,
+            form.potency, form.advancedPotency, form.durationIndex, form.advancedDuration,
+            form.castingTime, form.additionalManaCost]);
 
         React.useEffect(() => {
           // Combined spell overrides (reads React state, not DOM)
@@ -3909,11 +3497,7 @@
         );
       }
 
-      ReactDOM.createRoot(document.getElementById('classic-calculator-root')).render(<ClassicCalculator/>);
-    </script>
-
-    <!-- ── React Character Editor Modal (Phase 5 migration) ──────────────── -->
-    <script type="text/babel">
+      // ── React Character Editor Modal (Phase 5 migration) ─────────────────
       function ClassicCharacterEditor() {
         const [open, setOpen] = React.useState(false);
         const [draft, setDraft] = React.useState(null);
@@ -4188,11 +3772,7 @@
         );
       }
 
-      ReactDOM.createRoot(document.getElementById('classic-chareditor-root')).render(<ClassicCharacterEditor/>);
-    </script>
-
-    <!-- ── Active Spells Modal ──────────────────────────────────────────── -->
-    <script type="text/babel">
+      // ── Active Spells Modal ───────────────────────────────────────────────
       function ClassicActiveSpellsModal() {
         const [open, setOpen] = React.useState(false);
         const [spells, setSpells] = React.useState([]);
@@ -4247,12 +3827,7 @@
         );
       }
 
-      ReactDOM.createRoot(document.getElementById('classic-activespells-root')).render(<ClassicActiveSpellsModal/>);
-    </script>
-
-
-    <!-- ── React Spell Library Drawer (Phase 6) ─────────────────────────── -->
-    <script type="text/babel">
+      // ── React Spell Library Drawer (Phase 6 migration) ────────────────────
       const { useState: _sl_us, useEffect: _sl_ue, useRef: _sl_ur } = React;
 
       // ── Firebase refs ────────────────────────────────────────────────────────
@@ -5060,6 +4635,12 @@
         );
       }
 
+      // ── Mount all roots (after every top-level const above is initialized,
+      //    avoiding TDZ on consts that used to live in later script blocks) ──
+      ReactDOM.createRoot(document.getElementById('classic-header-root')).render(<ClassicHeaderApp/>);
+      ReactDOM.createRoot(document.getElementById('classic-calculator-root')).render(<ClassicCalculator/>);
+      ReactDOM.createRoot(document.getElementById('classic-chareditor-root')).render(<ClassicCharacterEditor/>);
+      ReactDOM.createRoot(document.getElementById('classic-activespells-root')).render(<ClassicActiveSpellsModal/>);
       ReactDOM.createRoot(document.getElementById('classic-spelllib-root')).render(<ClassicSpellLibraryDrawer/>);
     </script>
 
