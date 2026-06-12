@@ -1,6 +1,6 @@
 // shared/session.js — Firebase session helpers
-// Used by wizard.html (player) and storyteller.html (ST).
-// Firebase (_fbDb) must be initialised before this script runs.
+// Used by all three pages: index.html (Classic), wizard.html, storyteller.html.
+// Load order: firebase SDKs → shared/firebase.js (initialises _fbDb) → this file.
 //
 // Firebase path layout:
 //   sessions/{code}/
@@ -289,6 +289,68 @@ function sessionForget() {
 function sessionRecall() {
   try {
     const raw = localStorage.getItem("mage_session");
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+// ── Legacy scene-room helpers (merged from js/scene.js, Phase 2) ───────────
+// Used by index.html's scene pill and wizard.html's built-in ST mode. They
+// write a flatter room shape than sessionCreate (no meta/scenes nodes) and
+// sceneJoinRoom resets the player's paradox fields on (re)join, which
+// sessionJoin deliberately does not. Kept verbatim to preserve behavior;
+// converging these onto the session* flow is a candidate for plan Phase 6.
+
+function sceneCreateRoom(roomCode, stName) {
+  return sessionGetRef(roomCode).set({
+    sceneActive: false,
+    sceneNumber: 0,
+    createdBy: stName,
+    createdAt: firebase.database.ServerValue.TIMESTAMP,
+  });
+}
+
+function sceneSetActive(roomCode, active) {
+  const updates = { sceneActive: active };
+  if (active) {
+    updates.sceneStartedAt = firebase.database.ServerValue.TIMESTAMP;
+  }
+  return sessionGetRef(roomCode).update(updates);
+}
+
+function sceneIncrementNumber(roomCode) {
+  return sessionGetRef(roomCode).child("sceneNumber").transaction(function(n) {
+    return (n || 0) + 1;
+  });
+}
+
+function sceneJoinRoom(roomCode, playerId, playerName, playerPath) {
+  const playerRef = sessionGetRef(roomCode).child("players/" + playerId);
+  playerRef.set({
+    name: playerName,
+    path: playerPath || "",
+    paradoxRolls: 0,
+    stAdjustment: 0,
+    stNote: "",
+    paradoxLog: [],
+    joinedAt: firebase.database.ServerValue.TIMESTAMP,
+  });
+  // Auto-remove on disconnect
+  playerRef.onDisconnect().remove();
+  return playerRef;
+}
+
+// NOTE: separate localStorage key from sessionRemember/sessionRecall —
+// "mage_scene_room" is the Classic/wizard room memory, "mage_session" is the
+// storyteller page's. Unify only as a deliberate UX decision.
+function sceneRememberRoom(code, role) {
+  try { localStorage.setItem("mage_scene_room", JSON.stringify({ code: code, role: role })); } catch(e) {}
+}
+function sceneForgetRoom() {
+  try { localStorage.removeItem("mage_scene_room"); } catch(e) {}
+}
+function sceneRecallRoom() {
+  try {
+    const raw = localStorage.getItem("mage_scene_room");
     return raw ? JSON.parse(raw) : null;
   } catch(e) { return null; }
 }

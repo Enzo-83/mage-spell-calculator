@@ -45,8 +45,8 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | `js/character.js` | index | PATHS/ORDERS data, character defaults, localStorage + JSON file persistence. |
 | `js/spellCompendium.js` | index | Vanilla Firestore compendium UI with roles. (wizard has a parallel React `CompendiumOverlay` — unification is plan Phase 9.) |
 | `js/glossary.js` | index, wizard | Glossary data + `window.GlossaryTip` React component (no JSX). |
-| `js/scene.js` | index, wizard | Legacy scene helpers; overlaps `shared/session.js`, slated for merge (plan Phase 2). |
-| `shared/session.js` | all three | Firebase RTDB session layer + schema docs. |
+| `shared/firebase.js` | all three | Single Firebase init — sets `window._fbApp/_fbDb/_fsDb/_fsAuth` for whichever SDKs the page loads (Phase 2). |
+| `shared/session.js` | all three | Firebase RTDB session layer + schema docs. Also hosts the legacy `scene*` room helpers merged from the former `js/scene.js` (Phase 2) — see the comment there for how they differ from the `session*` flow. |
 | `shared/nav.js` | all three | Floating page-switcher pill. |
 | `theme.css` | all three | Color tokens. (Most CSS is still inline per-page; extraction is plan Phase 5.) |
 
