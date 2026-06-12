@@ -249,6 +249,13 @@ correct.)*
   unchanged in Discord.
 
 ### Phase 8 — Service worker overhaul
+*(Done 2026-06-11, pulled ahead of Phases 3–7 after Phase 2 verification caught
+the stale-cache problem live. sw.js rebuilt: network-first for ALL same-origin
+requests — not just navigations — so per-release CACHE_NAME bumps are no longer
+needed; full precache for all three pages; CDN runtime (React/Babel/Firebase
+SDKs/fonts) cached cache-first in CORS mode, making the app offline-capable;
+Firebase data + Discord traffic never intercepted; SW now registered from all
+three pages, not just index.)*
 1. Complete `ASSETS_TO_CACHE`; network-first for navigations, cache-first for assets.
 2. Document the CDN/offline limitation (or cache CDN scripts deliberately).
 3. Consider deriving `CACHE_NAME` from a date/commit string to make bumps mechanical.

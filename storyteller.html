@@ -1610,5 +1610,12 @@ function App() {
 
 ReactDOM.render(<App />, document.getElementById("root"));
 </script>
+
+<!-- Service Worker registration (offline support) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+  }
+</script>
 </body>
 </html>
