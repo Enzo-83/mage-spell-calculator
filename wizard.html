@@ -43,6 +43,7 @@
 
   <script src="js/glossary.js"></script>
   <script src="js/gameData.js"></script>
+  <script src="shared/discord.js"></script>
   <script src="js/spellFactors.js"></script>
   <script src="js/dicePool.js"></script>
 
@@ -153,11 +154,8 @@
     // Gnosis-derived values come straight from the engine now:
     // getParadoxPerReach(g), getManaPerTurn(g), getRitualInterval(g).
 
-    // Discord embed accent bar colors by Arcanum (Title Case view of the
-    // canonical js/gameData.js identities)
-    const ARCANUM_COLORS = Object.fromEntries(
-      MageData.ARCANA_KEYS.map(k => [MageData.tc(k), MageData.ARCANUM_INT[k]])
-    );
+    // Discord embed accent colors now come from shared/discord.js
+    // (DiscordShared.buildEmbed resolves arcanum → canonical int).
 
     const BASE_STEPS = [
       { id:"caster",    label:"Caster",    icon:"⚡" },
@@ -1740,14 +1738,8 @@
     }
 
     // ── Step 6: Cast ──────────────────────────────────────────────────────────
-    async function postDiscord(url, payload) {
-      const res = await fetch(url, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    }
+    // Webhook posting + embed builders live in shared/discord.js (Phase 7).
+    const { postDiscord } = DiscordShared;
   // ── Scene Tracker Drawer ──────────────────────────────────────────────────
     function SceneDrawer({ open, onClose, character, onSceneUpdate }) {
       const [mode, setMode]               = useState(null); // null | 'st' | 'player'
@@ -2513,34 +2505,23 @@
         setManaDeducted(true);
       }
 
-      // Build dice bot command: $cod N, $rote N, $cod8 N, etc.
-      function formatDiceCommand() {
-        const rq = derived.poolResult.rollQuality;
-        const isRote = rq.quality === 'rote';
-        let cmd = "$" + (isRote ? "rote" : "cod");
-        if (rq.againValue === 8) cmd += "8";
-        else if (rq.againValue === 9) cmd += "9";
-        return cmd + " " + dicePool;
-      }
-
       async function handlePool() {
         if (!poolWebhook) { alert("No Dice Pool webhook set in character.discord.dicePoolWebhook"); return; }
         setDs(s=>({...s,pool:"sending"}));
         try {
-          // 1. Send embed summary
-          const fields = [
-            { name:"🎲 Dice Pool", value:String(dicePool),          inline:true },
-            { name:"↑ Reach",     value:`${usedReach}/${freeReach}${excessReach>0?" ⚠":""}`, inline:true },
-            { name:"⬡ Mana",      value:String(totalMana),          inline:true },
-          ];
-          if (excessReach>0) fields.push({ name:"⚠️ Paradox", value:chanceOnly?"Chance Die":paradoxDice+" dice", inline:true });
-          await postDiscord(poolWebhook, {
-            username:casterName,
-            embeds:[{ title:spellTitle, color:ARCANUM_COLORS[d.casterArcanum]||0x7b2cbf, fields,
-              footer:{ text:`${rollQualityLabel} · ${methodLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}` } }],
+          // Embed summary, then the dice-bot command
+          const embed = DiscordShared.buildEmbed({
+            title: spellTitle,
+            arcanum: d.casterArcanum,
+            fields: DiscordShared.buildPoolSummaryFields({
+              pool: dicePool, usedReach, freeReach, excessReach,
+              manaCost: totalMana,
+              paradoxText: chanceOnly ? "Chance Die" : paradoxDice + " dice",
+            }),
+            footerText: `${rollQualityLabel} · ${methodLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}`,
           });
-          // 2. Send dice bot command
-          await postDiscord(poolWebhook, { content:formatDiceCommand(), username:casterName });
+          await DiscordShared.postEmbedThenCommand(poolWebhook, casterName, embed,
+            DiscordShared.formatDiceCommand(dicePool, derived.poolResult.rollQuality));
           deductMana();
           // 3. Auto-increment Paradox counter in Firebase if connected and spell has Paradox risk
           if (sceneConn && excessReach > 0) {
@@ -2581,8 +2562,10 @@
           if (excessReach>0) fields.push({ name:"⚠️ Paradox", value:chanceOnly?"Chance Die":paradoxDice+" dice", inline:true });
           await postDiscord(cardWebhook, {
             username:casterName,
-            embeds:[{ title:spellTitle, color:ARCANUM_COLORS[d.casterArcanum]||0x7b2cbf, fields,
-              footer:{ text:`${methodLabel} · ${rollQualityLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}` } }],
+            embeds:[DiscordShared.buildEmbed({
+              title: spellTitle, arcanum: d.casterArcanum, fields,
+              footerText: `${methodLabel} · ${rollQualityLabel} · ${d.practice||"—"} · ${d.casterArcanum} ${arcDots}`,
+            })],
           });
           setDs(s=>({...s,card:"ok"}));
           setTimeout(()=>setDs(s=>({...s,card:null})),3000);
@@ -3250,17 +3233,10 @@
         if (!poolWebhook) { alert("No Dice Pool webhook set in character.discord.dicePoolWebhook"); return; }
         setDs("sending");
         try {
-          await postDiscord(poolWebhook, {
-            username: casterName,
-            embeds: [{ title: `${casterName}'s Clash of Wills`, color: 0x9d4edd,
-              fields: [
-                { name: "⚔ Clash Pool", value: String(pool), inline: true },
-                { name: "Arcanum", value: `${arcLabel} ${arcDots}`, inline: true },
-              ],
-              footer: { text: parts.join(" + ") },
-            }],
+          await DiscordShared.postClash(poolWebhook, {
+            casterName, pool, arcLabel, arcDots,
+            breakdown: parts.join(" + "),
           });
-          await postDiscord(poolWebhook, { content: `$cod ${pool}`, username: casterName });
           setDs("ok");
           setTimeout(() => setDs(null), 3000);
         } catch { setDs("error"); setTimeout(() => setDs(null), 4000); }

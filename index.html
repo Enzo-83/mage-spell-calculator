@@ -57,6 +57,7 @@
 
     <script src="shared/session.js"></script>
     <script src="./js/gameData.js"></script>
+    <script src="shared/discord.js"></script>
     <script src="./js/spellFactors.js"></script>
     <script src="./js/dicePool.js"></script>
     <script src="./js/character.js"></script>
@@ -186,6 +187,12 @@
                     return;
                 }
                 downloadCharacter(currentCharacter);
+                // §E policy: webhooks stay in the export (it's the user's backup
+                // and must round-trip), but warn that the file is postable.
+                const dc = currentCharacter.discord || {};
+                if (dc.spellPreviewWebhook || dc.dicePoolWebhook) {
+                    showToast('Note: this file includes your Discord webhook URLs — don\'t share it publicly.', 5000);
+                }
             }
 
             // ─── ACTIVE SPELL TRACKING ─────────────────────────────────────────────
@@ -584,30 +591,9 @@
             // DISCORD INTEGRATION
             // =================================================================
             
-            // Format dice pool command for Discord bot
-            function formatDicePoolCommand(pool, rollQuality) {
-                const isRote = rollQuality.quality === 'rote';
-                const againValue = rollQuality.againValue;
-                
-                let command = '$';
-                
-                // Type: rote or cod
-                command += isRote ? 'rote' : 'cod';
-                
-                // Again value: omit for 10, include 8 or 9
-                if (againValue === 8) {
-                    command += '8';
-                } else if (againValue === 9) {
-                    command += '9';
-                }
-                // 10-again: no number added
-                
-                // Space and dice count
-                command += ' ' + pool;
-                
-                return command;
-            }
-            
+            // Dice/Paradox bot commands and webhook posting live in
+            // shared/discord.js (Phase 7) — window.DiscordShared.
+
             // Get current paradox info
             function getCurrentParadoxInfo() {
                 const spellResult = window.currentSpellResult;
@@ -638,29 +624,6 @@
                 return paradoxResult;
             }
             
-            // Format paradox dice command
-            function formatParadoxCommand(paradoxResult) {
-                const pool = paradoxResult.isChanceDie ? 0 : paradoxResult.finalDice;
-                const rollQuality = paradoxResult.rollQuality;
-                
-                let command = '$cod';
-                
-                // Again value from sleeper witnesses
-                if (rollQuality.againValue === 8) {
-                    command += '8';
-                } else if (rollQuality.againValue === 9) {
-                    command += '9';
-                }
-                // Note: Rote quality paradox would need special handling if needed
-                
-                command += ' ' + pool;
-                
-                return command;
-            }
-            
-            // Discord embed accent bar colors by Arcanum (canonical, js/gameData.js)
-            const ARCANUM_COLORS = MageData.ARCANUM_INT;
-
             // Build spell preview embed for Discord
             function buildSpellPreviewEmbed(spellResult, poolResult) {
                 const fields = [];
@@ -750,7 +713,7 @@
                     poolParts.push(`${poolResult.combinationPenalty} Combined`);
                 }
                 
-                const diceCommand = formatDicePoolCommand(poolResult.finalPool, poolResult.rollQuality);
+                const diceCommand = DiscordShared.formatDiceCommand(poolResult.finalPool, poolResult.rollQuality);
                 
                 fields.push({
                     name: `🎲 Dice Pool: ${poolResult.finalPool}`,
@@ -761,7 +724,7 @@
                 // Paradox info
                 const paradoxResult = getCurrentParadoxInfo();
                 if (paradoxResult) {
-                    const paradoxCommand = formatParadoxCommand(paradoxResult);
+                    const paradoxCommand = DiscordShared.formatParadoxCommand(paradoxResult);
                     const paradoxText = paradoxResult.isChanceDie 
                         ? `Chance Die` 
                         : `${paradoxResult.finalDice} dice`;
@@ -795,20 +758,13 @@
                 }
                 
                 // Build embed
-                const embedColor = window.currentCastingArcanum
-                    ? (ARCANUM_COLORS[window.currentCastingArcanum] ?? 0x7B2CBF)
-                    : 0x7B2CBF;
-                const embed = {
+                return DiscordShared.buildEmbed({
                     title: embedTitle,
-                    color: embedColor,
+                    arcanum: window.currentCastingArcanum,
                     fields: fields,
-                    footer: {
-                        text: rollQualityText
-                    },
-                    timestamp: new Date().toISOString()
-                };
-                
-                return embed;
+                    footerText: rollQualityText,
+                    timestamp: true,
+                });
             }
             
             // Show Discord status
@@ -878,7 +834,7 @@
                 
                 try {
                     const characterName = currentCharacter.shadowName || currentCharacter.name || 'Unknown';
-                    const spellCommand = formatDicePoolCommand(poolResult.finalPool, poolResult.rollQuality);
+                    const spellCommand = DiscordShared.formatDiceCommand(poolResult.finalPool, poolResult.rollQuality);
                     const spellName = document.getElementById('spellName').value.trim();
                     const embedTitle = spellName
                         ? `${characterName}'s ${spellName}`
@@ -890,46 +846,33 @@
                         rollQualityText += ' (Exceptional at 3)';
                     }
 
-                    // Arcanum color
-                    const embedColor = window.currentCastingArcanum
-                        ? (ARCANUM_COLORS[window.currentCastingArcanum] ?? 0x7B2CBF)
-                        : 0x7B2CBF;
-
-                    // 1. Send compact embed summary
-                    const fields = [
-                        { name: '🎲 Dice Pool', value: String(poolResult.finalPool), inline: true },
-                        { name: '↑ Reach', value: `${spellResult.reach.used}/${spellResult.reach.freeReach}${spellResult.reach.excess > 0 ? ' ⚠' : ''}`, inline: true },
-                        { name: '⬡ Mana', value: String(spellResult.totals.manaCost), inline: true },
-                    ];
+                    // Paradox summary (only shown when over free Reach)
+                    let paradoxText = '';
                     if (spellResult.reach.excess > 0) {
                         const paradoxInfo = getCurrentParadoxInfo();
-                        const pVal = paradoxInfo
+                        paradoxText = paradoxInfo
                             ? (paradoxInfo.isChanceDie ? 'Chance Die' : paradoxInfo.finalDice + ' dice')
                             : spellResult.totals.paradoxDice + ' dice';
-                        fields.push({ name: '⚠️ Paradox', value: pVal, inline: true });
                     }
 
-                    const embed = {
+                    const embed = DiscordShared.buildEmbed({
                         title: embedTitle,
-                        color: embedColor,
-                        fields: fields,
-                        footer: { text: rollQualityText },
-                        timestamp: new Date().toISOString()
-                    };
-                    
-                    await fetch(diceWebhook, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ embeds: [embed], username: characterName })
+                        arcanum: window.currentCastingArcanum,
+                        fields: DiscordShared.buildPoolSummaryFields({
+                            pool: poolResult.finalPool,
+                            usedReach: spellResult.reach.used,
+                            freeReach: spellResult.reach.freeReach,
+                            excessReach: spellResult.reach.excess,
+                            manaCost: spellResult.totals.manaCost,
+                            paradoxText: paradoxText,
+                        }),
+                        footerText: rollQualityText,
+                        timestamp: true,
                     });
 
-                    // 2. Send dice bot command
-                    await fetch(diceWebhook, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ content: spellCommand })
-                    });
-                    
+                    // Embed summary, then the dice-bot command
+                    await DiscordShared.postEmbedThenCommand(diceWebhook, characterName, embed, spellCommand);
+
                     deductMana();
 
                     // Auto-increment Paradox counter in Firebase if connected and spell has Paradox risk
@@ -987,17 +930,9 @@
                 
                 try {
                     const embed = buildSpellPreviewEmbed(spellResult, poolResult);
-                    
-                    const response = await fetch(previewWebhook, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ embeds: [embed] })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Webhook request failed');
-                    }
-                    
+
+                    await DiscordShared.postDiscord(previewWebhook, { embeds: [embed] });
+
                     showDiscordStatus('✓ Sent!', 'success');
                     
                 } catch (error) {
@@ -1579,26 +1514,9 @@
           const casterName = character.shadowName || character.name || "Mage";
           setSendState("sending");
           try {
-            await fetch(webhook, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                username: casterName,
-                embeds: [{
-                  title: `${casterName}'s Clash of Wills`,
-                  color: 0x9d4edd,
-                  fields: [
-                    { name: "⚔ Clash Pool", value: String(pool), inline: true },
-                    { name: "Arcanum",       value: `${arcLabel} ${arcDots}`, inline: true },
-                  ],
-                  footer: { text: parts.join(" + ") },
-                }],
-              }),
-            });
-            await fetch(webhook, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ content: `$cod ${pool}`, username: casterName }),
+            await DiscordShared.postClash(webhook, {
+              casterName, pool, arcLabel, arcDots,
+              breakdown: parts.join(" + "),
             });
             setSendState("ok");
             setTimeout(() => setSendState(null), 3000);
