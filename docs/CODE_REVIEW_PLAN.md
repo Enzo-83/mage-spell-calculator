@@ -227,6 +227,14 @@ behavior-neutral migration.)*
 - **Verify:** spell cards / dots / Discord embeds show identical colors on all pages.
 
 ### Phase 4 — Wizard adopts the shared spell engine *(highest care)*
+*(Done 2026-06-11: deriveValues now delegates factors/Reach/Paradox/pool to
+calculateSpellFactors + calculateParadoxPool + calculateDicePool; the wizard's
+duplicate factor tables, Reach accounting, Paradox math, Gnosis charts, and
+penalty() are deleted (UI table views derive from the engine tables). Engine
+fixes landed with it: B1 dead-mudra path removed from dicePool.js, B2 paradox
+gated on excess Reach in spellFactors.js. Live bug W1 (ritual dice leaking
+into Instant casts) is fixed. **Harness: 0 drift across all 4,084 cases** —
+see the resolution header in docs/engine-drift.md.)*
 1. Load `js/spellFactors.js` + `js/dicePool.js` in wizard.html.
 2. Replace wizard's inline tables/Yantra/Reach/Paradox math with calls into the shared
    engine, resolving any drift per the Phase 1 report (decide which behavior is correct

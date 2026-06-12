@@ -6,6 +6,35 @@ Produced by `node tests/run.mjs`, which compares `js/spellFactors.js` +
 over 84 targeted cases and 4,000 seeded-random cases.
 *Written 2026-06-11. Re-run the harness after any engine change.*
 
+> ## ✅ RESOLVED — Phase 4 (2026-06-11)
+> The wizard now delegates all rules math to the shared engine
+> (`calculateSpellFactors` + `calculateParadoxPool` + `calculateDicePool`);
+> its duplicate factor tables, Reach accounting, Paradox math, and
+> Gnosis-keyed charts are deleted. **The harness reports 0 drift across all
+> 4,084 cases.** Per-finding resolutions:
+>
+> - **W1 (live bug, fixed):** ritual interval dice no longer leak into
+>   Instant casts — the pool's `ritualBonus` comes from the engine's
+>   casting-time result, which gates on ritual casting.
+> - **W2 (fixed):** the same path caps ritual bonus dice at +5 in the math
+>   layer, not just the UI.
+> - **B1 (fixed):** the dead `roteSkill`/`isOrderSkill` params and unused
+>   `mudraBonus` computation were **removed** from `calculateDicePool`. The
+>   one convention, now documented in the code: Mudra dice ride in the
+>   yantra's own `bonus` (so they correctly count toward the +5 net Yantra
+>   cap). Both pages already did this.
+> - **B2 (fixed):** `calculateParadoxPool` now returns a `noRoll` result with
+>   zero dice when `reachExcess <= 0` — callers no longer need external
+>   guards (index.html's guard remains harmlessly; Phase 6 may drop it).
+> - **D1 (resolved by convention):** the engine charges +1 Reach for Instant
+>   on any method, including Grimoire rotes; the *UI* is responsible for
+>   forbidding Instant + Grimoire (wizard already does — **Phase 6 must
+>   verify Classic's form does too**).
+> - **Mana layering (kept as-is):** the non-Ruling-Arcanum +1 Mana stays at
+>   page level — it needs character path knowledge the engine doesn't model.
+>
+> The body below is preserved as the historical record of what drifted and why.
+
 ## Headline
 
 **4,084 cases compared → 1,851 disagreed, but every disagreement traces to just

@@ -812,7 +812,24 @@ function calculateParadoxPool(params) {
         dedicatedTool = false,
         manaMitigation = 0
     } = params;
-    
+
+    // MtAw 2e: a Paradox roll only happens when the caster exceeds free Reach.
+    // Witnesses / Inured / previous rolls are modifiers to a roll that must
+    // already be triggered — with no excess Reach there is no roll at all.
+    // (Phase 4 / drift finding B2: previously this returned dice anyway and
+    // every caller had to guard externally.)
+    if (!reachExcess || reachExcess <= 0) {
+        return {
+            baseDice: 0,
+            finalDice: 0,
+            totalBeforeMin: 0,
+            breakdown: [],
+            rollQuality: { label: '', description: 'No Paradox roll (no excess Reach)' },
+            isChanceDie: false,
+            noRoll: true
+        };
+    }
+
     const paradoxPerReach = getParadoxPerReach(gnosis);
     
     // Build the pool
