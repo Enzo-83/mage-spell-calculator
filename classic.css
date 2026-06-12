@@ -1,0 +1,2812 @@
+/* classic.css — page styles for index.html (Classic calculator). Extracted
+   verbatim from the inline <style> block in plan Phase 5. Color tokens live
+   in theme.css; this file is Classic-specific (wizard/storyteller style via
+   inline JSX and consume theme.css tokens directly). */
+
+
+        * {
+            box-sizing: border-box;
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--accent-light);
+            outline-offset: 2px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        h1 {
+            text-align: center;
+            color: var(--accent-light);
+            margin-bottom: 30px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            color: var(--accent-light);
+            border-bottom: 1px solid var(--accent);
+            padding-bottom: 10px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .spell-name-group {
+            margin-bottom: 16px;
+        }
+        
+        .spell-name-group input {
+            background: var(--bg-dark);
+            border: 1px solid var(--accent);
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 1em;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .spell-name-group input:focus {
+            outline: none;
+            border-color: var(--accent-light);
+            box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.3);
+        }
+        
+        .spell-name-group input::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+        
+        .optional-label {
+            font-weight: normal;
+            text-transform: none;
+            opacity: 0.7;
+        }
+        
+        label {
+            font-size: 0.75em;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        select, input[type="number"] {
+            background: var(--bg-dark);
+            border: 1px solid var(--accent);
+            color: var(--text);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--accent-light);
+            box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.3);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+        
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 4px;
+        }
+        
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            text-transform: none;
+            cursor: pointer;
+        }
+        
+        .radio-group input[type="radio"] {
+            accent-color: var(--accent);
+        }
+        
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: var(--accent-light);
+        }
+        
+        .results {
+            display: none;
+        }
+        
+        .results.visible {
+            display: block;
+        }
+        
+        .result-section {
+            margin-bottom: 20px;
+        }
+        
+        .result-section h3 {
+            color: var(--accent-light);
+            margin: 0 0 12px 0;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            color: var(--text-muted);
+        }
+        
+        .result-value {
+            font-weight: 600;
+        }
+        
+        .result-value.penalty {
+            color: var(--danger);
+        }
+
+        .result-value.bonus {
+            color: var(--success);
+        }
+        
+        .result-value.reach {
+            color: var(--accent-light);
+        }
+        
+        .result-value.mana {
+            color: var(--warning);
+        }
+        
+        .totals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .total-box {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .total-box .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .total-box .label {
+            font-size: 0.75em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        
+        .paradox-warning {
+            background: rgba(199, 62, 29, 0.2);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+        
+        .paradox-warning.visible {
+            display: block;
+        }
+        
+        .paradox-warning h3 {
+            color: var(--danger);
+            margin: 0 0 8px 0;
+        }
+        
+        #spellControlWarning {
+            background: rgba(233, 196, 106, 0.2);
+            border-color: var(--warning);
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+        
+        #spellControlWarning h3 {
+            color: var(--warning);
+        }
+        
+        /* Paradox Section */
+        .paradox-inactive {
+            padding: 16px;
+            background: rgba(42, 157, 143, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            color: var(--success);
+        }
+        
+        .paradox-active {
+            display: block;
+        }
+        
+        .paradox-pool-display {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 8px;
+            margin: 16px 0;
+        }
+        
+        .paradox-pool-value {
+            font-size: 3em;
+            font-weight: bold;
+            color: var(--danger);
+        }
+        
+        .paradox-pool-value.chance {
+            color: var(--warning);
+        }
+        
+        .paradox-pool-label {
+            font-size: 1.2em;
+            color: var(--text-muted);
+        }
+        
+        .paradox-roll-quality {
+            font-size: 0.9em;
+            color: var(--warning);
+            margin-left: 8px;
+            padding: 4px 8px;
+            background: rgba(233, 196, 106, 0.2);
+            border-radius: 4px;
+        }
+        
+        .paradox-breakdown {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 16px 0;
+            padding: 16px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+        }
+        
+        .paradox-breakdown .pdx-item {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        
+        .paradox-breakdown .pdx-item.positive {
+            background: rgba(199, 62, 29, 0.2);
+            color: var(--danger);
+        }
+        
+        .paradox-breakdown .pdx-item.negative {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+        
+        .paradox-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .paradox-option {
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .paradox-option.contain {
+            background: rgba(199, 62, 29, 0.1);
+            border-color: rgba(199, 62, 29, 0.3);
+        }
+        
+        .paradox-option.release {
+            background: rgba(123, 44, 191, 0.1);
+            border-color: rgba(123, 44, 191, 0.3);
+        }
+        
+        .paradox-option h4 {
+            margin: 0 0 8px 0;
+            color: var(--text-light);
+        }
+        
+        .paradox-option p {
+            margin: 0;
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+        
+        #manaWarning {
+            background: rgba(199, 62, 29, 0.2);
+            border: 1px solid var(--danger);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 16px 0;
+            color: var(--danger);
+        }
+        
+        @media (max-width: 600px) {
+            .paradox-options {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Character Header */
+        .character-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .character-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .character-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--accent-light);
+        }
+        
+        .character-path {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        
+        .character-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-small:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .btn-small.btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .btn-small.btn-primary:hover {
+            background: var(--accent-light);
+        }
+        
+        /* Character Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .modal-overlay.active {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        
+        .modal {
+            background: var(--bg-card);
+            border-radius: 12px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 20px auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+            z-index: 10;
+        }
+        
+        .modal-header h2 {
+            margin: 0;
+            color: var(--accent-light);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+        
+        .modal-close:hover {
+            color: var(--text-light);
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-section {
+            margin-bottom: 24px;
+        }
+        
+        .modal-section h3 {
+            color: var(--accent-light);
+            margin: 0 0 12px 0;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        
+        .modal-grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .modal-grid-5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+        
+        @media (max-width: 600px) {
+            .modal-grid-3, .modal-grid-5 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .arcana-input, .skill-input {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+        }
+        
+        .arcana-input label, .skill-input label {
+            font-size: 0.85em;
+            color: var(--text-light);
+        }
+        
+        .arcana-input.ruling label {
+            color: var(--success);
+        }
+        
+        .arcana-input.inferior label {
+            color: var(--danger);
+        }
+        
+        .arcana-input input, .skill-input input {
+            width: 50px;
+            text-align: center;
+        }
+        
+        .skill-category {
+            margin-bottom: 16px;
+        }
+        
+        .skill-category h4 {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+        }
+        
+        .additional-rote-skills-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .additional-rote-skills-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .rote-skill-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+        
+        .rote-skill-option:hover {
+            background: rgba(125, 44, 191, 0.2);
+        }
+        
+        .rote-skill-option.order-skill {
+            background: rgba(42, 157, 143, 0.2);
+            cursor: default;
+        }
+        
+        .rote-skill-option.order-skill label {
+            color: var(--success);
+        }
+        
+        .rote-skill-option input[type="checkbox"] {
+            accent-color: var(--accent);
+        }
+        
+        .rote-skill-option.order-skill input[type="checkbox"] {
+            accent-color: var(--success);
+        }
+        
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-card);
+        }
+        
+        .spell-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 8px;
+        }
+        
+        .spell-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .spell-list-item:last-child {
+            border-bottom: none;
+        }
+        
+        .spell-list-item .spell-name {
+            font-weight: bold;
+        }
+        
+        .spell-list-item .spell-details {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        
+        .spell-list-item .btn-remove {
+            background: rgba(199, 62, 29, 0.2);
+            border: none;
+            color: var(--danger);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .spell-list-empty {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 20px;
+            font-style: italic;
+        }
+        
+        .info-text {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        
+        .reach-breakdown {
+            font-size: 0.9em;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+        
+        .reach-breakdown span {
+            margin-right: 12px;
+        }
+        
+        /* Yantra Grid */
+        .yantra-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+        
+        .yantra-category h4 {
+            color: var(--accent-light);
+            font-size: 0.9em;
+            margin: 0 0 8px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .yantra-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .yantra-option input[type="checkbox"] {
+            accent-color: var(--accent);
+        }
+        
+        .yantra-option.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .yantra-sub-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0 6px 24px;
+            cursor: pointer;
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        
+        .yantra-sub-option input[type="checkbox"] {
+            accent-color: var(--warning);
+        }
+        
+        .yantra-sub-option span {
+            color: var(--warning);
+        }
+        
+        .yantra-sub-option.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Dice Pool Display */
+        .dice-pool-display {
+            background: var(--bg-dark);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .dice-pool-display .pool-value {
+            font-size: 4em;
+            font-weight: bold;
+            color: var(--accent-light);
+            line-height: 1;
+        }
+        
+        .dice-pool-display .pool-value.chance {
+            color: var(--warning);
+        }
+        
+        .dice-pool-display .pool-value.impossible {
+            color: var(--danger);
+        }
+        
+        .dice-pool-display .pool-label {
+            font-size: 1.2em;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+        
+        .dice-pool-display .roll-quality {
+            font-size: 0.9em;
+            color: var(--success);
+            margin-top: 12px;
+        }
+        
+        .pool-breakdown {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .pool-item {
+            background: rgba(123, 44, 191, 0.2);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        
+        .pool-item.negative {
+            background: rgba(199, 62, 29, 0.2);
+        }
+        
+        .pool-item.positive {
+            background: rgba(42, 157, 143, 0.2);
+        }
+        
+        /* Spell Library Styles */
+        .spell-library-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        
+        .spell-library-header h2 {
+            margin: 0;
+        }
+        
+        .spell-library-controls {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .spell-library-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
+        }
+        
+        .spell-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            transition: all 0.2s;
+        }
+        
+        .spell-tab:hover {
+            color: var(--text-light);
+            background: rgba(255,255,255,0.05);
+        }
+        
+        .spell-tab.active {
+            color: var(--accent-light);
+            background: rgba(123, 44, 191, 0.2);
+        }
+        
+        .spell-tab-count {
+            background: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.85em;
+            margin-left: 4px;
+        }
+        
+        .arcanum-group {
+            margin-bottom: 24px;
+        }
+        
+        .arcanum-group-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .arcanum-group-toggle {
+            margin-left: auto;
+            color: var(--accent-light);
+            font-size: 0.85em;
+            display: inline-block;
+            transition: transform 0.2s ease;
+        }
+
+        .arcanum-group.collapsed .arcanum-group-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .arcanum-group.collapsed .spell-cards-grid {
+            display: none;
+        }
+
+        /* ── Grimoire Browse / Carousel ───────────────────────────────────── */
+        .arcana-strip {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 0 12px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .arcana-strip::-webkit-scrollbar { display: none; }
+
+        .arcana-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 0.85em;
+            flex-shrink: 0;
+            transition: border-color 0.15s, background 0.15s;
+            color: var(--text-light);
+        }
+        .arcana-pill.active {
+            background: rgba(255,255,255,0.13);
+            border-color: rgba(255,255,255,0.4);
+        }
+        .arcana-pill-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .arcana-pill-count {
+            opacity: 0.6;
+            font-size: 0.85em;
+        }
+
+        .carousel-wrapper {
+            overflow: hidden;
+            position: relative;
+            padding: 4px 0 8px;
+        }
+        .carousel-track {
+            display: flex;
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: transform;
+            align-items: flex-start;
+        }
+        .carousel-slide {
+            flex-shrink: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            box-sizing: border-box;
+            padding: 0 6px;
+        }
+        .carousel-slide.carousel-active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .carousel-slide:not(.carousel-active) {
+            opacity: 0.4;
+            transform: scale(0.96);
+            pointer-events: none;
+        }
+
+        .carousel-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 12px 0 4px;
+        }
+        .carousel-nav-btn {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text-light);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1.1em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.15s;
+        }
+        .carousel-nav-btn:disabled {
+            opacity: 0.25;
+            cursor: default;
+        }
+        .carousel-nav-btn:not(:disabled):active {
+            background: rgba(255,255,255,0.18);
+        }
+        .carousel-counter {
+            font-size: 0.9em;
+            color: var(--text-muted);
+            min-width: 56px;
+            text-align: center;
+        }
+        
+        .arcanum-group-header h3 {
+            margin: 0;
+            color: var(--accent-light);
+            font-size: 1.1em;
+        }
+        
+        .arcanum-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        
+        .spell-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+        
+        /* Spell Card */
+        .spell-card {
+            background: var(--bg-dark);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .spell-card-header {
+            background: linear-gradient(135deg, rgba(123, 44, 191, 0.3), rgba(123, 44, 191, 0.1));
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .spell-card-header.rote {
+            background: linear-gradient(135deg, rgba(42, 157, 143, 0.3), rgba(42, 157, 143, 0.1));
+        }
+        
+        .spell-card-header.praxis {
+            background: linear-gradient(135deg, rgba(233, 196, 106, 0.3), rgba(233, 196, 106, 0.1));
+        }
+        
+        .spell-card-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: var(--text-light);
+        }
+        
+        .spell-card-arcanum {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .spell-card-arcanum .dots {
+            color: var(--accent-light);
+        }
+        
+        .spell-card-type {
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .spell-card-type.rote {
+            background: rgba(42, 157, 143, 0.3);
+            color: var(--success);
+        }
+        
+        .spell-card-type.praxis {
+            background: rgba(233, 196, 106, 0.3);
+            color: var(--warning);
+        }
+        
+        .spell-card-type.improvised {
+            background: rgba(123, 44, 191, 0.3);
+            color: var(--accent-light);
+        }
+        
+        .spell-card-body {
+            padding: 12px 16px;
+        }
+        
+        .spell-card-practice {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        
+        .spell-card-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .spell-stat {
+            background: rgba(0,0,0,0.2);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        
+        .spell-stat-label {
+            color: var(--text-muted);
+            font-size: 0.8em;
+            display: block;
+        }
+        
+        .spell-stat-value {
+            color: var(--text-light);
+            font-weight: bold;
+        }
+        
+        .spell-card-dice {
+            background: rgba(123, 44, 191, 0.15);
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+        
+        .spell-dice-pool {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: var(--accent-light);
+        }
+        
+        .spell-dice-breakdown {
+            font-size: 0.8em;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        
+        .spell-card-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: var(--text-muted);
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .spell-card-reach {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .spell-card-reach-title {
+            font-size: 0.75em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .spell-reach-option {
+            font-size: 0.85em;
+            color: var(--text-light);
+            padding: 2px 0;
+        }
+        
+        .spell-reach-cost {
+            color: var(--warning);
+            margin-right: 4px;
+        }
+        
+        .spell-card-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .spell-card-actions button {
+            flex: 1;
+            padding: 8px;
+            font-size: 0.85em;
+        }
+        
+        .spell-library-empty {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 20px;
+            font-style: italic;
+        }
+        
+        /* Export Container */
+        #spellLibraryExport {
+            position: absolute;
+            left: -9999px;
+            background: var(--bg-dark);
+            padding: 20px;
+            width: 800px;
+        }
+        
+        #spellLibraryExport .spell-cards-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        /* ── Compendium Tab ──────────────────────────────────────── */
+        .compendium-auth-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .compendium-auth-info {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            flex: 1;
+            min-width: 100px;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .role-badge.role-admin      { background: rgba(233,196,106,0.25); color: var(--warning); }
+        .role-badge.role-editor     { background: rgba(42,157,143,0.25);  color: var(--success); }
+        .role-badge.role-sub-editor { background: rgba(123,44,191,0.25);  color: var(--accent-light); }
+        .role-badge.role-suggester  { background: rgba(255,255,255,0.1);  color: var(--text-muted); }
+
+        .compendium-filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .compendium-search {
+            flex: 1;
+            min-width: 140px;
+        }
+        .compendium-filter-select {
+            flex: 0 0 auto;
+            min-width: 120px;
+        }
+
+        /* Compendium spell card — distinct header colour */
+        .compendium-card-header {
+            background: linear-gradient(135deg, rgba(180,140,40,0.25), rgba(180,140,40,0.08)) !important;
+        }
+        .source-badge {
+            font-size: 0.72em;
+            padding: 2px 7px;
+            border-radius: 4px;
+            white-space: nowrap;
+            font-weight: bold;
+            letter-spacing: 0.3px;
+            align-self: flex-start;
+        }
+
+        /* Collapsible description */
+        .compendium-description { margin-top: 8px; font-size: 0.85em; }
+        .compendium-desc-toggle {
+            color: var(--accent-light);
+            cursor: pointer;
+            user-select: none;
+            padding: 2px 0;
+        }
+        .compendium-desc-toggle:hover { text-decoration: underline; }
+        .compendium-desc-text {
+            color: var(--text-muted);
+            margin-top: 6px;
+            padding: 8px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        /* Optional Arcana block */
+        .spell-optional-arcana {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* ── Add to Library modal ────────────────────────────────── */
+        .add-to-lib-type-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .add-to-lib-type-btn {
+            flex: 1;
+            padding: 10px 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9em;
+            text-align: center;
+            min-width: 80px;
+        }
+        .add-to-lib-type-btn:hover:not(:disabled) {
+            border-color: var(--accent-light);
+            background: rgba(123,44,191,0.15);
+        }
+        .add-to-lib-type-btn.selected {
+            border-color: var(--accent-light);
+            background: rgba(123,44,191,0.25);
+            color: var(--accent-light);
+            font-weight: bold;
+        }
+        .add-to-lib-type-btn.already-added {
+            opacity: 0.45;
+            cursor: not-allowed;
+            border-color: rgba(42,157,143,0.4);
+            color: var(--success);
+            background: rgba(42,157,143,0.1);
+        }
+        .already-check { color: var(--success); margin-left: 4px; }
+        .add-to-lib-note {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            min-height: 20px;
+            margin-bottom: 8px;
+        }
+
+        /* ── Opt-arc row in compendium editor ────────────────────── */
+        .opt-arc-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .opt-arc-row select            { width: 110px; flex-shrink: 0; }
+        .opt-arc-row input[type="number"] { width: 55px; flex-shrink: 0; }
+        .opt-arc-row input[type="text"]{ flex: 1; }
+
+        /* ── Suggestions inbox ───────────────────────────────────── */
+        .suggestion-item {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .suggestion-header { margin-bottom: 4px; }
+        .suggestion-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* ── Admin panel ─────────────────────────────────────────── */
+        .admin-role-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .admin-role-row:last-child { border-bottom: none; }
+
+        /* ── Import progress ─────────────────────────────────────── */
+        .import-status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+        }
+        .import-status.ok   { background: rgba(42,157,143,0.15); color: var(--success); }
+        .import-status.warn { background: rgba(233,196,106,0.15); color: var(--warning); }
+        .import-status.err  { background: rgba(199,62,29,0.15);  color: var(--danger);  }
+        .import-progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .import-progress-fill {
+            height: 100%;
+            background: var(--accent-light);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        /* Spell Editor Modal Additions */
+        .reach-options-editor {
+            margin-top: 12px;
+        }
+        
+        .reach-option-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        
+        .reach-option-row input[type="number"] {
+            width: 60px;
+        }
+        
+        .reach-option-row input[type="text"] {
+            flex: 1;
+        }
+        
+        .reach-option-row .btn-remove-reach {
+            padding: 4px 8px;
+            background: rgba(199, 62, 29, 0.2);
+            border: none;
+            color: var(--danger);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        /* Mana Summary */
+        .mana-summary {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .mana-summary h3 {
+            color: var(--accent-light);
+            margin: 0 0 12px 0;
+            font-size: 1em;
+        }
+        
+        .mana-breakdown {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+        }
+        
+        .mana-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 0.9em;
+        }
+        
+        .mana-row .mana-source {
+            color: var(--text-muted);
+        }
+        
+        .mana-row .mana-cost {
+            color: var(--text-light);
+            font-weight: bold;
+        }
+        
+        .mana-row.mana-total {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 8px;
+            padding-top: 8px;
+        }
+        
+        .mana-row.mana-total .mana-source,
+        .mana-row.mana-total .mana-cost {
+            color: var(--accent-light);
+            font-size: 1.1em;
+        }
+        
+        .mana-pool-status {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: rgba(42, 157, 143, 0.15);
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: var(--success);
+        }
+        
+        .mana-pool-status.warning {
+            background: rgba(233, 196, 106, 0.15);
+            color: var(--warning);
+        }
+        
+        .mana-pool-status.danger {
+            background: rgba(199, 62, 29, 0.15);
+            color: var(--danger);
+        }
+        
+        .mana-warning {
+            margin-top: 12px;
+            padding: 10px 12px;
+            background: rgba(199, 62, 29, 0.2);
+            border: 1px solid var(--danger);
+            border-radius: 6px;
+            color: var(--danger);
+            font-size: 0.9em;
+        }
+
+        .mana-adjuster {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .mana-adjuster .mana-adj-label {
+            color: var(--text-muted);
+            font-size: 0.8em;
+            margin-right: auto;
+        }
+        .mana-adjuster .mana-adj-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text-light);
+            font-size: 1em;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .mana-adjuster .mana-adj-btn:hover {
+            border-color: var(--accent-light);
+            background: rgba(123,44,191,0.1);
+        }
+        .mana-adjuster .mana-adj-value {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--warning);
+            min-width: 24px;
+            text-align: center;
+        }
+        .mana-adjuster .mana-adj-info {
+            color: var(--text-muted);
+            font-size: 0.75em;
+            margin-left: 4px;
+        }
+
+        .mana-ledger {
+            margin-top: 10px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 10px 12px;
+        }
+        .mana-ledger-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            padding: 2px 0;
+        }
+        .mana-ledger-row .label { color: var(--text-muted); }
+        .mana-ledger-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.06);
+            margin: 4px 0;
+        }
+        .mana-ledger-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            font-weight: 700;
+            padding: 2px 0;
+        }
+        .mana-validation {
+            margin-top: 8px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+        }
+        .mana-validation.ok {
+            background: rgba(42, 157, 143, 0.15);
+            color: var(--success);
+        }
+        .mana-validation.warn {
+            background: rgba(233, 196, 106, 0.15);
+            color: var(--warning);
+        }
+        .mana-validation.block {
+            background: rgba(199, 62, 29, 0.15);
+            color: var(--danger);
+        }
+        .mana-deducted-notice {
+            margin-top: 6px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            background: rgba(42, 157, 143, 0.15);
+            border: 1px solid var(--success);
+            color: var(--success);
+            font-size: 0.85em;
+            display: none;
+        }
+
+        .clash-header h2 {
+            font-size: 1.1em;
+            color: var(--accent-light);
+        }
+        .clash-chevron {
+            color: var(--text-muted);
+            font-size: 0.85em;
+        }
+        .clash-pool-display {
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 10px 16px;
+            text-align: center;
+            flex: 0 0 auto;
+        }
+        .clash-pool-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: var(--accent-light);
+        }
+        .clash-pool-label {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-left: 4px;
+        }
+        
+        /* Live Preview Card */
+        .live-preview-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(123, 44, 191, 0.1) 100%);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(123, 44, 191, 0.2);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .preview-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .preview-method {
+            font-weight: bold;
+            color: var(--accent-light);
+            font-size: 1.1em;
+        }
+        
+        .preview-practice {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+        
+        .preview-roll-quality {
+            background: var(--success);
+            color: var(--bg-dark);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .preview-roll-quality:empty {
+            display: none;
+        }
+        
+        /* Dice Pool Section */
+        .preview-dice-section {
+            padding: 20px 16px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .preview-dice-pool {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .preview-pool-value {
+            font-size: 4em;
+            font-weight: bold;
+            color: var(--accent-light);
+            line-height: 1;
+        }
+        
+        .preview-pool-value.chance {
+            color: var(--warning);
+        }
+        
+        .preview-pool-label {
+            font-size: 1.5em;
+            color: var(--text-muted);
+        }
+        
+        .preview-dice-breakdown {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 12px;
+        }
+        
+        .preview-dice-breakdown .chip {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .preview-dice-breakdown .chip.base {
+            background: rgba(123, 44, 191, 0.3);
+            color: var(--accent-light);
+        }
+        
+        .preview-dice-breakdown .chip.bonus {
+            background: rgba(42, 157, 143, 0.3);
+            color: var(--success);
+        }
+        
+        .preview-dice-breakdown .chip.penalty {
+            background: rgba(199, 62, 29, 0.3);
+            color: var(--danger);
+        }
+        
+        /* Factors Section */
+        .preview-factors-section {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .preview-section-label {
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+        
+        .preview-factors-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        
+        .preview-factor {
+            background: var(--bg-dark);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: var(--text-light);
+        }
+        
+        .preview-factor.has-penalty {
+            border-left: 3px solid var(--danger);
+        }
+        
+        .preview-factor.has-reach {
+            border-left: 3px solid var(--warning);
+        }
+        
+        .preview-penalty-summary {
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        
+        .preview-penalty-summary .penalty-item {
+            color: var(--danger);
+            margin-right: 12px;
+        }
+        
+        .preview-penalty-summary .penalty-item.zero {
+            color: var(--text-muted);
+        }
+        
+        /* Stats Row */
+        .preview-stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .preview-stat {
+            padding: 12px;
+            text-align: center;
+            border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .preview-stat:last-child {
+            border-right: none;
+        }
+        
+        .preview-stat-value {
+            display: block;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+        
+        .preview-stat-value.over {
+            color: var(--danger);
+        }
+        
+        .preview-stat-label {
+            display: block;
+            font-size: 0.75em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        
+        /* Paradox Section */
+        .preview-paradox-section {
+            padding: 12px 16px;
+            background: rgba(199, 62, 29, 0.1);
+            border-top: 2px solid var(--danger);
+        }
+        
+        .preview-paradox-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .preview-paradox-icon {
+            color: var(--danger);
+            font-size: 1.2em;
+        }
+        
+        .preview-paradox-title {
+            font-weight: bold;
+            color: var(--danger);
+        }
+        
+        .preview-paradox-pool {
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .preview-paradox-quality {
+            font-size: 0.85em;
+            color: var(--warning);
+        }
+        
+        .preview-paradox-breakdown {
+            font-size: 0.8em;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        
+        .preview-paradox-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            font-size: 0.8em;
+        }
+        
+        .paradox-opt {
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .paradox-opt.contain {
+            color: var(--warning);
+        }
+        
+        .paradox-opt.release {
+            color: var(--text-muted);
+        }
+        
+        /* No Paradox */
+        .preview-no-paradox {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--success);
+            font-size: 0.9em;
+        }
+        
+        .no-paradox-icon {
+            font-size: 1.2em;
+        }
+        
+        /* Warnings */
+        .preview-warnings {
+            padding: 10px 16px;
+            background: rgba(199, 62, 29, 0.15);
+        }
+        
+        .preview-warning-item {
+            color: var(--danger);
+            font-size: 0.85em;
+            padding: 4px 0;
+        }
+        
+        /* Combined Spell Styles */
+        .combined-spell-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(123, 44, 191, 0.1);
+            border: 1px solid rgba(123, 44, 191, 0.3);
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .combined-spell-toggle.active {
+            background: rgba(123, 44, 191, 0.25);
+            border-color: var(--accent);
+        }
+        
+        .combined-spell-toggle label {
+            cursor: pointer;
+            font-weight: bold;
+            color: var(--accent-light);
+        }
+        
+        .combined-spell-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .combined-spell-toggle input[type="checkbox"]:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .combined-spell-toggle input[type="checkbox"]:disabled + label {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .combined-spell-toggle .info {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        
+        .combined-spell-section {
+            display: none;
+            margin-bottom: 16px;
+        }
+        
+        .combined-spell-section.active {
+            display: block;
+        }
+        
+        .combined-spell-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .combined-spell-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-dark);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
+        }
+        
+        .combined-spell-item.lowest-arcanum {
+            border-left-color: var(--warning);
+        }
+        
+        .combined-spell-item .spell-info {
+            flex: 1;
+        }
+        
+        .combined-spell-item .spell-name {
+            font-weight: bold;
+            color: var(--text-light);
+        }
+        
+        .combined-spell-item .spell-arcanum {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        
+        .combined-spell-item .spell-arcanum.lowest {
+            color: var(--warning);
+        }
+        
+        .combined-spell-item .spell-reach {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .combined-spell-item .spell-reach input {
+            width: 50px;
+            text-align: center;
+        }
+        
+        .combined-spell-item .btn-remove {
+            padding: 4px 8px;
+            background: rgba(199, 62, 29, 0.2);
+            border: none;
+            color: var(--danger);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .combined-add-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .combined-add-controls button {
+            flex: 1;
+            min-width: 140px;
+        }
+        
+        .combined-stats {
+            display: flex;
+            gap: 16px;
+            padding: 10px 12px;
+            background: rgba(123, 44, 191, 0.1);
+            border-radius: 6px;
+            margin-top: 12px;
+            font-size: 0.9em;
+            flex-wrap: wrap;
+        }
+        
+        .combined-stat {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .combined-stat-label {
+            color: var(--text-muted);
+        }
+        
+        .combined-stat-value {
+            font-weight: bold;
+            color: var(--accent-light);
+        }
+        
+        .combined-stat-value.penalty {
+            color: var(--danger);
+        }
+        
+        /* Add Spell Modal */
+        .add-spell-form {
+            display: grid;
+            gap: 12px;
+        }
+        
+        .add-spell-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .library-spell-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            margin-top: 12px;
+        }
+        
+        .library-spell-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .library-spell-option:hover {
+            background: rgba(123, 44, 191, 0.15);
+        }
+        
+        .library-spell-option:last-child {
+            border-bottom: none;
+        }
+        
+        .library-spell-option .spell-type {
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        
+        .library-spell-option .spell-type.praxis {
+            background: rgba(233, 196, 106, 0.3);
+            color: var(--warning);
+        }
+        
+        .library-spell-option .spell-type.improvised {
+            background: rgba(123, 44, 191, 0.3);
+            color: var(--accent-light);
+        }
+        
+        /* Scale Separation Option */
+        .scale-separation {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: rgba(233, 196, 106, 0.1);
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .scale-separation.active {
+            display: block;
+        }
+        
+        .scale-separation label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+        
+        /* Preview combined info */
+        .preview-combined-info {
+            padding: 8px 16px;
+            background: rgba(123, 44, 191, 0.15);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: none;
+        }
+        
+        .preview-combined-info.active {
+            display: block;
+        }
+        
+        .preview-combined-spells {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        
+        .preview-combined-spell {
+            padding: 3px 8px;
+            background: var(--bg-dark);
+            border-radius: 4px;
+            font-size: 0.8em;
+        }
+        
+        .preview-combined-spell.lowest {
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+        
+        .preview-combined-penalty {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+        
+        .preview-combined-penalty span {
+            color: var(--danger);
+        }
+        
+        /* Discord Integration */
+        .discord-send-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: #5865F2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+        
+        .discord-send-btn:hover {
+            background: #4752C4;
+        }
+        
+        .discord-send-btn:disabled {
+            background: #4752C4;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .discord-send-btn .discord-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .save-library-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: #2a9d8f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.85em;
+            transition: background 0.2s;
+        }
+        
+        .save-library-btn:hover {
+            background: #21867a;
+        }
+        
+        .save-library-btn .save-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .save-lib-summary {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+            font-size: 0.9em;
+            margin-bottom: 12px;
+        }
+        
+        .save-lib-summary .summary-item {
+            display: flex;
+            gap: 6px;
+        }
+        
+        .save-lib-summary .summary-label {
+            color: #888;
+            min-width: 70px;
+        }
+        
+        .save-lib-summary .summary-value {
+            color: #e6e6e6;
+            font-weight: 500;
+        }
+        
+        .save-lib-update-choice {
+            display: flex;
+            gap: 16px;
+            padding: 10px 14px;
+            background: rgba(157, 78, 221, 0.1);
+            border: 1px solid rgba(157, 78, 221, 0.3);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .save-lib-update-choice label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #2a9d8f;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9em;
+            z-index: 2000;
+            opacity: 0;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .toast.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        .preview-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            justify-content: flex-end;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .discord-settings-btn {
+            padding: 8px 12px;
+            background: rgba(88, 101, 242, 0.2);
+            color: #5865F2;
+            border: 1px solid #5865F2;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        
+        .discord-settings-btn:hover {
+            background: rgba(88, 101, 242, 0.3);
+        }
+        /* ── Active Spell button in preview ── */
+        .btn-set-active {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background: rgba(123, 44, 191, 0.25);
+            color: var(--accent-light);
+            border: 1px solid var(--accent-border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85em;
+            transition: background 0.2s, opacity 0.2s;
+        }
+        .btn-set-active:hover:not(:disabled) {
+            background: rgba(123, 44, 191, 0.45);
+        }
+        .btn-set-active:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+        .btn-set-active.confirmed {
+            background: rgba(42, 157, 143, 0.3);
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        /* ── Active spell items in character modal ── */
+        .active-spell-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+            margin-bottom: 8px;
+        }
+        .active-spell-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .active-spell-name {
+            font-weight: 600;
+            font-size: 0.92em;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .active-spell-meta {
+            font-size: 0.78em;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .active-spell-badge {
+            font-size: 0.72em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .badge-rote      { background: rgba(42,157,143,0.2);  color: var(--success); }
+        .badge-praxis    { background: rgba(123,44,191,0.2);  color: var(--accent-light); }
+        .badge-improvised{ background: rgba(255,255,255,0.08); color: var(--text-muted); }
+        .btn-dismiss-spell {
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 1px solid rgba(199,62,29,0.4);
+            background: rgba(199,62,29,0.15);
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 0.78em;
+            font-weight: 600;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .btn-dismiss-spell:hover { background: rgba(199,62,29,0.3); }
+
+        /* ── Read-only active spells counter in Caster section ── */
+        .active-spells-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.03);
+            font-size: 0.9em;
+            color: var(--text);
+            min-height: 36px;
+            box-sizing: border-box;
+        }
+        .active-spells-count {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: var(--accent-light);
+            min-width: 18px;
+            text-align: center;
+        }
+        .active-spells-manage-link {
+            font-size: 0.78em;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: auto;
+        }
+        .active-spells-manage-link:hover { 
+            color: var(--accent-light); 
+        }
+        .discord-status {
+            font-size: 0.8em;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: auto;
+        }
+        
+        .discord-status.success {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+        }
+        
+        .discord-status.error {
+            background: rgba(199, 62, 29, 0.2);
+            color: var(--danger);
+        }
+        
+        .discord-status.sending {
+            background: rgba(88, 101, 242, 0.2);
+            color: #5865F2;
+        }
+        
+        @media (max-width: 500px) {
+            .preview-pool-value {
+                font-size: 3em;
+            }
+            
+            .preview-stats-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .preview-stat {
+                border-right: none;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            
+            .preview-paradox-options {
+                flex-direction: column;
+                gap: 6px;
+            }
+        }
+
+        /* Scene Tracker */
+        .scene-log-chip {
+            display: inline-block;
+            margin: 2px 4px 2px 0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.78em;
+            background: rgba(199, 62, 29, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(199, 62, 29, 0.2);
+        }
+        .scene-status-banner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+        }
+        .scene-status-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .scene-paradox-counter {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-dark);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 14px;
+        }
+        .scene-paradox-big {
+            font-size: 2em;
+            font-weight: bold;
+            text-align: center;
+            min-width: 60px;
+        }
+        .scene-st-notice {
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: rgba(233, 196, 106, 0.1);
+            border: 1px solid rgba(233, 196, 106, 0.3);
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: var(--warning);
+        }
+        .scene-auto-badge {
+            font-size: 0.7em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--success);
+            font-weight: bold;
+            border: 1px solid var(--success);
+        }
+        #prevParadoxAutoRow {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-dark);
+            border-radius: 6px;
+            padding: 8px 12px;
+        }
+        #prevParadoxAutoRow .value {
+            font-size: 1.2em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        .scene-disconnect-btn {
+            margin-top: 16px;
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            font-weight: bold;
+            font-size: 0.85em;
+        }
+        .scene-connected-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            display: inline-block;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+
+        /* ── Landscape container width ── */
+        @media (min-width: 1024px) {
+            .container { max-width: 1400px; }
+            .container > h1 { display: none; }
+        }
+
+        /* ── App-level layout — single column, grimoire is a drawer ── */
+        #app-layout { display: block; }
+
+        /* ── Grimoire drawer (desktop only) ── */
+        @media (min-width: 1024px) {
+            #classic-spelllib-root {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 420px;
+                height: 100vh;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+                z-index: 300;
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(123,44,191,0.3) transparent;
+                box-shadow: -4px 0 24px rgba(0,0,0,0.5);
+            }
+            #classic-spelllib-root.grimoire-open {
+                transform: translateX(0);
+            }
+        }
+
+        /* ── Grimoire edge toggle tab ── */
+        .grimoire-toggle {
+            display: none;
+        }
+        @media (min-width: 1024px) {
+            .grimoire-toggle {
+                display: block;
+                position: fixed;
+                right: 0;
+                top: 50%;
+                transform: translateY(-50%);
+                z-index: 301;
+                writing-mode: vertical-rl;
+                text-orientation: mixed;
+                padding: 12px 6px;
+                background: var(--bg-card);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-right: none;
+                border-radius: 8px 0 0 8px;
+                color: var(--accent-light);
+                font-family: 'Rajdhani', sans-serif;
+                font-weight: 700;
+                font-size: 12px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                cursor: pointer;
+                transition: background 0.2s, right 0.3s ease;
+            }
+            .grimoire-toggle:hover {
+                background: rgba(123,44,191,0.15);
+            }
+            .grimoire-toggle.grimoire-open {
+                right: 420px;
+            }
+        }
+
+        /* ── Grimoire backdrop ── */
+        .grimoire-backdrop {
+            display: none;
+        }
+        @media (min-width: 1024px) {
+            .grimoire-backdrop {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.3);
+                z-index: 299;
+            }
+            .grimoire-backdrop.grimoire-open {
+                display: block;
+            }
+        }
+
+        /* ── Two-panel calculator grid ── */
+        .calculator-landscape { display: block; }
+        @media (min-width: 1024px) {
+            .calculator-landscape {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                align-items: start;
+                font-size: 1.05em;
+            }
+            .calculator-landscape .output-panel {
+                position: sticky;
+                top: 20px;
+                max-height: calc(100vh - 40px);
+                overflow-y: auto;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(123,44,191,0.3) transparent;
+            }
+            /* Scroll buffer: lets the last accordion card scroll up to a readable
+               position instead of pinning to the viewport bottom */
+            .calculator-landscape .input-panel { padding-bottom: 40vh; }
+            .calculator-landscape label { font-size: 0.82em; }
+            .calculator-landscape .info-text { font-size: 0.9em; }
+            .calculator-landscape select,
+            .calculator-landscape input[type="number"] { font-size: 1em; padding: 10px 12px; }
+            .calculator-landscape .yantra-category h4 { font-size: 1em; }
+            .calculator-landscape .checkbox-group label,
+            .calculator-landscape .radio-group label { font-size: 0.85em; }
+
+            /* Grimoire spell cards — outside .calculator-landscape so need explicit bumps */
+            .spell-card-arcanum { font-size: 0.92em; }
+            .spell-card-type { font-size: 0.82em; }
+            .spell-card-practice { font-size: 0.92em; }
+            .spell-stat { font-size: 0.92em; }
+            .spell-stat-label { font-size: 0.85em; }
+            .spell-dice-breakdown { font-size: 0.85em; }
+            .spell-card-meta { font-size: 0.85em; }
+            .spell-card-reach-title { font-size: 0.82em; }
+            .spell-reach-option { font-size: 0.92em; }
+            .spell-card-actions button { font-size: 0.92em; }
+        }
+
+        /* ── Accordion cards ── */
+        .accordion-card { padding: 0 !important; }
+        .accordion-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 24px;
+        }
+        .accordion-header h2 {
+            margin: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+            flex: 1;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .accordion-summary {
+            color: var(--text-muted);
+            font-weight: normal;
+            display: none;
+        }
+        .accordion-chevron {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            display: none;
+        }
+        .accordion-card .accordion-body-inner { padding: 0 24px 24px; }
+        @media (max-width: 1023px) {
+            .accordion-header h2 {
+                border-bottom: 1px solid var(--accent);
+                padding-bottom: 10px;
+                margin-bottom: 4px;
+            }
+            .accordion-card .accordion-body { display: block; }
+        }
+        @media (min-width: 1024px) {
+            .accordion-header { cursor: pointer; }
+            .accordion-header:hover { background: rgba(255,255,255,0.03); border-radius: 12px 12px 0 0; }
+            .accordion-summary, .accordion-chevron { display: block; }
+            .accordion-summary { font-size: 0.88em; }
+            .accordion-card .accordion-body {
+                display: grid;
+                grid-template-rows: 0fr;
+                transition: grid-template-rows 0.2s ease;
+            }
+            .accordion-card.open .accordion-body { grid-template-rows: 1fr; }
+            .accordion-card .accordion-body-inner { overflow: hidden; }
+        }
+
+        /* ── Scene Pill ── */
+        .scene-pill-wrapper { position: relative; display: inline-flex; }
+        .scene-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: var(--bg-dark);
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .scene-pill:hover { border-color: rgba(255,255,255,0.28); color: var(--text); }
+        .scene-pill.connected { border-color: rgba(42,157,143,0.45); color: var(--success); }
+        .scene-pill-input {
+            width: 4.5ch;
+            font-family: monospace;
+            font-size: 1em;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            outline: none;
+            text-align: center;
+            padding: 0;
+        }
+        .scene-pill-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--success);
+            flex-shrink: 0;
+        }
+        .scene-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 300px;
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            padding: 16px;
+            z-index: 200;
+        }

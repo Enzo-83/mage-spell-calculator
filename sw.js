@@ -15,7 +15,7 @@
 // CACHE_NAME only needs bumping if the caching strategy or layout changes —
 // NOT per release (network-first refreshes entries on every successful fetch).
 
-const CACHE_NAME = 'mage-grimoire-v54'; // bumped: precache layout changed (gameData.js)
+const CACHE_NAME = 'mage-grimoire-v55'; // bumped: precache layout changed (classic.css)
 
 // Everything needed to boot all three pages offline.
 const PRECACHE = [
@@ -25,6 +25,7 @@ const PRECACHE = [
   './storyteller.html',
   './manifest.json',
   './theme.css',
+  './classic.css',
   './shared/firebase.js',
   './shared/session.js',
   './shared/nav.js',
