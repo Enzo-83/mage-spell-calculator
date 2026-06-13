@@ -1341,7 +1341,7 @@
           <Field label="Other Modifier">
             <StepperInput value={d.otherMod} min={-10} max={10} onChange={v=>set("otherMod",v)}/>
           </Field>
-          <Field label="Roll Quality Override">
+          <Field label="Roll Quality Override" tip="rollQuality">
             <CheckboxRow label="9-Again" checked={d.againOverride === 9}
               onChange={v => set("againOverride", v ? 9 : 10)} />
             <CheckboxRow label="8-Again" checked={d.againOverride === 8}
