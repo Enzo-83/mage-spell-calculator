@@ -198,6 +198,7 @@ function createRote(params = {}) {
     return {
         id: generateId(),
         type: 'rote',
+        compendiumId: params.compendiumId || null, // link to source compendium spell (duplicate detection)
         name: params.name || "New Rote",
         primaryArcanum: params.primaryArcanum || "prime",
         primaryArcanumLevel: params.primaryArcanumLevel || 1,
@@ -235,6 +236,7 @@ function createPraxis(params = {}) {
     return {
         id: generateId(),
         type: 'praxis',
+        compendiumId: params.compendiumId || null, // link to source compendium spell (duplicate detection)
         name: params.name || "New Praxis",
         primaryArcanum: params.primaryArcanum || "prime",
         primaryArcanumLevel: params.primaryArcanumLevel || 1,
@@ -270,6 +272,7 @@ function createImprovisedFavorite(params = {}) {
     return {
         id: generateId(),
         type: 'improvised',
+        compendiumId: params.compendiumId || null, // link to source compendium spell (duplicate detection)
         name: params.name || "New Spell",
         primaryArcanum: params.primaryArcanum || "prime",
         primaryArcanumLevel: params.primaryArcanumLevel || 1,
