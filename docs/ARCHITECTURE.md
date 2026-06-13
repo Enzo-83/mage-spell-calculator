@@ -2,7 +2,7 @@
 
 **Living document.** Every refactor phase (see [CODE_REVIEW_PLAN.md](CODE_REVIEW_PLAN.md))
 updates this file so the written description never drifts from the code.
-*Last updated: 2026-06-12 (Phase 6).*
+*Last updated: 2026-06-13 (Phase 10).*
 
 ## Overview
 
@@ -44,7 +44,7 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | `js/spellFactors.js` | index, wizard | Spell factor engine — casting methods, duration/scale/range tables, GNOSIS_CHART, Reach, Paradox. Rules source of truth. |
 | `js/dicePool.js` | index, wizard | Final dice pool calculation (Gnosis + Arcanum base plus all modifiers). Mudra dice ride in the yantra's `bonus` (see B1 note in the file). |
 | `js/character.js` | index | PATHS/ORDERS data, character defaults, localStorage + JSON file persistence. |
-| `js/spellCompendium.js` | index | Vanilla Firestore compendium UI with roles. (wizard has a parallel React `CompendiumOverlay` — unification is plan Phase 9.) |
+| `js/spellCompendium.js` | index, wizard | **Shared** Firestore compendium — one no-JSX React implementation mounted on both pages (Phase 10). `window.compendium` (service: hooks, CRUD, suggestions, admin, import/export, pure helpers) + `window.CompendiumPanel` (`variant: 'classic'\|'wizard'`). Classic = arcanum-grouped grid; Wizard = flat rows; admin (roles + bulk import/export) is Classic-only. Roles: admin/editor/sub-editor/suggester. |
 | `js/glossary.js` | index, wizard | Glossary data + `window.GlossaryTip` React component (no JSX). |
 | `js/tiltCatalog.js` | all three | `window.tiltCatalog` — Firestore `tiltsConditions` catalog (live subscribe, `useCatalog` React hook with lazy auto-subscribe, `getByName`, CSV import/export/template) + `window.TiltBadge`, a no-JSX React component rendering a tilt/condition name with a hover description tooltip; custom tilts degrade to the bare name (Phase 9). Extracted from storyteller.html. |
 | `shared/firebase.js` | all three | Single Firebase init — sets `window._fbApp/_fbDb/_fsDb/_fsAuth` for whichever SDKs the page loads (Phase 2). |
@@ -55,10 +55,10 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | `classic.css` | index | All Classic page styles, extracted from index.html's inline block (Phase 5). wizard/storyteller style via inline JSX. |
 
 > Consolidation status: identity data (Phase 3), the rules engine (Phase 4),
-> and the Discord send layer (Phase 7) are single-sourced — wizard.html
-> derives its UI table views and Title-Case data from the modules above and
-> re-declares nothing. The remaining duplication is the compendium UI
-> (vanilla vs React, plan Phase 10).
+> the Discord send layer (Phase 7), the tilt catalog (Phase 9), and the spell
+> compendium UI (Phase 10) are all single-sourced. wizard.html derives its UI
+> table views and Title-Case data from the modules above and re-declares
+> nothing — the original Classic-vs-Wizard duplication is fully retired.
 
 ### `DiscordShared` API (`shared/discord.js`)
 
@@ -152,7 +152,6 @@ Scene:
 | Global | Purpose |
 |--------|---------|
 | `window.classicCombinedBridge` | Combined-spell state read by the calculator effect: `isEnabled`, `getSpells`, `getLowestArcanumInfo`, `getCombinationPenalty`, `getCombinedAdditionalReach`, `areAllPraxes`, `getCasterLowestArcanumDots`. |
-| `window.spellLibraryAPI` | Controlled access for `js/spellCompendium.js`: `getCharacter`, `getCurrentTab`, `switchTab`, `renderLibrary`, `save`. |
 | `window.grimoireDrawer` | `toggle`/`close` for the drawer, used by the static FAB/backdrop `onclick`s. |
 | `window.currentCharacter`, `window.currentSpellResult`, `window.currentPoolResult`, `window.currentCastingArcanum`, `window.currentRoteSkillKey` | Shared snapshots both halves read (results panel renders from them; Discord/export read them). |
 

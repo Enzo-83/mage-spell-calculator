@@ -367,6 +367,34 @@ merge as-is, re-implement against current code) is preserved as
   hover descriptions for catalog entries and degrade gracefully for custom tilts.
 
 ### Phase 10 — Compendium unification *(largest; optional / schedule separately)*
+*(Done 2026-06-13: `js/spellCompendium.js` rewritten in place as one no-JSX
+React module — `window.compendium` (service: `useSpells`/`useAuth` hooks, CRUD,
+suggestions, admin, CSV/JSON import-export, pure helpers) + `window.CompendiumPanel`
+(`variant: 'classic'|'wizard'`). Same no-JSX pattern as glossary.js/tiltCatalog.js,
+loads before Babel. Per the design doc (`docs/compendium-unification.md`): logic,
+data flows, and feature set are 100% shared; only the list layout forks by variant
+(Classic arcanum-grouped grid vs Wizard flat rows). Wizard **gained** the practice
+filter, the spell editor + suggestions inbox (role-gated), suggest-an-edit on cards,
+and correct reach-option rendering; admin (role grants + bulk import/export) stays
+Classic-only (decided with user: "Editor + inbox, no admin"). Three live drift bugs
+fixed: (1) suggestion schema split — canonical `submittedBy`/`submitterName`/
+`submitterNote`, with `reviewSuggestion` hardened (`submittedBy || submitterId ||
+'unknown'`) so approving wizard-submitted suggestions no longer fails on an undefined
+field; (2) wizard's reach-option crash ("Objects are not valid as a React child") —
+reach options render via a shared `reachText` helper; (3) dead `spellLibraryAPI` /
+`compendiumModule` / `initCompendium` / vanilla `renderCompendiumTab` removed.
+index.html: 4 static modals deleted (346 lines), `SLCompendiumView` mounts the panel;
+wizard.html: `CompendiumOverlay` is now a thin shell, App uses `compendium.useAuth()`,
+`COMP_BOOKS` deleted, `SuggestSpellDrawer` submits via `compendium.submitSuggestion`.
+`createRote/createPraxis/createImprovisedFavorite` now preserve `compendiumId` so
+duplicate detection works on both pages; `sanitiseSpell` fixed to drop a rejected
+secondary arcanum's level too. classic.css: ~250 lines of orphaned compendium
+selectors removed (kept `spell-cards-grid`/`spell-reach-*`/`spell-library-empty` —
+still used by the PNG export + combined-spell views). Harness +11 tests for the pure
+helpers → 147 passing, 0 engine drift. No sw.js/CACHE_NAME bump (same filename;
+network-first since Phase 8). Verified live on both pages: anonymous browse of the 73
+live spells, all three filters, card expand with reach options, and add-to-library
+persisting with `compendiumId` on Classic and Wizard.)*
 Converge `js/spellCompendium.js` (vanilla) and wizard's `CompendiumOverlay` (React) on
 one React implementation mounted on both pages. Requires its own design pass — role
 flows, edit/suggest queues, and index's drawer layout differ. Write a short design doc
@@ -396,5 +424,5 @@ catalog task was salvaged from an abandoned worktree.)*
 - [x] `js/README.md` — real module index (done with this plan)
 - [x] `docs/engine-drift.md` — Classic vs Wizard rules-math drift + decisions (Phase 1; Phase 4 records resolutions)
 - [ ] `docs/firebase-rules.md` — exported RTDB/Firestore rules for review (§E)
-- [ ] `docs/compendium-unification.md` — design doc before Phase 9
+- [x] `docs/compendium-unification.md` — design doc before Phase 10 (done; Phase 10 shipped against it)
 - [ ] `docs/archive/` — completed HANDOFF docs moved out of the root
