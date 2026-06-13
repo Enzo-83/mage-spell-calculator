@@ -43,6 +43,10 @@
       term: "Willpower",
       def: "Spending 1 Willpower point adds +3 dice to the spellcasting roll, representing focused intent. A mage's maximum equals Resolve + Composure and is typically recovered through rest or significant story milestones.",
     },
+    rollQuality: {
+      term: "Roll Quality (n-Again)",
+      def: "The \"again\" rule controls which dice reroll and can keep adding successes. Standard rolls are 10-Again — every 10 rerolls.\n9-Again lowers the threshold so 9s and 10s reroll; 8-Again so 8s, 9s, and 10s reroll. Each step yields more successes on average.\nTick these only when a spell or effect grants improved again quality to the casting roll. Rote Quality (rerolling failed dice) comes from the Casting Method, not here.",
+    },
     castingTime: {
       term: "Casting Time",
       def: "Ritual: cast over intervals (length varies by Gnosis, e.g. 1 turn at Gnosis 1 up to several hours at high Gnosis). Each ritual interval adds +1 die, max +5. Instant costs +1 Reach. Grimoire Rotes double the ritual interval length.",
