@@ -292,6 +292,59 @@ t('wizard PATHS ruling arcana = Title Case view of canonical',
   Object.fromEntries(Object.entries(W.PATHS).map(([k, p]) => [k, p.rulingArcana])),
   Object.fromEntries(Object.entries(MD.PATHS).map(([k, p]) => [k, p.rulingArcana.map(MD.tc)])));
 
+// ── js/spellCompendium.js (Phase 10) — pure helpers ─────────────────────────
+// The module is no-JSX React; evaluated under vm with no React/firebase/window,
+// the service object's pure helpers (csvToSpells/validateSpell/sanitiseSpell)
+// are still constructed and reachable. CompendiumPanel resolves to null (no React).
+const compCtx = vm.createContext({ console });
+vm.runInContext(read('js/spellCompendium.js'), compCtx, { filename: 'spellCompendium.js' });
+const CMP = vm.runInContext('compendium', compCtx);
+
+// csvToSpells — reach cost-prefix + optArcana pipe parsing
+const cmpRow = CMP.csvToSpells(
+  'name,sourceBook,sourcePage,primaryArcanum,primaryArcanumLevel,practice,primaryFactor,reach1,reach2,optArcana\n' +
+  'Speak with the Dead,core,132,death,2,knowing,potency,First effect.,2: Second effect,space 1: widen|death 2: ghosts')[0];
+t('compendium csv: scalar fields', { n: cmpRow.name, b: cmpRow.sourceBook, p: cmpRow.sourcePage, a: cmpRow.primaryArcanum, lvl: cmpRow.primaryArcanumLevel },
+  { n: 'Speak with the Dead', b: 'core', p: 132, a: 'death', lvl: 2 });
+t('compendium csv: reach1 defaults cost 1, reach2 reads "2:" prefix', cmpRow.reachOptions,
+  [{ cost: 1, effect: 'First effect.' }, { cost: 2, effect: 'Second effect' }]);
+t('compendium csv: optArcana pipe list parses', cmpRow.optionalArcana,
+  [{ arcanum: 'space', level: 1, effect: 'widen' }, { arcanum: 'death', level: 2, effect: 'ghosts' }]);
+t('compendium csv: quoted cell keeps comma and escaped quotes',
+  CMP.csvToSpells('name,sourceBook,primaryArcanum,practice,primaryFactor,description\nX,core,death,knowing,potency,"Has a comma, and ""quotes""."')[0].description,
+  'Has a comma, and "quotes".');
+t('compendium csv: strips BOM, skips comments, finds header, drops nameless rows',
+  CMP.csvToSpells('﻿# header note\n\nname,sourceBook,primaryArcanum,practice,primaryFactor\n# mid comment\n,core,time,ruling,potency\nBlink,core,time,ruling,potency').map(s => s.name),
+  ['Blink']);
+t('compendium csv: missing secondary arcanum normalises to null pair',
+  (s => ({ a: s.secondaryArcanum, l: s.secondaryArcanumLevel }))(
+    CMP.csvToSpells('name,sourceBook,primaryArcanum,practice,primaryFactor\nX,core,death,knowing,potency')[0]),
+  { a: null, l: null });
+
+// validateSpell
+t('compendium validate: valid spell has no errors',
+  CMP.validateSpell({ name: 'X', sourceBook: 'core', primaryArcanum: 'death', practice: 'knowing', primaryFactor: 'potency' }), []);
+t('compendium validate: every bad field reported',
+  CMP.validateSpell({ name: '', sourceBook: 'bad', primaryArcanum: 'xx', practice: 'zz', primaryFactor: 'qq' }).length, 5);
+
+// sanitiseSpell
+const cmpSan = CMP.sanitiseSpell({
+  name: '  Trim Me  ', sourceBook: 'core', sourcePage: '132',
+  primaryArcanum: 'death', primaryArcanumLevel: '2',
+  secondaryArcanum: 'notarc', secondaryArcanumLevel: '3',
+  practice: 'knowing', primaryFactor: 'potency',
+  reachOptions: [{ cost: '2', effect: '  eff  ' }, { effect: '' }],
+  defaults: { potency: '3', range: 'badrange' },
+});
+t('compendium sanitise: trims name, parses page, drops invalid secondary arcanum',
+  { n: cmpSan.name, p: cmpSan.sourcePage, sa: cmpSan.secondaryArcanum, sl: cmpSan.secondaryArcanumLevel },
+  { n: 'Trim Me', p: 132, sa: null, sl: null });
+t('compendium sanitise: reach options normalised, empties dropped',
+  cmpSan.reachOptions, [{ cost: 2, effect: 'eff' }]);
+t('compendium sanitise: defaults merge + invalid range falls back to touch',
+  { pot: cmpSan.defaults.potency, range: cmpSan.defaults.range, ct: cmpSan.defaults.castingTime },
+  { pot: 3, range: 'touch', ct: 'ritual' });
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 
 // ═════════════════════════════════════════════════════════════════════════════
