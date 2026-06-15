@@ -3511,11 +3511,31 @@
       );
     }
 
+    // Persist the in-progress cast (form data + current step + loaded character)
+    // to sessionStorage so a page reload is non-destructive: a standalone refresh
+    // no longer drops your character or your place in the flow, and the embedded
+    // guided tour survives a full deck reload. Per-tab (sessionStorage), so it
+    // restores across reloads without leaking between separate browser sessions.
+    const WIZ_SESSION_KEY = 'mage_wizard_session';
+    const serializeSession = (state) =>
+      JSON.stringify(state, (k, v) => (v instanceof Set ? { __set: [...v] } : v));
+    function loadWizSession() {
+      try {
+        const raw = sessionStorage.getItem(WIZ_SESSION_KEY);
+        if (!raw) return null;
+        const s = JSON.parse(raw, (k, v) => (v && v.__set ? new Set(v.__set) : v));
+        if (!s || typeof s.d !== 'object' || s.d === null) return null;
+        if (!(s.d.yantras instanceof Set)) s.d.yantras = new Set();  // revive guard
+        return s;
+      } catch { return null; }
+    }
+
     function App() {
-      const [d, setD]               = useState(INITIAL);
-      const [stepIdx, setStepIdx]   = useState(0);
+      const restored = React.useMemo(loadWizSession, []);
+      const [d, setD]               = useState(() => restored?.d ?? INITIAL);
+      const [stepIdx, setStepIdx]   = useState(() => restored?.stepIdx ?? 0);
       const [miniExpanded, setMini] = useState(false);
-      const [character, setChar]    = useState(null);
+      const [character, setChar]    = useState(() => restored?.character ?? null);
       const [clashOpen, setClashOpen]   = useState(false);
       const [activeSpells, setActiveSpells] = useState([]);
       const [sheetOpen,    setSheetOpen]    = useState(false);
@@ -3533,12 +3553,19 @@
       const castPoolRef = useRef(null);
       const firstRunDismissed = useRef(false);
       const [dismissed, setDismissed] = useState(() => {
-        try { return !!localStorage.getItem('mage_current_character'); } catch { return false; }
+        try { return !!localStorage.getItem('mage_current_character') || !!restored?.character; }
+        catch { return !!restored?.character; }
       });
       const [justSaved, setJustSaved] = useState(false);
       const charFileRef = useRef(null);
 
       const set = useCallback((key, val) => setD(prev => ({...prev, [key]:val})), []);
+
+      // Mirror the live cast into sessionStorage on every change (see WIZ_SESSION_KEY).
+      useEffect(() => {
+        try { sessionStorage.setItem(WIZ_SESSION_KEY, serializeSession({ d, stepIdx, character })); }
+        catch {}
+      }, [d, stepIdx, character]);
 
       useEffect(() => {
         if (!character) return;

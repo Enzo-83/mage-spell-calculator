@@ -2,7 +2,7 @@
 
 **Living document.** Every refactor phase (see [CODE_REVIEW_PLAN.md](CODE_REVIEW_PLAN.md))
 updates this file so the written description never drifts from the code.
-*Last updated: 2026-06-13 (Phase 10).*
+*Last updated: 2026-06-15 (Wizard cast persistence; guided-tour live-preview rework).*
 
 ## Overview
 
@@ -24,7 +24,7 @@ Backend is Firebase:
 | Page | Role | Tech |
 |------|------|------|
 | `index.html` | **Classic** — desktop-first calculator, all fields visible at once. Editable spell library (rotes/praxes/favorites), combined spell casting (Classic-only), character editor. | Hybrid: one vanilla JS block (state/persistence/Discord) + one React `text/babel` block (all UI), connected by window bridges (below) |
-| `wizard.html` | **Wizard** — step-by-step mobile casting flow (440px card). Saves to library but doesn't manage it. | Fully React, single Babel block |
+| `wizard.html` | **Wizard** — step-by-step mobile casting flow (440px card). Saves to library but doesn't manage it. Checkpoints the in-progress cast (form `d` + current step + loaded character) to `sessionStorage` and restores it on load, so a refresh is non-destructive (per-tab; survives reload, not a new tab). | Fully React, single Babel block |
 | `storyteller.html` | **ST Screen** — player cards (health/mana/WP/paradox), tilt management with CSV-importable catalog, scene log, sheet viewer with ST edit overrides. | Fully React, single Babel block |
 
 Design invariants (from the Classic → React migration):
@@ -49,7 +49,7 @@ Plain script-tag globals (no ES modules). Load order: Firebase compat scripts �
 | `js/tiltCatalog.js` | all three | `window.tiltCatalog` — Firestore `tiltsConditions` catalog (live subscribe, `useCatalog` React hook with lazy auto-subscribe, `getByName`, CSV import/export/template) + `window.TiltBadge`, a no-JSX React component rendering a tilt/condition name with a hover description tooltip; custom tilts degrade to the bare name (Phase 9). Extracted from storyteller.html. |
 | `shared/firebase.js` | all three | Single Firebase init — sets `window._fbApp/_fbDb/_fsDb/_fsAuth` for whichever SDKs the page loads (Phase 2). |
 | `shared/session.js` | all three | Firebase RTDB session layer + schema docs. Also hosts the legacy `scene*` room helpers merged from the former `js/scene.js` (Phase 2) — see the comment there for how they differ from the `session*` flow. |
-| `shared/nav.js` | all three | Floating page-switcher pill. |
+| `shared/nav.js` | all three | Floating page-switcher pill, plus the gold "⟡ Tour" link that opens the guided deck in `presentation/` in a new tab (see `presentation/PRESENTATION_OUTLINE.md`). |
 | `shared/discord.js` | index, wizard | `window.DiscordShared` — webhook post helper, dice/Paradox bot-command formatters, embed builders, Clash send (Phase 7). One namespaced global (not bare functions) because Babel blocks run in global scope. Load after `js/gameData.js` (colors come from `MageData.arcanumInt`). |
 | `theme.css` | all three | Color tokens (CSS custom properties). |
 | `classic.css` | index | All Classic page styles, extracted from index.html's inline block (Phase 5). wizard/storyteller style via inline JSX. |
