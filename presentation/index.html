@@ -123,7 +123,7 @@
           </div>
           <div>
             <div class="device">
-              <iframe data-embed-mobile="../wizard.html" data-embed-desktop="../wizard.html" title="Live Wizard"></iframe>
+              <div class="live-slot" data-app="wizard"></div>
             </div>
             <div class="frame-cap">Live · wizard.html</div>
           </div>
@@ -185,7 +185,7 @@
             <div class="only-mobile callout callout-warn" style="margin-top:14px">The editor is desktop-first — open <b>Classic</b> on a larger screen to follow along.</div>
           </div>
           <div class="only-desktop">
-            <div class="device desktop"><div class="scaler"><iframe data-embed-desktop="../index.html" title="Live Classic"></iframe></div></div>
+            <div class="device desktop"><div class="scaler"><div class="live-slot" data-app="classic"></div></div></div>
             <div class="frame-cap">Live · index.html (Classic)</div>
           </div>
           <figure class="only-mobile poster-fig">
@@ -270,7 +270,7 @@
             <div class="callout callout-info" style="margin-top:14px">The live Wizard is on the right — give it a tap.</div>
           </div>
           <div>
-            <div class="device"><iframe data-embed-mobile="../wizard.html" data-embed-desktop="../wizard.html" title="Live Wizard"></iframe></div>
+            <div class="device"><div class="live-slot" data-app="wizard"></div></div>
             <div class="frame-cap">Live · wizard.html</div>
           </div>
         </div>
@@ -290,7 +290,7 @@
             </ol>
           </div>
           <div>
-            <div class="device"><iframe data-embed-mobile="../wizard.html" data-embed-desktop="../wizard.html" title="Live Wizard"></iframe></div>
+            <div class="device"><div class="live-slot" data-app="wizard"></div></div>
             <div class="frame-cap">Live · step through it</div>
           </div>
         </div>
@@ -310,7 +310,7 @@
             </ul>
           </div>
           <div>
-            <div class="device"><iframe data-embed-mobile="../wizard.html" data-embed-desktop="../wizard.html" title="Live Wizard"></iframe></div>
+            <div class="device"><div class="live-slot" data-app="wizard"></div></div>
             <div class="frame-cap">Live · the Cast step</div>
           </div>
         </div>
@@ -472,7 +472,7 @@
             <div class="only-mobile callout callout-warn" style="margin-top:12px">Classic is desktop-first — open it on a bigger screen to explore live.</div>
           </div>
           <div class="only-desktop">
-            <div class="device desktop"><div class="scaler"><iframe data-embed-desktop="../index.html" title="Live Classic"></iframe></div></div>
+            <div class="device desktop"><div class="scaler"><div class="live-slot" data-app="classic"></div></div></div>
             <div class="frame-cap">Live · index.html (Classic)</div>
           </div>
           <figure class="only-mobile poster-fig">
@@ -515,12 +515,12 @@
             <div class="reach-note">Stay within free Reach → a clean cast.</div>
           </div>
           <div class="reach-col paid">
-            <h4>⚠ Paid Reach</h4>
+            <h4>⚠ Beyond free Reach</h4>
             <ul>
-              <li>Each Reach <b>beyond</b> free must be paid…</li>
-              <li>…with <b>1 Mana</b>, and it risks <b>Paradox</b></li>
+              <li>Each Reach <b>beyond</b> free adds <b>⌈Gnosis÷2⌉ Paradox dice</b> — and <em>no</em> inherent Mana cost</li>
+              <li>Spending <b>Mana</b> is optional: cancel those dice <b>1-for-1</b> (and it isn't the only way to reduce Paradox)</li>
             </ul>
-            <div class="reach-note">The app totals this and flags Paradox automatically.</div>
+            <div class="reach-note">The app totals the Paradox dice and flags it automatically.</div>
           </div>
         </div>
         <div class="pipeline" style="margin-top:18px">
@@ -528,11 +528,11 @@
           <div class="pipe-arrow">→</div>
           <div class="pipe-stage"><div class="ic">✅</div><h4>Within free?</h4><p>no cost</p></div>
           <div class="pipe-arrow">→</div>
-          <div class="pipe-stage"><div class="ic">⬡</div><h4>Over free?</h4><p>pay Mana</p></div>
+          <div class="pipe-stage"><div class="ic">⚠</div><h4>Over free?</h4><p>+Paradox dice</p></div>
           <div class="pipe-arrow">→</div>
-          <div class="pipe-stage"><div class="ic">⚠</div><h4>Paradox</h4><p>roll the risk</p></div>
+          <div class="pipe-stage"><div class="ic">⬡</div><h4>Spend Mana?</h4><p>optional offset</p></div>
         </div>
-        <aside class="notes">The free/paid Reach line and the Paradox flag are the single most useful thing the app automates.</aside>
+        <aside class="notes">The free-Reach line and the Paradox dice that excess Reach triggers are the single most useful thing the app automates.</aside>
       </section>
 
       <!-- ===================== 25 · ACT 5 DIVIDER =================== -->
@@ -619,7 +619,7 @@
             <div class="only-mobile callout callout-warn" style="margin-top:12px">The ST screen is desktop-first — open it on a laptop to explore live.</div>
           </div>
           <div class="only-desktop">
-            <div class="device desktop"><div class="scaler"><iframe data-embed-desktop="../storyteller.html" title="Live Storyteller"></iframe></div></div>
+            <div class="device desktop"><div class="scaler"><div class="live-slot" data-app="storyteller"></div></div></div>
             <div class="frame-cap">Live · storyteller.html</div>
           </div>
           <figure class="only-mobile poster-fig">
@@ -815,29 +815,61 @@
     const deckCanvas = () => isMobile() ? { width: 420, height: 800 }
                                         : { width: 1280, height: 720 };
 
-    // Device-aware embeds: an <iframe data-embed-mobile="..." data-embed-desktop="...">
-    // gets the right source for the current viewport (Wizard on phones, Classic on
-    // desktop), so we never cram a desktop app into a phone frame. reveal then
-    // lazy-loads/unloads it via the data-src we set (only the active slide, viewDistance:1).
-    function wireEmbeds() {
-      const m = isMobile();
-      document.querySelectorAll('iframe[data-embed-mobile],iframe[data-embed-desktop]').forEach(f => {
-        // Skip embeds gated to the other device (e.g. a desktop-only Classic frame
-        // on a phone) so we never load an app the slide is hiding.
-        const wrongDevice = (m && f.closest('.only-desktop')) || (!m && f.closest('.only-mobile'));
-        if (wrongDevice) { f.removeAttribute('src'); f.removeAttribute('data-src'); return; }
-        const url = m ? (f.dataset.embedMobile  || f.dataset.embedDesktop)
-                      : (f.dataset.embedDesktop || f.dataset.embedMobile);
-        if (url && f.getAttribute('data-src') !== url) {
-          f.removeAttribute('src');          // drop any loaded copy
-          f.setAttribute('data-src', url);   // reveal will (re)load on its slide
-        }
-      });
+    // --- Live app previews ------------------------------------------------
+    // One persistent iframe per app, created on first use and NEVER unloaded,
+    // so a loaded character and an in-progress cast survive moving between
+    // slides (the old per-slide iframes reloaded the app on every navigation).
+    // The layer lives OUTSIDE .reveal — reveal sets `.reveal iframe{max-width:95%}`,
+    // which would clamp a Classic frame below its 1024px desktop breakpoint and
+    // force the mobile layout. Each frame is positioned over the active slide's
+    // .live-slot and scaled from a fixed logical width: desktop apps render their
+    // full desktop layout, then shrink to fit; the phone app fills its bezel 1:1.
+    const APP = {
+      wizard:      { src: '../wizard.html',      w: null },  // mobile UI, render 1:1
+      classic:     { src: '../index.html',       w: 1280 },  // desktop layout, scaled
+      storyteller: { src: '../storyteller.html', w: 1280 },
+    };
+    const liveLayer = document.createElement('div');
+    liveLayer.id = 'live-layer';
+    document.body.appendChild(liveLayer);
+    const liveFrames = {};
+    function ensureFrame(app) {
+      if (liveFrames[app]) return liveFrames[app];
+      const f = document.createElement('iframe');
+      f.src = APP[app].src;
+      f.title = 'Live ' + app;
+      f.className = 'live-frame';
+      f.style.display = 'none';
+      liveLayer.appendChild(f);
+      liveFrames[app] = f;
+      return f;
+    }
+    function activeSlot() {
+      // Current slide's slot, only if actually visible (desktop-only slots are
+      // display:none on phones — and vice-versa — so offsetParent is null).
+      const slot = document.querySelector('.reveal .slides section.present .live-slot');
+      return (slot && slot.offsetParent !== null) ? slot : null;
+    }
+    const hideAllLive = () => Object.values(liveFrames).forEach(f => f.style.display = 'none');
+    function positionLive() {
+      const slot = activeSlot();
+      if (!slot) { hideAllLive(); return; }
+      const app = slot.dataset.app;
+      Object.keys(liveFrames).forEach(k => { if (k !== app) liveFrames[k].style.display = 'none'; });
+      const f = ensureFrame(app);
+      const r = slot.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) { f.style.display = 'none'; return; }
+      const logicalW = APP[app].w || r.width;       // null → fill the bezel 1:1
+      const k = r.width / logicalW;                 // scale logical width to the slot
+      f.style.width  = logicalW + 'px';
+      f.style.height = (r.height / k) + 'px';        // logical height that fills the slot
+      f.style.transform = `translate(${r.left}px, ${r.top}px) scale(${k})`;
+      f.style.display = 'block';
     }
 
     function applyMode() {
       document.documentElement.classList.toggle('is-mobile', isMobile());
-      wireEmbeds();
+      positionLive();
     }
 
     applyMode();
@@ -853,9 +885,19 @@
       center: true,
       transition: 'fade',
       transitionSpeed: 'default',
-      viewDistance: 1,   // keep only the active slide's live embed mounted
+      viewDistance: 1,
       plugins: [ RevealNotes, RevealHighlight ],
     });
+
+    // Place the live frame whenever the active slide (or its geometry) changes,
+    // and hide it where it would float over chrome (overview grid, paused/black).
+    Reveal.on('ready', positionLive);
+    Reveal.on('slidechanged', positionLive);
+    Reveal.on('slidetransitionend', positionLive);
+    Reveal.on('overviewshown', hideAllLive);
+    Reveal.on('overviewhidden', positionLive);
+    Reveal.on('paused', hideAllLive);
+    Reveal.on('resumed', positionLive);
 
     // Re-flow when the viewport crosses the breakpoint (e.g. phone rotate).
     let _mobile = isMobile();
@@ -868,17 +910,18 @@
         Reveal.sync();
         Reveal.layout();
       }
+      positionLive();
     });
 
     // Re-center after the web fonts load. reveal computes its vertical-centering
     // offset from measured slide heights; if it runs before Rajdhani/Noto swap in,
     // the heights change afterward and slides look top-heavy until the next layout.
     if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => Reveal.layout());
+      document.fonts.ready.then(() => { Reveal.layout(); positionLive(); });
     }
     // Belt-and-suspenders: a couple of nudges in case fonts are cached/instant.
-    window.addEventListener('load', () => Reveal.layout());
-    setTimeout(() => Reveal.layout(), 600);
+    window.addEventListener('load', () => { Reveal.layout(); positionLive(); });
+    setTimeout(() => { Reveal.layout(); positionLive(); }, 600);
   </script>
 </body>
 </html>
