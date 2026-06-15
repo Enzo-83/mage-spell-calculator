@@ -161,17 +161,21 @@ section[data-state="section"] .subtitle { font-size: 0.62em; max-width: 18em; ma
   border: 1px solid var(--accent-border);
   box-shadow: 0 18px 60px rgba(0,0,0,0.55), 0 0 0 2px rgba(0,0,0,0.4) inset;
 }
-.device > iframe { width: 100%; height: 100%; border: 0; border-radius: 20px; background: var(--bg-deep); }
+.device > .live-slot { width: 100%; height: 100%; border-radius: 20px; }
 
 /* Desktop (Classic / Storyteller) — wide frame, content scaled to fit */
 .device.desktop { width: 760px; height: 620px; border-radius: 16px; padding: 10px; }
 .device.desktop > .scaler { width: 100%; height: 100%; overflow: hidden; border-radius: 10px; }
-.device.desktop iframe {
-  width: 1440px; height: 1175px; border: 0;
-  transform: scale(0.514); transform-origin: top left; background: var(--bg-deep);
-}
 .frame-cap { text-align: center; color: var(--text-muted); font-size: 0.42em;
   margin-top: 8px; letter-spacing: 2px; text-transform: uppercase; }
+
+/* A .live-slot just reserves the bezel's interior; the actual app iframe is a
+   single persistent <iframe class="live-frame"> in #live-layer, positioned over
+   the active slot by script so state survives slide changes (see index.html). */
+.live-slot { width: 100%; height: 100%; }
+#live-layer { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+.live-frame { position: fixed; top: 0; left: 0; transform-origin: top left;
+  border: 0; background: var(--bg-deep); pointer-events: auto; }
 
 /* ===================== D1 — three faces / mental model =================== */
 .faces { display: flex; gap: 18px; align-items: stretch; justify-content: center; margin-top: 10px; }

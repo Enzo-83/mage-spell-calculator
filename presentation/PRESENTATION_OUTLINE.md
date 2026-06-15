@@ -50,9 +50,10 @@ Act 4–5 + the appendix.
 - **reveal.js 4.x from CDN** (cdnjs), mirroring how the app loads React/Babel/Firebase — keeps the no-build invariant.
 - Single `presentation/index.html`. Self-guided: on-slide text carries the explanation; reveal's `notes` plugin (press `S`) holds optional extras only.
 - Custom theme stylesheet `presentation/grimoire-theme.css` deriving the app's tokens.
-- **Live-app demos are the core visual.** Tour slides embed the running app via `<iframe>` (reveal's `data-background-iframe` + `data-background-interactive`, or an inline framed "device" beside the text). Same-origin, so framing just works when served from the project root (deck at `/presentation/`, app at `/wizard.html` etc.).
-  - Lazy-load (`data-preload`) so only the active slide's app instance runs.
-  - Wizard's 440px card embeds cleanly; Classic (desktop-wide) uses a CSS `transform: scale()` frame or a full-bleed background iframe.
+- **Live-app demos are the core visual.** Tour slides reserve a framed "device" `.live-slot` beside the text; a single **persistent `<iframe>` per app** (Wizard / Classic / Storyteller) is created once and positioned over the active slide's slot by script. Same-origin, so framing just works when served from the project root (deck at `/presentation/`, app at `/wizard.html` etc.).
+  - **One instance, never reloaded.** The frames live in a `#live-layer` *outside* `.reveal` and are merely hidden (never unloaded) when off their slide — so a loaded character and an in-progress cast survive moving between slides. (The original per-slide, lazy-loaded iframes reloaded the app on every navigation and lost that state.)
+  - **Desktop apps keep their desktop layout.** Each frame is scaled from a fixed logical width — Classic/Storyteller at **1280px** (clearing their 1024px desktop breakpoint), the Wizard fills its phone bezel 1:1. Living outside `.reveal` also dodges reveal's `.reveal iframe{max-width:95%}`, which would otherwise clamp a Classic frame below the breakpoint and force its mobile layout.
+  - **Device gating.** On phones the desktop-only slots are hidden and their apps aren't loaded at all (a screenshot poster shows instead); the Wizard slots stay live on both viewports. Frames also hide in reveal's overview/paused modes.
   - **Don't live-demo write-side actions** (Discord webhook posts, live session writes) — those slides use screenshots, or a throwaway/sandboxed session if a live demo is truly wanted.
 - Fragments for progressive reveals; `data-auto-animate` for the Reach-economy build.
 
@@ -107,7 +108,7 @@ Type: a display serif for titles (mystical feel) + clean sans for body. Confirm 
 
 **Diagrams (SVG, custom-built):**
 - D1 — *The Three Faces & the mental model* (Classic = set up once · Wizard = cast every session · Storyteller = run the table), with the arrows showing the new-user path.
-- D2 — *The Reach Economy* (free Reach vs. paid Reach → Mana / Paradox). Auto-animated build.
+- D2 — *The Reach Economy* (within free Reach = no cost; exceeding it adds Paradox dice, with Mana as an optional 1-for-1 offset). Auto-animated build.
 - D3 — *Live Session Sync* (Player apps ↔ Firebase RTDB ↔ Storyteller screen).
 - D4 — *Compendium roles* (suggester → sub-editor → editor → admin flow).
 - D5 — *A cast, end to end* (character → factors → yantras → dice pool → roll → Discord).
@@ -147,7 +148,7 @@ Type: a display serif for titles (mystical feel) + clean sans for body. Confirm 
 ### Act 4 — Power user (Classic)
 18. **Classic at a glance** — the whole calculator on one screen; when to prefer it over Wizard. **[LIVE]**
 19. **Combined spell casting** *(Classic-only)* — casting multiple spells together; lowest-Arcanum & combination penalties. **[LIVE]** ⟶ *also in appendix*
-20. **Spell factors & the Reach economy** — potency/duration/scale/range, free vs. paid Reach → Mana/Paradox. **[DIA D2]**
+20. **Spell factors & the Reach economy** — potency/duration/scale/range; within free Reach = no cost, exceeding it adds Paradox dice (Mana optionally offsets them 1-for-1). **[DIA D2]**
 
 ### Act 5 — Together at the table
 21. **The shared Compendium** — browse the community spell library; arcanum-grouped grid; spell details. **[LIVE]**
@@ -194,9 +195,13 @@ D1–D5 diagrams.
 - Diagrams built as themed HTML/CSS (not external SVG): D1 three-faces, D2 reach
   economy, D3 session sync, D4 compendium roles, D5 cast pipeline. Discord shown via a
   styled message mock (reliable, no live webhook send).
-- Live embeds: Wizard (mobile frame, both viewports) on the casting slides; Classic &
-  Storyteller (scaled desktop frame, desktop-only) on their slides — hidden on phones
-  with a "open on desktop" note.
+- Live embeds: **one persistent `<iframe>` per app** in a `#live-layer` outside
+  `.reveal`, positioned over each slide's `.live-slot` (and hidden, never unloaded,
+  off-slide) so a loaded character + in-progress cast survive slide changes. Wizard
+  (phone frame, both viewports) on the casting slides; Classic & Storyteller (desktop
+  layout at 1280px logical, scaled to fit, desktop-only) on their slides — hidden on
+  phones with a screenshot poster + "open on desktop" note. The Wizard itself also
+  checkpoints its cast to `sessionStorage`, so a full deck reload restores it too.
 
 **Verified:** 40/40 slides present; theme + fonts; responsive reflow (420×800 canvas +
 column stacking on ≤768px, confirmed via computed styles + screenshots); D2/D4 +

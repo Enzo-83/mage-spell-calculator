@@ -21,7 +21,7 @@
     },
     reach: {
       term: "Reach",
-      def: "Spent to push a spell beyond its base parameters — enabling Advanced factors, Instant casting, or extra effects. Free Reach equals ⌈Gnosis÷2⌉. Each Reach point above that adds 2 dice to the Paradox pool.",
+      def: "Spent to push a spell beyond its base parameters — enabling Advanced factors, Instant casting, or extra effects. Free Reach equals your Arcanum dots − the spell's required dots + 1 (minimum 1). Within free Reach a spell costs no Paradox and no inherent Mana. Each Reach point beyond free adds ⌈Gnosis÷2⌉ dice to the Paradox pool; spending Mana to offset them is optional.",
     },
     castingMethod: {
       term: "Casting Method",
@@ -33,11 +33,11 @@
     },
     paradox: {
       term: "Paradox",
-      def: "The universe's resistance to blatant magic. Triggered when Reach exceeds the free limit. Each excess Reach adds 2 Paradox dice. Mana can mitigate (−1 die per Mana spent), but at least a Chance Die always remains when there is any excess Reach.",
+      def: "The universe's resistance to blatant magic. Triggered when Reach exceeds the free limit. Each excess Reach adds ⌈Gnosis÷2⌉ Paradox dice. Spending Mana is an optional mitigation (−1 die per Mana) and is not the only way to reduce Paradox, but at least a Chance Die always remains when there is any excess Reach.",
     },
     mana: {
       term: "Mana",
-      def: "Magical fuel drawn from a mage's Nimbus. Required for: Improvised spells with a non-Ruling Arcanum (+1), Indefinite Duration (+1), Sympathetic or Temporal Range (+1), and Paradox mitigation (−1 Paradox die per Mana).",
+      def: "Magical fuel drawn from a mage's Nimbus. Required for: Improvised spells with a non-Ruling Arcanum (+1), Indefinite Duration (+1), and Sympathetic or Temporal Range (+1). Optionally spent to mitigate Paradox (−1 Paradox die per Mana) — exceeding free Reach generates Paradox dice but no inherent Mana cost.",
     },
     willpower: {
       term: "Willpower",
