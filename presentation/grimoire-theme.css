@@ -1,0 +1,356 @@
+/* ============================================================================
+   grimoire-theme.css — reveal.js theme for the Electronic Grimoire deck.
+   Mirrors the app's own design tokens (../theme.css) so the deck looks like
+   the app. Loaded after reveal's core reset.min.css + reveal.min.css.
+   ========================================================================== */
+
+:root {
+  /* --- App tokens (mirrored from ../theme.css) --- */
+  --bg-dark:       #1a1a2e;
+  --bg-card:       #16213e;
+  --bg-deep:       #0f0f23;
+  --accent:        #7b2cbf;
+  --accent-light:  #9d4edd;
+  --accent-faint:  rgba(123, 44, 191, 0.15);
+  --accent-border: rgba(123, 44, 191, 0.40);
+  --text:          #e6e6e6;
+  --text-muted:    #a0a0a0;
+  --danger:        #c73e1d;
+  --success:       #2a9d8f;
+  --warning:       #e9c46a;
+  --border:        rgba(255, 255, 255, 0.10);
+  --discord:       #5865F2;
+
+  /* --- Arcana identity colors --- */
+  --arc-death:  #475569;  --arc-fate:   #e2e8f0;  --arc-forces: #f87171;
+  --arc-life:   #4ade80;  --arc-matter: #d97706;  --arc-mind:   #fbbf24;
+  --arc-prime:  #60a5fa;  --arc-space:  #a78bfa;  --arc-spirit: #fb923c;
+  --arc-time:   #22d3ee;
+
+  /* --- reveal.js theme variables --- */
+  --r-background-color: var(--bg-deep);
+  --r-main-font: 'Noto Sans', system-ui, sans-serif;
+  --r-main-font-size: 30px;
+  --r-main-color: var(--text);
+  --r-heading-font: 'Rajdhani', sans-serif;
+  --r-heading-color: var(--accent-light);
+  --r-heading-margin: 0 0 22px 0;
+  --r-heading-font-weight: 700;
+  --r-heading-line-height: 1.1;
+  --r-heading-letter-spacing: 0.5px;
+  --r-heading-text-transform: none;
+  --r-heading-text-shadow: none;
+  --r-heading1-size: 2.4em;
+  --r-heading2-size: 1.55em;
+  --r-heading3-size: 1.2em;
+  --r-block-margin: 18px;
+  --r-link-color: var(--accent-light);
+  --r-link-color-hover: #c79df0;
+  --r-link-color-dark: var(--accent);
+  --r-selection-background-color: var(--accent);
+  --r-selection-color: #fff;
+}
+
+/* Subtle mystical vignette behind every slide */
+.reveal-viewport {
+  background:
+    radial-gradient(1200px 800px at 50% -10%, rgba(123,44,191,0.18), transparent 60%),
+    radial-gradient(900px 700px at 110% 120%, rgba(157,78,221,0.10), transparent 55%),
+    var(--bg-deep);
+}
+
+.reveal h1, .reveal h2, .reveal h3 { text-shadow: 0 2px 18px rgba(123,44,191,0.35); }
+.reveal a { text-decoration: none; border-bottom: 1px solid var(--accent-border); }
+.reveal strong { color: var(--accent-light); }
+.reveal em { color: var(--warning); font-style: normal; }
+
+/* Progress bar / controls in accent */
+.reveal .progress { color: var(--accent-light); height: 4px; }
+.reveal .controls { color: var(--accent-light); }
+.reveal .slide-number { background: transparent; color: var(--text-muted); font-size: 16px; }
+
+/* --- Kicker label above titles (small uppercase accent) --- */
+.kicker {
+  font-family: 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-size: 0.5em;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 6px 0;
+}
+.act-tag {
+  display: inline-block;
+  font-family: 'Rajdhani', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  font-size: 0.42em;
+  font-weight: 700;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 14px;
+  margin-bottom: 16px;
+}
+.subtitle { color: var(--text-muted); font-size: 0.7em; margin-top: 8px; }
+.hint { color: var(--text-muted); font-size: 0.45em; margin-top: 40px; opacity: 0.7; }
+
+/* The ⟡ lozenge motif from the app */
+.glyph { color: var(--accent-light); opacity: 0.85; line-height: 1; }
+
+/* ============================ Title slide ================================= */
+.title-wrap { display: flex; flex-direction: column; align-items: center; }
+.brand-icon {
+  width: 132px; height: 132px; border-radius: 26px;
+  box-shadow: 0 12px 50px rgba(123,44,191,0.55);
+  margin-bottom: 26px;
+}
+section[data-state="title"] h1 {
+  font-size: 2.7em; margin: 0; letter-spacing: 1px;
+  background: linear-gradient(90deg, #ffffff, var(--accent-light));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  text-shadow: none;
+}
+
+/* ========================== Section dividers ============================== */
+section[data-state="section"] { text-align: center; }
+section[data-state="section"] .glyph { font-size: 2.2em; margin-bottom: 10px; }
+section[data-state="section"] h2 { font-size: 2.2em; color: #fff; }
+section[data-state="section"] .subtitle { font-size: 0.62em; max-width: 18em; margin: 10px auto 0; }
+
+/* ============================== Cards / lists ============================ */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px 26px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+.reveal .callouts { list-style: none; margin: 0; padding: 0; }
+.reveal .callouts li {
+  position: relative; padding: 10px 0 10px 38px; margin: 0;
+  border-bottom: 1px solid var(--border-light, rgba(255,255,255,0.06));
+  line-height: 1.4;
+}
+.reveal .callouts li:last-child { border-bottom: none; }
+.reveal .callouts li::before {
+  content: "⟡"; position: absolute; left: 6px; top: 10px;
+  color: var(--accent-light); font-size: 0.8em;
+}
+.reveal .callouts li small { color: var(--text-muted); }
+
+/* Inline callout boxes */
+.callout { border-radius: 10px; padding: 12px 18px; font-size: 0.7em; line-height: 1.45; }
+.callout-tip  { background: rgba(42,157,143,0.14);  border-left: 4px solid var(--success); }
+.callout-warn { background: rgba(233,196,106,0.14); border-left: 4px solid var(--warning); }
+.callout-info { background: var(--accent-faint);    border-left: 4px solid var(--accent); }
+.callout-discord { background: rgba(88,101,242,0.16); border-left: 4px solid var(--discord); }
+.callout b { color: inherit; }
+
+/* ====================== Live-app demo (device frame) ===================== */
+.tour { display: flex; gap: 42px; align-items: center; justify-content: center; }
+.tour .copy { flex: 1; text-align: left; }
+.tour .copy h2 { text-align: left; }
+
+.device {
+  flex: 0 0 auto;
+  width: 430px; height: 624px;
+  border-radius: 30px;
+  padding: 12px;
+  background: linear-gradient(160deg, #2a2a44, #15152a);
+  border: 1px solid var(--accent-border);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.55), 0 0 0 2px rgba(0,0,0,0.4) inset;
+}
+.device > iframe { width: 100%; height: 100%; border: 0; border-radius: 20px; background: var(--bg-deep); }
+
+/* Desktop (Classic / Storyteller) — wide frame, content scaled to fit */
+.device.desktop { width: 760px; height: 620px; border-radius: 16px; padding: 10px; }
+.device.desktop > .scaler { width: 100%; height: 100%; overflow: hidden; border-radius: 10px; }
+.device.desktop iframe {
+  width: 1440px; height: 1175px; border: 0;
+  transform: scale(0.514); transform-origin: top left; background: var(--bg-deep);
+}
+.frame-cap { text-align: center; color: var(--text-muted); font-size: 0.42em;
+  margin-top: 8px; letter-spacing: 2px; text-transform: uppercase; }
+
+/* ===================== D1 — three faces / mental model =================== */
+.faces { display: flex; gap: 18px; align-items: stretch; justify-content: center; margin-top: 10px; }
+.face {
+  flex: 1; max-width: 340px; background: var(--bg-card);
+  border: 1px solid var(--border); border-top: 4px solid var(--accent);
+  border-radius: 14px; padding: 22px 20px; text-align: center;
+}
+.face.classic { border-top-color: var(--accent); }
+.face.wizard  { border-top-color: var(--arc-time); }
+.face.st      { border-top-color: var(--arc-spirit); }
+.face .face-glyph { font-size: 1.6em; margin-bottom: 8px; }
+.face h3 { font-size: 1.05em; margin: 0 0 4px; color: #fff; }
+.face .role { color: var(--accent-light); font-family:'Rajdhani',sans-serif;
+  font-weight:700; letter-spacing:1px; font-size: 0.62em; text-transform: uppercase; }
+.face p { color: var(--text-muted); font-size: 0.58em; line-height: 1.4; margin: 10px 0 0; }
+.flow-arrow { display:flex; align-items:center; color: var(--accent-light); font-size: 1.6em; opacity:0.8; }
+.model-line {
+  margin-top: 30px; text-align: center; font-family: 'Rajdhani', sans-serif;
+  font-size: 0.82em; letter-spacing: 1px; color: var(--text);
+}
+.model-line b.classic { color: var(--accent-light); }
+.model-line b.wizard  { color: var(--arc-time); }
+.model-line b.st      { color: var(--arc-spirit); }
+
+/* ============================ Arcana chips =============================== */
+.arc-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 14px; }
+.arc-chip {
+  display: flex; align-items: center; gap: 8px; font-size: 0.58em;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px;
+}
+.arc-dot { width: 14px; height: 14px; border-radius: 50%; flex: 0 0 auto; }
+
+/* Two-column generic layout */
+.cols { display: flex; gap: 36px; align-items: flex-start; }
+.cols > * { flex: 1; }
+
+/* ============================ Numbered steps ============================ */
+/* .reveal prefix raises specificity above reveal's base `.reveal ol { list-style: decimal }`
+   so the default markers don't show alongside our styled circles. */
+.reveal .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; text-align: left; }
+.steps li { position: relative; padding: 12px 0 12px 56px; margin: 0;
+  border-bottom: 1px solid var(--border); line-height: 1.4; }
+.steps li:last-child { border-bottom: none; }
+.steps li::before {
+  counter-increment: step; content: counter(step);
+  position: absolute; left: 8px; top: 9px; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--accent-faint); border: 1px solid var(--accent-border); color: var(--accent-light);
+  font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.85em;
+  display: flex; align-items: center; justify-content: center;
+}
+.steps li b { color: #fff; }
+.steps li small { color: var(--text-muted); display: block; font-size: 0.62em; margin-top: 2px; }
+
+/* ====================== Discord message mock ============================ */
+.discord-msg { background: #313338; border-radius: 12px; padding: 16px 18px; text-align: left;
+  max-width: 560px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); font-size: 0.62em; }
+.discord-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.discord-avatar { width: 34px; height: 34px; border-radius: 50%; flex: 0 0 auto; color: #fff; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  display: flex; align-items: center; justify-content: center; }
+.discord-user { color: #fff; font-weight: 600; }
+.discord-user span { color: #a3a6aa; font-weight: 400; font-size: 0.8em; margin-left: 6px; }
+.discord-embed { border-left: 4px solid var(--accent); background: #2b2d31; border-radius: 4px; padding: 12px 14px; margin-top: 4px; }
+.discord-embed h4 { color: #fff; margin: 0 0 8px; font-family: 'Rajdhani', sans-serif; font-size: 1.05em; }
+.discord-fields { display: flex; flex-wrap: wrap; gap: 14px; }
+.discord-field .k { color: #b5bac1; font-size: 0.8em; font-weight: 600; }
+.discord-field .v { color: #dbdee1; }
+.discord-cmd { margin-top: 10px; background: #1e1f22; border-radius: 6px; padding: 8px 12px;
+  font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--success); }
+
+/* ===================== Flow pipeline / stages =========================== */
+.pipeline { display: flex; align-items: stretch; justify-content: center; }
+.pipe-stage { flex: 1; background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px 12px; text-align: center; font-size: 0.6em; }
+.pipe-stage .ic { font-size: 1.8em; line-height: 1; }
+.pipe-stage h4 { color: #fff; margin: 6px 0 4px; font-family: 'Rajdhani', sans-serif; font-size: 1.2em; }
+.pipe-stage p { color: var(--text-muted); margin: 0; line-height: 1.35; }
+.pipe-arrow { display: flex; align-items: center; color: var(--accent-light); font-size: 1.4em; padding: 0 8px; opacity: 0.8; }
+
+/* ======================= Reach economy (D2) ============================= */
+.reach-track { display: flex; gap: 16px; }
+.reach-col { flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: left; }
+.reach-col h4 { margin: 0 0 10px; font-family: 'Rajdhani', sans-serif; color: #fff; }
+.reach-col.free { border-top: 4px solid var(--success); }
+.reach-col.paid { border-top: 4px solid var(--warning); }
+.reach-col ul { margin: 0; padding-left: 18px; font-size: 0.66em; color: var(--text); line-height: 1.6; }
+.reach-note { font-size: 0.58em; color: var(--text-muted); margin-top: 8px; }
+
+/* ====================== Roles ladder (D4) =============================== */
+.roles { display: flex; align-items: stretch; }
+.role-step { flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 12px; text-align: center; font-size: 0.58em; margin: 0 4px; }
+.role-step .lvl { font-family: 'Rajdhani', sans-serif; color: var(--accent-light); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1px; }
+.role-step h4 { color: #fff; margin: 4px 0 6px; font-size: 1.2em; }
+.role-step p { color: var(--text-muted); margin: 0; line-height: 1.35; }
+.role-arrow { display: flex; align-items: center; color: var(--accent-light); opacity: 0.7; }
+
+/* ======================= Sync diagram (D3) ============================== */
+.sync { display: flex; align-items: center; justify-content: center; }
+.sync-node { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 20px; text-align: center; min-width: 180px; font-size: 0.62em; }
+.sync-node .ic { font-size: 1.9em; line-height: 1; }
+.sync-node h4 { color: #fff; margin: 6px 0 2px; font-family: 'Rajdhani', sans-serif; }
+.sync-node p { color: var(--text-muted); margin: 0; }
+.sync-node.hub { border-color: var(--accent-border); background: var(--accent-faint); }
+.sync-link { display: flex; flex-direction: column; align-items: center; color: var(--accent-light); padding: 0 16px; font-size: 1.4em; }
+.sync-link .lbl { font-size: 0.4em; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; }
+
+/* ====================== Spell-type cards =============================== */
+.spell-types { display: flex; gap: 16px; }
+.stype { flex: 1; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; text-align: left; font-size: 0.64em; }
+.stype h4 { margin: 0 0 4px; color: #fff; font-family: 'Rajdhani', sans-serif; font-size: 1.25em; }
+.stype .tagline { color: var(--accent-light); font-size: 0.9em; margin-bottom: 8px; }
+.stype p { color: var(--text-muted); margin: 0; line-height: 1.4; }
+
+/* small note + inline tag */
+.note { color: var(--text-muted); font-size: 0.6em; margin-top: 16px; }
+.note code, .reach-col code, .card code, .callout code { background: rgba(255,255,255,0.08);
+  border-radius: 4px; padding: 1px 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.92em; }
+.tag-inline { display: inline-block; background: var(--accent-faint); border: 1px solid var(--accent-border);
+  color: var(--accent-light); border-radius: 999px; padding: 2px 10px; font-size: 0.6em; margin: 2px;
+  font-family: 'Rajdhani', sans-serif; letter-spacing: 1px; }
+
+/* Screenshot poster (mobile fallback for desktop-only live embeds) */
+.poster-fig { margin: 0; width: 100%; }
+.poster { display: block; width: 100%; border-radius: 12px;
+  border: 1px solid var(--accent-border); box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+
+/* Persistent footer brand mark */
+.deck-foot {
+  position: fixed; bottom: 14px; left: 18px; z-index: 30;
+  font-family: 'Rajdhani', sans-serif; letter-spacing: 2px;
+  font-size: 13px; color: var(--text-muted); opacity: 0.5; text-transform: uppercase;
+}
+.deck-foot .star { color: var(--warning); }
+
+/* Device-aware show/hide helpers (paired with the JS embed wiring) */
+.only-mobile  { display: none; }
+html.is-mobile .only-mobile  { display: block; }
+html.is-mobile .only-desktop { display: none; }
+
+/* ======================================================================== *
+   Responsive — phone portrait.
+   The deck JS swaps reveal's logical canvas to 420x800 on small screens and
+   sets <html class="is-mobile">, so slides REFLOW (and stay readable) instead
+   of merely scaling down. Desktop keeps the wide 1280x720 layout.
+ * ======================================================================== */
+html.is-mobile {
+  --r-main-font-size: 21px;
+  --r-heading1-size: 1.9em;
+  --r-heading2-size: 1.45em;
+  --r-heading3-size: 1.12em;
+}
+html.is-mobile .cols,
+html.is-mobile .tour,
+html.is-mobile .faces { flex-direction: column; gap: 16px; align-items: stretch; }
+html.is-mobile .tour .copy,
+html.is-mobile .tour .copy h2 { text-align: center; }
+html.is-mobile .faces .face { max-width: none; }
+html.is-mobile .flow-arrow { transform: rotate(90deg); align-self: center; font-size: 1.2em; }
+html.is-mobile .device { width: 100%; max-width: 320px; height: 460px; margin: 0 auto; }
+html.is-mobile .device.desktop { display: none; }   /* a desktop app can't live in a phone frame */
+html.is-mobile .arc-grid { grid-template-columns: repeat(2, 1fr); }
+html.is-mobile .brand-icon { width: 96px; height: 96px; }
+html.is-mobile .kicker { letter-spacing: 2px; }
+html.is-mobile .model-line { font-size: 0.92em; margin-top: 18px; }
+html.is-mobile .deck-foot { font-size: 10px; left: 10px; bottom: 8px; }
+
+/* Stack the horizontal diagrams on phones */
+html.is-mobile .pipeline,
+html.is-mobile .reach-track,
+html.is-mobile .roles,
+html.is-mobile .spell-types,
+html.is-mobile .sync { flex-direction: column; gap: 12px; }
+html.is-mobile .pipe-arrow,
+html.is-mobile .role-arrow { transform: rotate(90deg); align-self: center; padding: 2px 0; }
+html.is-mobile .sync-link { flex-direction: row; gap: 6px; padding: 4px 0; }
+html.is-mobile .role-step { margin: 0; }
+html.is-mobile .discord-msg { font-size: 0.85em; max-width: none; }
