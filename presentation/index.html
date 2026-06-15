@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electronic Grimoire — MtAw 2nd Ed. Spellcasting Aide · Guided Tour</title>
+
+  <!-- Brand fonts (same as the app) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Noto+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- reveal.js core (CDN, no build step — mirrors the app) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reset.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css">
+  <!-- Base theme provides the rules that consume reveal's --r-* variables;
+       grimoire-theme.css (loaded after) overrides those variables + adds custom classes. -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/black.min.css" id="reveal-base-theme">
+  <!-- Grimoire theme (derives ../theme.css tokens) -->
+  <link rel="stylesheet" href="grimoire-theme.css">
+</head>
+<body>
+  <div class="deck-foot">⟡ Electronic Grimoire <span class="star">★</span> MtAw 2e</div>
+
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ============================ 1 · TITLE ============================ -->
+      <section data-state="title">
+        <div class="title-wrap">
+          <img class="brand-icon" src="../icons/icon-512.png" alt="Electronic Grimoire icon">
+          <p class="kicker">Mage: The Awakening · 2nd Edition</p>
+          <h1>Electronic Grimoire</h1>
+          <p class="subtitle">A Spellcasting Aide — calculator · character tracker · shared compendium · live table</p>
+          <p class="hint">A guided tour · press <strong>→</strong> or <strong>Space</strong> · <strong>S</strong> for notes</p>
+        </div>
+        <aside class="notes">
+          Welcome. This deck is self-guided — every slide explains itself, so you can
+          read it at your own pace. We'll start with the big picture, set up a mage,
+          cast a spell, then explore the power-user and table features.
+        </aside>
+      </section>
+
+      <!-- ========================= 2 · WHY IT EXISTS ====================== -->
+      <section>
+        <p class="kicker">Why it exists</p>
+        <h2>Play the mage, not the math</h2>
+        <div class="cols">
+          <div class="card">
+            <p style="margin-top:0;color:var(--text-muted);font-size:0.8em">The friction it removes:</p>
+            <ul class="callouts">
+              <li>Spell&nbsp;<strong>factors</strong> — potency, duration, scale, range — are fiddly to total by hand.</li>
+              <li>Every point of <strong>Reach</strong> you can't pay for invites <em>Paradox</em>.</li>
+              <li><strong>Mana</strong>, <strong>Willpower</strong>, Health and active spells drift over a long session.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <p style="margin-top:0;color:var(--text-muted);font-size:0.8em">What the app does:</p>
+            <ul class="callouts">
+              <li>Computes the <strong>dice pool</strong> and Reach/Mana/Paradox for you, live.</li>
+              <li>Keeps your <strong>character sheet</strong> and spell library in one place.</li>
+              <li>Syncs the table — players and Storyteller see the same state.</li>
+            </ul>
+          </div>
+        </div>
+        <aside class="notes">The bookkeeping is exactly what slows a table down. The app owns it.</aside>
+      </section>
+
+      <!-- =================== 3 · THREE FACES / MENTAL MODEL (D1) ========== -->
+      <section>
+        <p class="kicker">One app, three faces</p>
+        <h2>How the pieces fit together</h2>
+        <div class="faces">
+          <div class="face classic">
+            <div class="face-glyph">📖</div>
+            <div class="role">Set up once</div>
+            <h3>Classic</h3>
+            <p>Desktop hub — build &amp; manage your mage, full character editor, spell library, combined casting.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="face wizard">
+            <div class="face-glyph">⟡</div>
+            <div class="role">Cast every session</div>
+            <h3>Wizard</h3>
+            <p>Guided mobile flow — load your mage and walk a spell from Arcanum to dice pool.</p>
+          </div>
+          <div class="flow-arrow">→</div>
+          <div class="face st">
+            <div class="face-glyph">🎲</div>
+            <div class="role">Run the table</div>
+            <h3>Storyteller</h3>
+            <p>The ST screen — player cards, scene log, Tilts &amp; Conditions, sheet overrides.</p>
+          </div>
+        </div>
+        <p class="model-line">
+          <b class="classic">Set up once in Classic</b> &nbsp;→&nbsp;
+          <b class="wizard">cast every session in Wizard</b> &nbsp;→&nbsp;
+          <b class="st">the ST runs the table in Storyteller</b>.
+        </p>
+        <aside class="notes">
+          This is the whole mental model. The character editor lives only in Classic by
+          design — Wizard is for casting, so new players build (or import) a mage in
+          Classic first, then cast in Wizard.
+        </aside>
+      </section>
+
+      <!-- ===================== 4 · GET STARTED (LIVE) ===================== -->
+      <section>
+        <p class="kicker">Get started in 30 seconds</p>
+        <div class="tour">
+          <div class="copy">
+            <h2>It's just a web app</h2>
+            <ul class="callouts">
+              <li>Open the URL — nothing to download.</li>
+              <li><strong>Install</strong> it (browser “Add to Home Screen / Install”) to get an app icon.</li>
+              <li>Works <strong>offline</strong> after first load — it's a PWA.</li>
+              <li>Your character is stored <strong>locally</strong>, never uploaded.</li>
+            </ul>
+            <div class="callout callout-info" style="margin-top:18px">
+              The live Wizard is running on the right — <b>try it</b>: tap “New Character”
+              or step through the flow.
+            </div>
+          </div>
+          <div>
+            <div class="device">
+              <iframe data-embed-mobile="../wizard.html" data-embed-desktop="../wizard.html" title="Live Wizard"></iframe>
+            </div>
+            <div class="frame-cap">Live · wizard.html</div>
+          </div>
+        </div>
+        <aside class="notes">
+          This slide embeds the real app. It's interactive — click into the frame.
+          (Write-side actions like Discord sends are shown as screenshots later, not run live.)
+        </aside>
+      </section>
+
+      <!-- ===================== 5 · SECTION DIVIDER ======================== -->
+      <section data-state="section">
+        <div class="glyph">⟡</div>
+        <span class="act-tag">Act 1</span>
+        <h2>First-time setup</h2>
+        <p class="subtitle">Build your mage in Classic — or import a character file. <br>Then you're ready to cast.</p>
+        <aside class="notes">Act 1 covers building (or importing) a mage in Classic.</aside>
+      </section>
+
+      <!-- ===================== 6 · TWO WAYS TO BEGIN ====================== -->
+      <section>
+        <p class="kicker">Act 1 · Getting a character</p>
+        <h2>Two ways to begin</h2>
+        <div class="cols">
+          <div class="card">
+            <h3 style="margin-top:0;color:#fff">📖 Build one in Classic</h3>
+            <ul class="callouts">
+              <li>Open <strong>Classic</strong>, hit <strong>New Character</strong>, fill in the editor.</li>
+              <li>Best for your <em>own</em> mage — you set every dot.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3 style="margin-top:0;color:#fff">📥 Import a .json</h3>
+            <ul class="callouts">
+              <li>Got a file from a friend or your ST? Just <strong>Load</strong> it.</li>
+              <li>The file <em>is</em> the portable, shareable copy of a mage.</li>
+            </ul>
+          </div>
+        </div>
+        <p class="note">A character holds:
+          <span class="tag-inline">Gnosis</span><span class="tag-inline">Path</span><span class="tag-inline">Order</span><span class="tag-inline">10 Arcana</span><span class="tag-inline">Skills</span><span class="tag-inline">Wisdom</span><span class="tag-inline">Mana · WP · Health</span>
+        </p>
+        <aside class="notes">Wizard's "New Character" is only a blank stub — real building happens here in Classic.</aside>
+      </section>
+
+      <!-- ===================== 7 · EDITOR I — IDENTITY (LIVE) ============= -->
+      <section>
+        <p class="kicker">Act 1 · The character editor</p>
+        <div class="tour">
+          <div class="copy">
+            <h2>Editor I — who your mage is</h2>
+            <ul class="callouts">
+              <li><strong>Name</strong> &amp; <strong>Shadow Name</strong> — mundane and Awakened identities.</li>
+              <li><strong>Path</strong> sets your <em>ruling Arcana</em>; <strong>Order</strong> your faction.</li>
+              <li><strong>Gnosis</strong> — Supernal attunement; drives dice and your Mana pool.</li>
+              <li><strong>Wisdom</strong> — your moral standing.</li>
+            </ul>
+            <div class="only-desktop callout callout-info" style="margin-top:14px">Live Classic is on the right — click <b>New Character</b> to open the full editor.</div>
+            <div class="only-mobile callout callout-warn" style="margin-top:14px">The editor is desktop-first — open <b>Classic</b> on a larger screen to follow along.</div>
+          </div>
+          <div class="only-desktop">
+            <div class="device desktop"><div class="scaler"><iframe data-embed-desktop="../index.html" title="Live Classic"></iframe></div></div>
+            <div class="frame-cap">Live · index.html (Classic)</div>
+          </div>
+          <figure class="only-mobile poster-fig">
+            <img class="poster" src="assets/screenshots/classic-editor.png" alt="Classic character editor — identity, Arcana and skills">
+            <figcaption class="frame-cap">Screenshot · the Classic character editor</figcaption>
+          </figure>
+        </div>
+        <aside class="notes">Path → ruling Arcana, Order → faction, Gnosis → the engine of the whole calculator.</aside>
+      </section>
+
+      <!-- ===================== 8 · EDITOR II — ARCANA & SKILLS =========== -->
+      <section>
+        <p class="kicker">Act 1 · The character editor</p>
+        <h2>Editor II — what your mage can do</h2>
+        <div class="cols">
+          <div class="card">
+            <h3 style="margin-top:0;color:#fff">The 10 Arcana</h3>
+            <p style="color:var(--text-muted);font-size:0.68em;margin:0 0 8px">Dots here are the heart of the dice pool. Each Arcanum keeps its color across the whole app:</p>
+            <div class="arc-grid">
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-death)"></span>Death</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-fate)"></span>Fate</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-forces)"></span>Forces</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-life)"></span>Life</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-matter)"></span>Matter</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-mind)"></span>Mind</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-prime)"></span>Prime</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-space)"></span>Space</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-spirit)"></span>Spirit</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-time)"></span>Time</div>
+            </div>
+          </div>
+          <div class="card">
+            <h3 style="margin-top:0;color:#fff">Skills &amp; more</h3>
+            <ul class="callouts">
+              <li><strong>Skills</strong> feed Rote casting pools.</li>
+              <li><strong>Mana</strong>, <strong>Willpower</strong>, <strong>Health</strong> — tracked live as you play.</li>
+              <li><strong>Discord webhooks</strong> — optional, for sending rolls (Appendix A3).</li>
+            </ul>
+          </div>
+        </div>
+        <aside class="notes">Arcana dots + Gnosis are what the calculator turns into your dice pool.</aside>
+      </section>
+
+      <!-- ===================== 9 · SAVE & CARRY ========================== -->
+      <section>
+        <p class="kicker">Act 1 · Portability</p>
+        <h2>Your mage is a file you own</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li><strong>Save</strong> downloads a <code>.json</code> — your portable backup.</li>
+              <li>It <strong>round-trips</strong>: load the same file into Wizard, or hand it to your ST.</li>
+              <li>It's stored <strong>locally</strong> too, so it's waiting next time you open the app.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="callout callout-warn"><b>⚠ Privacy:</b> if you've set Discord webhooks, they travel <i>inside</i> the file. Classic warns you on save — don't post your character in public channels.</div>
+            <div class="callout callout-tip" style="margin-top:12px">Shared sessions <b>strip</b> webhooks before syncing — they never leave on the wire.</div>
+          </div>
+        </div>
+        <aside class="notes">§E privacy: webhooks stay in the export (it's your backup) but are stripped from shared paths.</aside>
+      </section>
+
+      <!-- ===================== 10 · ACT 2 DIVIDER ======================== -->
+      <section data-state="section">
+        <div class="glyph">⟡</div><span class="act-tag">Act 2</span>
+        <h2>Casting every session</h2>
+        <p class="subtitle">With a mage in hand, the Wizard walks you through a spell — one step at a time.</p>
+      </section>
+
+      <!-- ===================== 11 · LOAD IN WIZARD (LIVE) =============== -->
+      <section>
+        <p class="kicker">Act 2 · Wizard</p>
+        <div class="tour">
+          <div class="copy">
+            <h2>Pick up your mage</h2>
+            <ul class="callouts">
+              <li><strong>Load</strong> the <code>.json</code> you saved in Classic…</li>
+              <li>…or just reopen — Wizard <strong>remembers</strong> your last character.</li>
+              <li>The header shows live <strong>Mana / Willpower / Health</strong> you nudge as you play.</li>
+            </ul>
+            <div class="callout callout-info" style="margin-top:14px">The live Wizard is on the right — give it a tap.</div>
+          </div>
+          <div>
+            <div class="device"><iframe data-embed-mobile="../wizard.html" data-embed-desktop="../wizard.html" title="Live Wizard"></iframe></div>
+            <div class="frame-cap">Live · wizard.html</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 12 · CAST STEP BY STEP (LIVE) ============ -->
+      <section>
+        <p class="kicker">Act 2 · The cast flow</p>
+        <div class="tour">
+          <div class="copy">
+            <h2>One step at a time</h2>
+            <ol class="steps">
+              <li><b>Arcanum &amp; Practice</b><small>what you're doing, and how</small></li>
+              <li><b>Factors</b><small>potency · duration · scale · range</small></li>
+              <li><b>Yantras</b><small>tools &amp; gestures that add dice</small></li>
+              <li><b>Cast</b><small>your pool, Reach, Mana &amp; Paradox</small></li>
+            </ol>
+          </div>
+          <div>
+            <div class="device"><iframe data-embed-mobile="../wizard.html" data-embed-desktop="../wizard.html" title="Live Wizard"></iframe></div>
+            <div class="frame-cap">Live · step through it</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 13 · READING YOUR RESULT (LIVE) ========== -->
+      <section>
+        <p class="kicker">Act 2 · The payoff</p>
+        <div class="tour">
+          <div class="copy">
+            <h2>Reading your result</h2>
+            <ul class="callouts">
+              <li>🎲 <strong>Dice pool</strong> — Gnosis + Arcanum + every modifier, totalled.</li>
+              <li>↑ <strong>Reach</strong> — how much you used vs. what's free.</li>
+              <li>⬡ <strong>Mana</strong> — what the spell costs.</li>
+              <li>⚠ <strong>Paradox</strong> — flagged when you reach past free.</li>
+            </ul>
+          </div>
+          <div>
+            <div class="device"><iframe data-embed-mobile="../wizard.html" data-embed-desktop="../wizard.html" title="Live Wizard"></iframe></div>
+            <div class="frame-cap">Live · the Cast step</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 14 · ROLL IT (DISCORD) =================== -->
+      <section>
+        <p class="kicker">Act 2 · Send it to the table</p>
+        <h2>Roll straight to Discord</h2>
+        <div class="cols" style="align-items:center">
+          <div>
+            <ul class="callouts">
+              <li>One tap posts a tidy <strong>embed</strong> of your spell…</li>
+              <li>…then the <strong>dice-bot command</strong> so the bot rolls it.</li>
+              <li>Casting <strong>deducts Mana</strong> once and bumps the scene's Paradox counter when relevant.</li>
+            </ul>
+          </div>
+          <div class="discord-msg">
+            <div class="discord-head"><div class="discord-avatar">M</div><div class="discord-user">Grimoire <span>BOT · today</span></div></div>
+            <div class="discord-embed" style="border-left-color:var(--arc-forces)">
+              <h4>Mage's Hand · Forces ●●</h4>
+              <div class="discord-fields">
+                <div class="discord-field"><div class="k">🎲 Pool</div><div class="v">7</div></div>
+                <div class="discord-field"><div class="k">↑ Reach</div><div class="v">1 / 1 free</div></div>
+                <div class="discord-field"><div class="k">⬡ Mana</div><div class="v">0</div></div>
+              </div>
+            </div>
+            <div class="discord-cmd">$cod 7</div>
+          </div>
+        </div>
+        <p class="note">Shown as a mock — real sends post to your configured webhook (Appendix A3).</p>
+      </section>
+
+      <!-- ===================== 15 · ACT 3 DIVIDER ======================= -->
+      <section data-state="section">
+        <div class="glyph">⟡</div><span class="act-tag">Act 3</span>
+        <h2>Spells: create, save &amp; load</h2>
+        <p class="subtitle">Build a spell once, keep it forever. Classic is your spellbook.</p>
+      </section>
+
+      <!-- ===================== 16 · LIBRARY EXPLAINED =================== -->
+      <section>
+        <p class="kicker">Act 3 · Your spellbook</p>
+        <h2>Three kinds of saved spell</h2>
+        <div class="spell-types">
+          <div class="stype" style="border-top:4px solid var(--accent)">
+            <h4>Rotes</h4><div class="tagline">Practiced, skill-backed</div>
+            <p>Set spells your mage has mastered — cast with a Skill die bonus.</p>
+          </div>
+          <div class="stype" style="border-top:4px solid var(--arc-time)">
+            <h4>Praxes</h4><div class="tagline">Signature improvisations</div>
+            <p>Spells you've made your own — improvised, but second nature.</p>
+          </div>
+          <div class="stype" style="border-top:4px solid var(--arc-spirit)">
+            <h4>Improvised favorites</h4><div class="tagline">Quick recall</div>
+            <p>Handy one-offs you don't want to rebuild each time.</p>
+          </div>
+        </div>
+        <p class="note">Classic <b>manages</b> all three — create, edit, delete. Wizard can <b>save</b> into them.</p>
+      </section>
+
+      <!-- ===================== 17 · CREATE & SAVE ====================== -->
+      <section>
+        <p class="kicker">Act 3 · Create &amp; save</p>
+        <h2>Build it once, save it</h2>
+        <div class="cols">
+          <div class="card">
+            <ol class="steps">
+              <li><b>Dial in the spell</b><small>arcanum, practice, factors, yantras</small></li>
+              <li><b>Save to Library</b><small>the calculator snapshots the whole cast</small></li>
+              <li><b>Name it &amp; pick a type</b><small>rote · praxis · favorite</small></li>
+            </ol>
+          </div>
+          <div class="card">
+            <div class="callout callout-tip">The save captures <b>every factor</b> — next time it loads back exactly as you built it.</div>
+            <div class="callout callout-info" style="margin-top:12px">Rotes remember their <b>Rote Skill</b>, so the pool is right on reload.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 18 · LOAD & RE-CAST ===================== -->
+      <section>
+        <p class="kicker">Act 3 · Load &amp; re-cast</p>
+        <h2>Recall a spell in one click</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li><strong>Load</strong> any saved spell back into the calculator.</li>
+              <li>Tweak factors for the moment, then cast.</li>
+              <li>Save back as <strong>"update existing"</strong> — or as a new spell.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="pipeline">
+              <div class="pipe-stage"><div class="ic">📚</div><h4>Library</h4><p>pick a spell</p></div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-stage"><div class="ic">🧮</div><h4>Calculator</h4><p>loads its factors</p></div>
+              <div class="pipe-arrow">→</div>
+              <div class="pipe-stage"><div class="ic">✨</div><h4>Cast</h4><p>roll &amp; send</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 19 · EDIT, ORGANIZE, EXPORT ============= -->
+      <section>
+        <p class="kicker">Act 3 · Manage</p>
+        <h2>Edit, organize &amp; export</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li><strong>Edit or delete</strong> any spell; move it between types.</li>
+              <li>Browse by tab — rotes · praxes · favorites.</li>
+              <li><strong>Export</strong> the whole spellbook to a <strong>PNG</strong> (or print).</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="callout callout-info"><b>Tip:</b> the PNG export makes a great handout — a one-page picture of your mage's repertoire.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 20 · WIZARD SAVES TOO =================== -->
+      <section>
+        <p class="kicker">Act 3 · One library, two doors</p>
+        <h2>Wizard saves into the same book</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li>From a Wizard cast, <strong>Save to Library</strong> drops it into the same lists.</li>
+              <li>It rides along inside your character file.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="callout callout-warn"><b>But:</b> <i>managing</i> the library — editing, deleting, reorganizing, exporting — is a <b>Classic</b> job.</div>
+          </div>
+        </div>
+        <p class="note">Same "set up in Classic, use in Wizard" rhythm as characters.</p>
+      </section>
+
+      <!-- ===================== 21 · ACT 4 DIVIDER ===================== -->
+      <section data-state="section">
+        <div class="glyph">⟡</div><span class="act-tag">Act 4</span>
+        <h2>Power user — Classic</h2>
+        <p class="subtitle">Everything on one screen, plus tricks Wizard doesn't carry.</p>
+      </section>
+
+      <!-- ===================== 22 · CLASSIC AT A GLANCE (LIVE) ======== -->
+      <section>
+        <p class="kicker">Act 4 · The full desk</p>
+        <div class="tour">
+          <div class="copy">
+            <h2>Everything, all at once</h2>
+            <ul class="callouts">
+              <li>The <strong>whole calculator</strong> on one screen — no stepping.</li>
+              <li>Built for a <strong>laptop or shared table screen</strong>.</li>
+              <li>Character, library, combined casting and scene — all here.</li>
+            </ul>
+            <div class="only-mobile callout callout-warn" style="margin-top:12px">Classic is desktop-first — open it on a bigger screen to explore live.</div>
+          </div>
+          <div class="only-desktop">
+            <div class="device desktop"><div class="scaler"><iframe data-embed-desktop="../index.html" title="Live Classic"></iframe></div></div>
+            <div class="frame-cap">Live · index.html (Classic)</div>
+          </div>
+          <figure class="only-mobile poster-fig">
+            <img class="poster" src="assets/screenshots/classic.png" alt="Classic calculator — full layout on one screen">
+            <figcaption class="frame-cap">Screenshot · Classic, the full calculator</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ===================== 23 · COMBINED CASTING ================= -->
+      <section>
+        <p class="kicker">Act 4 · Classic-only</p>
+        <h2>Combined spell casting</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li>Cast <strong>several spells together</strong> in one action.</li>
+              <li>The pool uses your <strong>lowest Arcanum</strong> among them…</li>
+              <li>…and applies a <strong>combination penalty</strong> per extra spell.</li>
+              <li>Reach and Mana are totalled across the set.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="callout callout-info"><b>Why Classic-only?</b> It needs the whole form visible at once — exactly Classic's strength. Wizard's step flow doesn't carry it.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 24 · REACH ECONOMY (D2) =============== -->
+      <section>
+        <p class="kicker">Act 4 · The core rule</p>
+        <h2>The Reach economy</h2>
+        <div class="reach-track">
+          <div class="reach-col free">
+            <h4>✅ Free Reach</h4>
+            <ul>
+              <li>1 free for each dot your Arcanum is <b>above</b> the spell's requirement</li>
+              <li>Spend it on extra factors at no cost</li>
+            </ul>
+            <div class="reach-note">Stay within free Reach → a clean cast.</div>
+          </div>
+          <div class="reach-col paid">
+            <h4>⚠ Paid Reach</h4>
+            <ul>
+              <li>Each Reach <b>beyond</b> free must be paid…</li>
+              <li>…with <b>1 Mana</b>, and it risks <b>Paradox</b></li>
+            </ul>
+            <div class="reach-note">The app totals this and flags Paradox automatically.</div>
+          </div>
+        </div>
+        <div class="pipeline" style="margin-top:18px">
+          <div class="pipe-stage"><div class="ic">↑</div><h4>Add a factor</h4><p>raises Reach</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">✅</div><h4>Within free?</h4><p>no cost</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">⬡</div><h4>Over free?</h4><p>pay Mana</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">⚠</div><h4>Paradox</h4><p>roll the risk</p></div>
+        </div>
+        <aside class="notes">The free/paid Reach line and the Paradox flag are the single most useful thing the app automates.</aside>
+      </section>
+
+      <!-- ===================== 25 · ACT 5 DIVIDER =================== -->
+      <section data-state="section">
+        <div class="glyph">⟡</div><span class="act-tag">Act 5</span>
+        <h2>Together at the table</h2>
+        <p class="subtitle">A shared spell library, live stat sync, and the Storyteller's screen.</p>
+      </section>
+
+      <!-- ===================== 26 · THE COMPENDIUM ================= -->
+      <section>
+        <p class="kicker">Act 5 · Community spells</p>
+        <h2>The shared Compendium</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li>A <strong>global, searchable</strong> spell library shared by everyone.</li>
+              <li>Grouped by <strong>Arcanum</strong> — with descriptions, Reach effects &amp; page refs.</li>
+              <li>Open it from Classic <em>or</em> Wizard; load any entry into your calculator.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <p style="margin:0 0 8px;color:var(--text-muted);font-size:0.68em">Browse by Arcanum:</p>
+            <div class="arc-grid">
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-death)"></span>Death</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-fate)"></span>Fate</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-forces)"></span>Forces</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-life)"></span>Life</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-matter)"></span>Matter</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-mind)"></span>Mind</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-prime)"></span>Prime</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-space)"></span>Space</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-spirit)"></span>Spirit</div>
+              <div class="arc-chip"><span class="arc-dot" style="background:var(--arc-time)"></span>Time</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 27 · CONTRIBUTING (D4) ============== -->
+      <section>
+        <p class="kicker">Act 5 · Contributing</p>
+        <h2>Anyone can suggest — roles keep it clean</h2>
+        <div class="roles">
+          <div class="role-step"><div class="lvl">Tier 1</div><h4>Suggester</h4><p>Propose new spells &amp; edits</p></div>
+          <div class="role-arrow">→</div>
+          <div class="role-step"><div class="lvl">Tier 2</div><h4>Sub-editor</h4><p>Review &amp; refine suggestions</p></div>
+          <div class="role-arrow">→</div>
+          <div class="role-step"><div class="lvl">Tier 3</div><h4>Editor</h4><p>Approve &amp; publish entries</p></div>
+          <div class="role-arrow">→</div>
+          <div class="role-step"><div class="lvl">Tier 4</div><h4>Admin</h4><p>Grant roles · bulk import</p></div>
+        </div>
+        <p class="note">Suggestions carry the submitter's name &amp; note; editors approve them into the live compendium.</p>
+      </section>
+
+      <!-- ===================== 28 · LIVE SESSIONS (D3) ============ -->
+      <section>
+        <p class="kicker">Act 5 · Live play</p>
+        <h2>One scene, everyone in sync</h2>
+        <div class="sync">
+          <div class="sync-node"><div class="ic">🧑‍🤝‍🧑</div><h4>Players</h4><p>Classic / Wizard</p></div>
+          <div class="sync-link">⇅<span class="lbl">live</span></div>
+          <div class="sync-node hub"><div class="ic">☁️</div><h4>Scene</h4><p>shared code</p></div>
+          <div class="sync-link">⇅<span class="lbl">live</span></div>
+          <div class="sync-node"><div class="ic">🎲</div><h4>Storyteller</h4><p>ST screen</p></div>
+        </div>
+        <ul class="callouts" style="max-width:780px;margin:22px auto 0">
+          <li>Join a scene with a <strong>code</strong>; your <strong>Mana / Health / WP / Paradox</strong> push live to the ST.</li>
+          <li>The ST can nudge stats and apply <strong>Tilts</strong> — they flow right back to you.</li>
+        </ul>
+      </section>
+
+      <!-- ===================== 29 · STORYTELLER SCREEN (LIVE) ===== -->
+      <section>
+        <p class="kicker">Act 5 · Behind the screen</p>
+        <div class="tour">
+          <div class="copy">
+            <h2>The Storyteller's view</h2>
+            <ul class="callouts">
+              <li><strong>Player cards</strong> — Health, Mana, Willpower, Paradox at a glance.</li>
+              <li><strong>Scene log</strong> and a <strong>sheet viewer</strong> with ST overrides.</li>
+              <li>Apply <strong>Tilts &amp; Conditions</strong> to players in a click.</li>
+            </ul>
+            <div class="only-mobile callout callout-warn" style="margin-top:12px">The ST screen is desktop-first — open it on a laptop to explore live.</div>
+          </div>
+          <div class="only-desktop">
+            <div class="device desktop"><div class="scaler"><iframe data-embed-desktop="../storyteller.html" title="Live Storyteller"></iframe></div></div>
+            <div class="frame-cap">Live · storyteller.html</div>
+          </div>
+          <figure class="only-mobile poster-fig">
+            <img class="poster" src="assets/screenshots/storyteller-session.png" alt="Storyteller dashboard with player cards, health, mana and tilts">
+            <figcaption class="frame-cap">Screenshot · the Storyteller dashboard</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ===================== 30 · TILTS & CONDITIONS =========== -->
+      <section>
+        <p class="kicker">Act 5 · Status effects</p>
+        <h2>Tilts &amp; Conditions, explained inline</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li>A shared <strong>catalog</strong> of Tilts &amp; Conditions with full descriptions.</li>
+              <li>Names show a <strong>hover tooltip</strong> — no flipping through books.</li>
+              <li>The ST applies them; players see them on their own sheet.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="callout callout-warn"><b>ST setup:</b> the catalog starts empty — import the provided <code>CSV</code> once so everyone sees descriptions.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 31 · ACT 6 DIVIDER ============== -->
+      <section data-state="section">
+        <div class="glyph">⟡</div><span class="act-tag">Act 6</span>
+        <h2>Mastery</h2>
+        <p class="subtitle">The small things that make it smooth.</p>
+      </section>
+
+      <!-- ===================== 32 · HELP IS BUILT IN ========== -->
+      <section>
+        <p class="kicker">Act 6 · Built-in help</p>
+        <h2>The rules are in the tooltips</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li><strong>Glossary tooltips</strong> on tricky terms — hover for the rule.</li>
+              <li>Inline hints for <strong>Roll Quality</strong> &amp; <strong>n-Again</strong>.</li>
+              <li>Sensible defaults everywhere — you rarely start from zero.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="callout callout-tip">New to Mage? You can drive the whole app from the tooltips without the rulebook open.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== 33 · TIPS & GOTCHAS =========== -->
+      <section>
+        <p class="kicker">Act 6 · Good to know</p>
+        <h2>Tips &amp; gotchas</h2>
+        <ul class="callouts" style="max-width:900px;margin:0 auto">
+          <li><strong>Build in Classic / import</strong> — Wizard's "New Character" is just a blank stub.</li>
+          <li><strong>Grimoire rotes can't be cast Instant</strong> — the form keeps them at ritual.</li>
+          <li><strong>Webhook privacy</strong> — they live inside your exported file; don't share it publicly.</li>
+          <li><strong>Offline</strong> — install as a PWA and it keeps working without a connection.</li>
+          <li><strong>Live infrastructure</strong> — sessions &amp; compendium are real shared services; use throwaway codes to experiment.</li>
+        </ul>
+      </section>
+
+      <!-- ===================== 34 · CLOSING ================= -->
+      <section data-state="title">
+        <div class="title-wrap">
+          <div class="glyph" style="font-size:2.4em;margin-bottom:10px">⟡</div>
+          <h1 style="font-size:2.1em">Go cast something</h1>
+          <p class="subtitle" style="margin-top:14px">Set up once in <b style="color:var(--accent-light)">Classic</b> · cast in <b style="color:var(--arc-time)">Wizard</b> · run the table in <b style="color:var(--arc-spirit)">Storyteller</b>.</p>
+          <p class="hint">Questions or ideas? Bring them to the table — or the Compendium.</p>
+        </div>
+      </section>
+
+      <!-- ===================== 35 · APPENDIX DIVIDER ======= -->
+      <section data-state="section">
+        <div class="glyph">⟡</div><span class="act-tag">Appendix</span>
+        <h2>For the curious</h2>
+        <p class="subtitle">Deeper mechanics &amp; what's under the hood.</p>
+      </section>
+
+      <!-- ===================== A1 · ANATOMY OF A CAST (D5) = -->
+      <section>
+        <p class="kicker">Appendix · A1</p>
+        <h2>Anatomy of a cast</h2>
+        <div class="pipeline">
+          <div class="pipe-stage"><div class="ic">🧙</div><h4>Character</h4><p>Gnosis + Arcanum dots</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">⚙️</div><h4>Factors</h4><p>potency · duration · scale · range</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">🔯</div><h4>Yantras</h4><p>bonus dice</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">🎲</div><h4>Dice pool</h4><p>+ Reach / Mana / Paradox</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">💬</div><h4>Discord</h4><p>embed + bot command</p></div>
+        </div>
+        <p class="note">Each stage maps to a section of the form — and to a module in the codebase (spellFactors → dicePool → discord).</p>
+      </section>
+
+      <!-- ===================== A2 · CLASH OF WILLS ======== -->
+      <section>
+        <p class="kicker">Appendix · A2</p>
+        <h2>Clash of Wills</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li>When two spells collide, each mage rolls an <strong>opposed pool</strong>.</li>
+              <li>The app builds your clash pool from your <strong>highest relevant Arcanum</strong>.</li>
+              <li>Send it to Discord like any other roll — same embed format.</li>
+            </ul>
+          </div>
+          <div class="discord-msg">
+            <div class="discord-head"><div class="discord-avatar">M</div><div class="discord-user">Grimoire <span>BOT</span></div></div>
+            <div class="discord-embed" style="border-left-color:var(--arc-space)">
+              <h4>Clash of Wills</h4>
+              <div class="discord-fields">
+                <div class="discord-field"><div class="k">Arcanum</div><div class="v">Space ●●●</div></div>
+                <div class="discord-field"><div class="k">🎲 Pool</div><div class="v">8</div></div>
+              </div>
+            </div>
+            <div class="discord-cmd">$cod 8</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== A3 · DISCORD DEEP-DIVE ===== -->
+      <section>
+        <p class="kicker">Appendix · A3</p>
+        <h2>Discord, set up properly</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li>Add a channel <strong>webhook URL</strong> to your character (per-character).</li>
+              <li>Two messages per send: a readable <strong>embed</strong>, then the <strong>bot command</strong>.</li>
+              <li>Embeds carry the <strong>Arcanum's color</strong> — instantly readable at the table.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="callout callout-warn"><b>Privacy (§E):</b> webhook URLs stay in your character file so it round-trips — but are <b>stripped</b> from anything pushed to a shared scene.</div>
+            <div class="callout callout-discord" style="margin-top:12px">Set them up once in the <b>Classic character editor</b>.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== A4 · POWER-USER WORKFLOW == -->
+      <section>
+        <p class="kicker">Appendix · A4</p>
+        <h2>A power-user session</h2>
+        <div class="pipeline">
+          <div class="pipe-stage"><div class="ic">🔗</div><h4>Join scene</h4><p>one code</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">📚</div><h4>Load a rote</h4><p>from your library</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">➕</div><h4>Combine spells</h4><p>Classic-only</p></div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-stage"><div class="ic">💬</div><h4>Send &amp; sync</h4><p>roll + stats push</p></div>
+        </div>
+        <p class="note">Library + combined casting + live session, all on one Classic screen — the full power-user loop.</p>
+      </section>
+
+      <!-- ===================== A5 · UNDER THE HOOD ======= -->
+      <section>
+        <p class="kicker">Appendix · A5</p>
+        <h2>Under the hood</h2>
+        <div class="cols">
+          <div class="card">
+            <ul class="callouts">
+              <li><strong>No build step</strong> — three static HTML pages; React &amp; Babel load from CDN.</li>
+              <li><strong>Firebase</strong> — Realtime DB for live scenes, Firestore for the compendium.</li>
+              <li><strong>PWA</strong> — network-first for app code, cache-first for CDN; genuinely offline-capable.</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="callout callout-info">A shared rules engine (<code>spellFactors.js</code> + <code>dicePool.js</code>) powers both Classic &amp; Wizard, with a test harness guarding the math.</div>
+          </div>
+        </div>
+        <p class="note">For maintainers: see <code>docs/ARCHITECTURE.md</code>.</p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js + plugins -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/notes/notes.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/highlight/highlight.min.js"></script>
+  <script>
+    // --- Responsive: switch reveal's logical canvas by viewport so content
+    //     REFLOWS (and stays readable) on phones instead of just shrinking. ---
+    const MOBILE_Q = '(max-width: 768px)';
+    const isMobile = () => window.matchMedia(MOBILE_Q).matches;
+    const deckCanvas = () => isMobile() ? { width: 420, height: 800 }
+                                        : { width: 1280, height: 720 };
+
+    // Device-aware embeds: an <iframe data-embed-mobile="..." data-embed-desktop="...">
+    // gets the right source for the current viewport (Wizard on phones, Classic on
+    // desktop), so we never cram a desktop app into a phone frame. reveal then
+    // lazy-loads/unloads it via the data-src we set (only the active slide, viewDistance:1).
+    function wireEmbeds() {
+      const m = isMobile();
+      document.querySelectorAll('iframe[data-embed-mobile],iframe[data-embed-desktop]').forEach(f => {
+        // Skip embeds gated to the other device (e.g. a desktop-only Classic frame
+        // on a phone) so we never load an app the slide is hiding.
+        const wrongDevice = (m && f.closest('.only-desktop')) || (!m && f.closest('.only-mobile'));
+        if (wrongDevice) { f.removeAttribute('src'); f.removeAttribute('data-src'); return; }
+        const url = m ? (f.dataset.embedMobile  || f.dataset.embedDesktop)
+                      : (f.dataset.embedDesktop || f.dataset.embedMobile);
+        if (url && f.getAttribute('data-src') !== url) {
+          f.removeAttribute('src');          // drop any loaded copy
+          f.setAttribute('data-src', url);   // reveal will (re)load on its slide
+        }
+      });
+    }
+
+    function applyMode() {
+      document.documentElement.classList.toggle('is-mobile', isMobile());
+      wireEmbeds();
+    }
+
+    applyMode();
+    Reveal.initialize({
+      ...deckCanvas(),
+      margin: 0.045,
+      minScale: 0.2,
+      maxScale: 1.6,
+      hash: true,
+      slideNumber: 'c/t',
+      controls: true,
+      progress: true,
+      center: true,
+      transition: 'fade',
+      transitionSpeed: 'default',
+      viewDistance: 1,   // keep only the active slide's live embed mounted
+      plugins: [ RevealNotes, RevealHighlight ],
+    });
+
+    // Re-flow when the viewport crosses the breakpoint (e.g. phone rotate).
+    let _mobile = isMobile();
+    window.addEventListener('resize', () => {
+      const m = isMobile();
+      if (m !== _mobile) {
+        _mobile = m;
+        applyMode();
+        Reveal.configure(deckCanvas());
+        Reveal.sync();
+        Reveal.layout();
+      }
+    });
+
+    // Re-center after the web fonts load. reveal computes its vertical-centering
+    // offset from measured slide heights; if it runs before Rajdhani/Noto swap in,
+    // the heights change afterward and slides look top-heavy until the next layout.
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => Reveal.layout());
+    }
+    // Belt-and-suspenders: a couple of nudges in case fonts are cached/instant.
+    window.addEventListener('load', () => Reveal.layout());
+    setTimeout(() => Reveal.layout(), 600);
+  </script>
+</body>
+</html>
