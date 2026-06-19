@@ -899,6 +899,17 @@
     Reveal.on('paused', hideAllLive);
     Reveal.on('resumed', positionLive);
 
+    // The live frame sits in a fixed layer, glued to its bezel by positionLive().
+    // On phones a tall slide scrolls (grimoire-theme.css), which moves the bezel
+    // but not the fixed frame — so re-glue it on scroll. Capture phase is required:
+    // scroll events don't bubble, and the scroller is the active <section>. rAF
+    // throttles to one reposition per frame.
+    let _scrollRAF = null;
+    document.addEventListener('scroll', () => {
+      if (_scrollRAF) return;
+      _scrollRAF = requestAnimationFrame(() => { _scrollRAF = null; positionLive(); });
+    }, true);
+
     // Re-flow when the viewport crosses the breakpoint (e.g. phone rotate).
     let _mobile = isMobile();
     window.addEventListener('resize', () => {
