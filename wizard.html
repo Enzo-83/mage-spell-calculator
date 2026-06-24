@@ -271,7 +271,12 @@
             yantrasArray.push({ name, bonus: roteSkillDots, category: "mudra", isMudra: true });
           }
         } else if (name === "Dedicated Tool") {
-          // Reduces paradox, not a dice bonus yantra
+          // A standalone Dedicated Tool is still a yantra: +0 dice, but it occupies
+          // a yantra slot (and so adds casting time). Its −2 Paradox is applied
+          // separately via the dedicatedActive flag below. When the Dedicated Tool
+          // IS a Path/Order tool, the user picks the tool instead (which carries its
+          // +1) and ticks "Also dedicated" — combined into that one slot.
+          yantrasArray.push({ name, bonus: 0, category: "yantra" });
         } else if (YANTRA_BONUSES[name] !== undefined) {
           yantrasArray.push({ name, bonus: YANTRA_BONUSES[name], category: "yantra" });
         }
@@ -1285,6 +1290,7 @@
             <span style={{ color:C.textMuted,fontSize:12,display:"flex",alignItems:"center",gap:4 }}>Yantras selected<GlossaryTip term="yantra"/></span>
             <span style={{ color:over?C.danger:C.accentLight,fontSize:20,fontWeight:700 }}>{count} / {max}</span>
           </div>
+          {over && <Hint color={C.danger}>⚠ Over your Gnosis limit — only your {max} highest-value Yantras add dice; the extras are ignored.</Hint>}
 
           <SectionHead>Places</SectionHead>
           <YRow name="Demesne"        bonus="+2"/>
@@ -2463,7 +2469,7 @@
       );
     }
 
-    function StepCast({ d, derived, character, onManaChange, onSetActive, onOpenSheet, sceneConn, onSaveToLibrary, poolActionRef }) {
+    function StepCast({ d, derived, character, onDeductCosts, onSetActive, onOpenSheet, sceneConn, onSaveToLibrary, poolActionRef }) {
       const { dicePool, usedReach, freeReach, excessReach, totalMana, paradoxDice, chanceOnly,
               potencyPen, durationPen, scalePen, yantraBonus, basePool,
               durEntry, scaleEntry, isRote, methodInfo, yantraCapApplied, yantraCapAdj,
@@ -2495,10 +2501,19 @@
       const manaInsufficient = manaC !== null && totalMana > 0 && manaAfter < 0;
       const manaPerTurn = derived.manaPerTurn;
 
-      function deductMana() {
-        if (manaDeducted || !character || totalMana <= 0) return;
-        const next = Math.max(0, (character.mana?.current ?? 0) - totalMana);
-        if (onManaChange) onManaChange(next);
+      // Spending Willpower for +3 dice also costs 1 WP point — deducted together
+      // with Mana on cast (parity with the Classic app and the rules).
+      const wpCur       = character?.willpower?.current ?? null;
+      const willSpendWP = !!d.spendWP && wpCur !== null && wpCur > 0;
+      const costLabel   = [
+        totalMana > 0 ? `−${totalMana} Mana` : null,
+        willSpendWP   ? "−1 WP"             : null,
+      ].filter(Boolean).join(" · ") || "No cost";
+
+      function deductCastingCosts() {
+        if (manaDeducted || !character) return;
+        if (totalMana <= 0 && !willSpendWP) return;
+        if (onDeductCosts) onDeductCosts(totalMana > 0 ? totalMana : 0, willSpendWP);
         setManaDeducted(true);
       }
 
@@ -2519,7 +2534,7 @@
           });
           await DiscordShared.postEmbedThenCommand(poolWebhook, casterName, embed,
             DiscordShared.formatDiceCommand(dicePool, derived.poolResult.rollQuality));
-          deductMana();
+          deductCastingCosts();
           // 3. Auto-increment Paradox counter in Firebase if connected and spell has Paradox risk
           if (sceneConn && excessReach > 0) {
             try {
@@ -2677,15 +2692,15 @@
                 opacity:!cardWebhook?0.4:1 }}>
               {ds.card==="ok"?"✓ Sent":ds.card==="sending"?"…":"Spell Card"}
             </button>
-            <button onClick={deductMana} disabled={!character||totalMana<=0||manaDeducted}
+            <button onClick={deductCastingCosts} disabled={!character||(totalMana<=0&&!willSpendWP)||manaDeducted}
               style={{ flex:1,minWidth:80,padding:"9px",
-                borderRadius:6,cursor:character&&totalMana>0&&!manaDeducted?"pointer":"not-allowed",
+                borderRadius:6,cursor:character&&(totalMana>0||willSpendWP)&&!manaDeducted?"pointer":"not-allowed",
                 fontSize:12,fontWeight:600,
-                opacity:character&&totalMana>0&&!manaDeducted?1:0.4,
+                opacity:character&&(totalMana>0||willSpendWP)&&!manaDeducted?1:0.4,
                 background:manaDeducted?C.successFaint:C.warningFaint,
                 border:`1px solid ${manaDeducted?C.success:C.warning}`,
                 color:manaDeducted?C.success:C.warning }}>
-              {manaDeducted?"✓ Deducted":`−${totalMana} Mana`}
+              {manaDeducted?"✓ Deducted":costLabel}
             </button>
             <button onClick={() => {
               if (!character || !onSetActive) return;
@@ -3708,6 +3723,21 @@
         try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
         if (sceneConn) sessionPushStats(sceneConn.code, sceneConn.playerId, updated);
       }
+      // Deduct casting costs (Mana + 1 Willpower when spent) in ONE state update so
+      // neither setter overwrites the other (both spread the same character object).
+      function handleDeductCosts(manaCost, spendWP) {
+        if (!character) return;
+        const updated = {...character};
+        if (manaCost > 0) {
+          updated.mana = {...character.mana, current: Math.max(0, (character.mana?.current ?? 0) - manaCost)};
+        }
+        if (spendWP) {
+          updated.willpower = {...character.willpower, current: Math.max(0, (character.willpower?.current ?? 0) - 1)};
+        }
+        setChar(updated);
+        try { localStorage.setItem('mage_current_character', JSON.stringify(updated)); } catch(e){}
+        if (sceneConn) sessionPushStats(sceneConn.code, sceneConn.playerId, updated);
+      }
       function onSpellLoaded(spell) {
         setSourceSpellId(spell.id || null);
         setSourceRoteKey(spell.roteSkill || null);
@@ -3792,7 +3822,7 @@
           case "factors":   return <StepFactors   d={d} set={set} derived={derived}/>;
           case "yantras":   return <StepYantras   d={d} set={set}/>;
           case "modifiers": return <StepModifiers d={d} set={set} derived={derived} character={character} sceneConn={sceneConn}/>;
-          case 'cast':      return <StepCast d={d} derived={derived} character={character} onManaChange={handleManaChange} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)} sceneConn={sceneConn} onSaveToLibrary={()=>setSaveLibOpen(true)} poolActionRef={castPoolRef}/>;
+          case 'cast':      return <StepCast d={d} derived={derived} character={character} onDeductCosts={handleDeductCosts} onSetActive={addActiveSpellWizard} onOpenSheet={()=>setSheetOpen(true)} sceneConn={sceneConn} onSaveToLibrary={()=>setSaveLibOpen(true)} poolActionRef={castPoolRef}/>;
           default:          return null;
         }
       }

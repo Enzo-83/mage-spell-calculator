@@ -188,6 +188,8 @@
                     return;
                 }
                 downloadCharacter(currentCharacter);
+                // Exported backup now matches the working copy → clear the badge.
+                setCharacterDirty(false);
                 // §E policy: webhooks stay in the export (it's the user's backup
                 // and must round-trip), but warn that the file is postable.
                 const dc = currentCharacter.discord || {};
@@ -282,11 +284,53 @@
                 if (infoEl)  infoEl.textContent  = `/ ${max} max`;
             }
 
-            function saveCharacterToLocalStorage() {
+            // Unsaved-changes tracking. The working copy autosaves to localStorage
+            // silently (never a file download); the "Unsaved" badge tells the user
+            // when the working copy has diverged from their last exported JSON, so
+            // they can choose when to manually Save (export) a fresh backup.
+            let characterDirty = false;
+            function setCharacterDirty(dirty) {
+                characterDirty = !!dirty;
+                try {
+                    if (characterDirty) localStorage.setItem('mage_character_dirty', '1');
+                    else localStorage.removeItem('mage_character_dirty');
+                } catch(e) { /* quota */ }
+                if (window.classicBridge?.setDirty) window.classicBridge.setDirty(characterDirty);
+            }
+
+            // Silent persistence of the working copy. markDirty defaults to true so
+            // every mutation flags unsaved changes; pass false for clean states
+            // (fresh import / startup restore).
+            function saveCharacterToLocalStorage(markDirty = true) {
                 if (!currentCharacter) return;
                 try {
                     localStorage.setItem('mage_current_character', JSON.stringify(currentCharacter));
                 } catch(e) { /* quota */ }
+                setCharacterDirty(markDirty);
+            }
+
+            // Restore a previously-tracked working copy from localStorage on startup
+            // (silent — no file download). Routed through onCharacterLoad so the form,
+            // spell library, and header chip all populate; the persisted dirty flag is
+            // then re-applied so the "Unsaved" badge survives a reload. Called once the
+            // React bridges are wired (see the deferred trigger after root mount).
+            function restoreCharacterFromStorage() {
+                if (currentCharacter) return;          // never clobber an already-loaded character
+                let raw;
+                try { raw = localStorage.getItem('mage_current_character'); } catch(e) { return; }
+                if (!raw) return;
+                let char;
+                try { char = JSON.parse(raw); } catch(e) { return; }
+                if (!char || typeof char !== 'object') return;
+                let wasDirty = false;
+                try { wasDirty = localStorage.getItem('mage_character_dirty') === '1'; } catch(e) {}
+                window.currentCharacter = char;
+                // onCharacterLoad wires the form + spell library and marks clean…
+                window.classicVanilla?.onCharacterLoad?.(char);
+                // …it doesn't touch the header chip, so push that explicitly…
+                if (window.classicBridge?.setCharacter) window.classicBridge.setCharacter(char);
+                // …then restore whatever unsaved state existed before the reload.
+                setCharacterDirty(wasDirty);
             }
             
             
@@ -780,27 +824,55 @@
                 }
             }
             
-            // Deduct mana from character on cast
+            // Deduct casting costs (Mana + spent Willpower) from the character on cast.
             let manaAlreadyDeducted = false;
-            
-            function deductMana() {
-                if (manaAlreadyDeducted || !currentCharacter) return;
-                const totalMana = parseInt(document.getElementById('manaTotalCost').textContent) || 0;
-                if (totalMana <= 0) return;
-                const newMana = Math.max(0, currentCharacter.mana.current - totalMana);
-                currentCharacter.mana.current = newMana;
-                manaAlreadyDeducted = true;
+            let willpowerAlreadyDeducted = false;
+
+            function deductCastingCosts() {
+                if (!currentCharacter) return;
+                const parts = [];
+
+                // ── Mana ──
+                if (!manaAlreadyDeducted) {
+                    const totalMana = parseInt(document.getElementById('manaTotalCost')?.textContent) || 0;
+                    if (totalMana > 0) {
+                        const newMana = Math.max(0, currentCharacter.mana.current - totalMana);
+                        currentCharacter.mana.current = newMana;
+                        manaAlreadyDeducted = true;
+                        parts.push(`Mana −${totalMana} (${newMana} left)`);
+                    }
+                }
+
+                // ── Willpower: 1 point when "Spend Willpower (+3 dice)" is checked ──
+                if (!willpowerAlreadyDeducted && document.getElementById('spendWillpower')?.checked) {
+                    if (!currentCharacter.willpower) currentCharacter.willpower = { current: 0, max: 5 };
+                    if (currentCharacter.willpower.current > 0) {
+                        const newWp = Math.max(0, currentCharacter.willpower.current - 1);
+                        currentCharacter.willpower.current = newWp;
+                        willpowerAlreadyDeducted = true;
+                        parts.push(`Willpower −1 (${newWp} left)`);
+                    }
+                }
+
+                if (parts.length === 0) return;
+
+                // Sync the top character chips, notify, persist, and push to scene —
+                // once for whichever costs were actually spent.
+                if (window.classicBridge?.setCharacter) window.classicBridge.setCharacter(currentCharacter);
                 if (window.classicBridge?.results) {
                     window.classicBridge.results.refreshResults();
-                    window.classicBridge.results.notifyManaDeducted(`✓ Mana deducted — ${newMana} remaining`);
+                    window.classicBridge.results.notifyManaDeducted(`✓ Spent ${parts.join(' · ')}`);
                 }
+                // Persist the spent resources (silent localStorage) and flag unsaved changes.
+                saveCharacterToLocalStorage();
                 if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
                     sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                 }
             }
 
-            function resetManaDeductedFlag() {
+            function resetCastingCostFlags() {
                 manaAlreadyDeducted = false;
+                willpowerAlreadyDeducted = false;
                 if (window.classicBridge?.results) window.classicBridge.results.clearManaDeducted();
             }
             
@@ -872,7 +944,7 @@
                     // Embed summary, then the dice-bot command
                     await DiscordShared.postEmbedThenCommand(diceWebhook, characterName, embed, spellCommand);
 
-                    deductMana();
+                    deductCastingCosts();
 
                     // Auto-increment Paradox counter in Firebase if connected and spell has Paradox risk
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode && spellResult.reach.excess > 0) {
@@ -992,7 +1064,8 @@
                     currentCharacter = char; // keep closure in sync with React-loaded character
                     applyCharacterToForm();
                     window.classicBridge?.spellLib?.refresh(char);
-                    saveCharacterToLocalStorage();
+                    // A freshly imported file matches its source → clean (no badge).
+                    saveCharacterToLocalStorage(false);
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
                         sessionPushStats(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
                         sessionPushSheet(sceneRoomCode, sceneGetPlayerId(), currentCharacter);
@@ -1001,6 +1074,8 @@
                 onStatChange: function(char) {
                     // Mana ledger / validation live in React — force a results re-render
                     window.classicBridge?.results?.refreshResults?.();
+                    // Persist header +/- adjustments (mana/HP/WP) and flag unsaved changes.
+                    saveCharacterToLocalStorage();
                     if ((sceneMode === 'player' || sceneMode === 'st') && sceneRoomCode) {
                         sessionPushStats(sceneRoomCode, sceneGetPlayerId(), char);
                     }
@@ -1053,7 +1128,8 @@
                 return currentCharacter;
             };
             window.classicVanilla.showToast = showToast;
-            window.classicVanilla.resetManaDeducted = resetManaDeductedFlag;
+            window.classicVanilla.restoreFromStorage = restoreCharacterFromStorage;
+            window.classicVanilla.resetManaDeducted = resetCastingCostFlags;
             window.classicVanilla.loadSpell = loadSpellToCalculator;
             window.classicVanilla.exportSpellLibrary = exportSpellLibrary;
             window.classicVanilla.setSpellAsActive = setSpellAsActive;
@@ -1448,7 +1524,7 @@
       }
 
       function ClassicCharacterHeader({
-        character, onLoad, onSave, onNew, onEdit,
+        character, dirty, onLoad, onSave, onNew, onEdit,
         onManaChange, onHealthChange, onWillpowerChange,
       }) {
         const fileRef  = useRef(null);
@@ -1547,7 +1623,15 @@
                 <button className="btn-small" onClick={onNew}>New</button>
                 <button className="btn-small" onClick={onEdit} disabled={!character}>Edit</button>
                 <button className="btn-small" onClick={()=>fileRef.current?.click()}>Load</button>
-                <button className="btn-small btn-primary" onClick={onSave} disabled={!character}>Save</button>
+                {character && dirty && (
+                  <span title="You have unsaved changes — click Save to export a fresh JSON backup. Your progress is kept in this browser between reloads."
+                    style={{display:"inline-flex",alignItems:"center",gap:4,fontSize:"0.72em",fontWeight:700,
+                      color:"var(--warning)",alignSelf:"center"}}>
+                    ● Unsaved
+                  </span>
+                )}
+                <button className="btn-small btn-primary" onClick={onSave} disabled={!character}
+                  style={character && dirty ? {boxShadow:"0 0 0 2px var(--warning)"} : null}>Save</button>
                 <ClashPill character={character} />
                 <ScenePill />
               </div>
@@ -1620,13 +1704,16 @@
       // ── App root ────────────────────────────────────────────────────────────
       function ClassicHeaderApp() {
         const [character, setCharacter] = useState(null);
+        const [dirty, setDirty] = useState(false);
 
         useEffect(() => {
           window.classicBridge = {
             ...(window.classicBridge || {}),
             setCharacter: (c) => setCharacter(c ? {...c} : null),
+            setDirty: (d) => setDirty(!!d),
           };
           if (window.currentCharacter) setCharacter({...window.currentCharacter});
+          try { if (localStorage.getItem('mage_character_dirty') === '1') setDirty(true); } catch(e) {}
         }, []);
 
         function handleLoad(char) {
@@ -1660,6 +1747,7 @@
         return (
           <ClassicCharacterHeader
             character={character}
+            dirty={dirty}
             onLoad={handleLoad}
             onSave={()=>window.classicVanilla?.onSave()}
             onNew={()=>window.classicVanilla?.onNew()}
@@ -2016,8 +2104,9 @@
             yantras.push({ name: key, bonus: YANTRA_BONUSES[key] ?? 0, special: null, isMudra: false });
           }
         }
-        if (form.pathToolDedicated)  yantras.push({ name: 'dedicatedTool', bonus: 0, special: 'paradox', isMudra: false });
-        if (form.orderToolDedicated) yantras.push({ name: 'dedicatedTool', bonus: 0, special: 'paradox', isMudra: false });
+        // Path/Order tool "↳ Also my Dedicated Tool" is a paradox rider on the tool
+        // yantra (handled via the dedicatedTool boolean in the paradox pool), not a
+        // yantra of its own — so it must NOT consume a yantra slot here.
         if (form.personaBonus > 0)   yantras.push({ name: 'persona', bonus: form.personaBonus, special: null, isMudra: false });
         return yantras;
       }
@@ -2112,9 +2201,11 @@
         const rangeDesc = typeof RANGE_OPTIONS    !== 'undefined' ? (RANGE_OPTIONS[form.range]?.description || '') : '';
         const pfChg     = form.primaryFactor !== form.defaultPrimaryFactor;
 
+        // Dedication riders (pathToolDedicated/orderToolDedicated) don't count as
+        // their own yantra — they're a paradox benefit on an already-counted tool.
         const yantraCount = Object.values(form.yantras).filter(Boolean).length
-          + (form.pathToolDedicated ? 1 : 0) + (form.orderToolDedicated ? 1 : 0)
           + (form.personaBonus > 0 ? 1 : 0);
+        const overYantraCap = yantraCount > maxYant;
 
         const ch = window.currentCharacter;
         let arcText = '', arcColor = '';
@@ -2196,7 +2287,9 @@
           durLabelShort,
           RANGE_SHORT[form.range] || form.range,
         ].join(' · ');
-        const yantrasSummary = yantraCount > 0 ? yantraCount + ' selected' : 'None';
+        const yantrasSummary = yantraCount > 0
+          ? yantraCount + ' selected' + (overYantraCap ? ` · using best ${maxYant}` : '')
+          : 'None';
         const modParts = [];
         if (form.spendWillpower) modParts.push('WP +3');
         if (form.teamworkDice > 0) modParts.push('Team +' + form.teamworkDice);
@@ -2432,8 +2525,16 @@
             <AccordionCard index={3} activeCard={activeCard} onToggle={setActiveCard} title="Yantras" summary={yantrasSummary}>
               <div style={{fontSize:'0.85em',color:'var(--text-muted)',marginBottom:8,display:'flex',alignItems:'center',gap:4}}>
                 <GlossaryTip term="yantra"/>
-                <span id="yantraCount">({yantraCount} / {maxYant} max)</span>
+                <span id="yantraCount" style={overYantraCap ? {color:'var(--warning)',fontWeight:600} : null}>
+                  ({yantraCount} / {maxYant} max)
+                </span>
               </div>
+              {overYantraCap && (
+                <div className="info-text" id="yantraCapNote"
+                  style={{color:'var(--warning)',marginBottom:8}}>
+                  ⚠ Over your Gnosis limit — only your {maxYant} highest-value Yantras add dice; the extras are ignored.
+                </div>
+              )}
               <div className="yantra-grid" id="yantraGrid">
                 <div className="yantra-category">
                   <h4>Places</h4>
@@ -2950,13 +3051,14 @@
         const [form, setForm] = React.useState(DEFAULT_FORM);
         const [results, setResults] = React.useState(null);
 
-        // Reset the "mana deducted" flag when spell parameters change
-        // (same field list the old vanilla change-listeners covered)
+        // Reset the casting-cost (mana + willpower) deducted flags when spell
+        // parameters change (same field list the old vanilla change-listeners
+        // covered, plus the Spend-Willpower toggle).
         React.useEffect(() => {
           window.classicVanilla?.resetManaDeducted?.();
         }, [form.castingMethod, form.arcanumDots, form.spellRequirement, form.gnosis,
             form.potency, form.advancedPotency, form.durationIndex, form.advancedDuration,
-            form.castingTime, form.additionalManaCost]);
+            form.castingTime, form.additionalManaCost, form.spendWillpower]);
 
         React.useEffect(() => {
           // Combined spell overrides (reads React state, not DOM)
@@ -4212,6 +4314,19 @@
       ReactDOM.createRoot(document.getElementById('classic-chareditor-root')).render(<ClassicCharacterEditor/>);
       ReactDOM.createRoot(document.getElementById('classic-activespells-root')).render(<ClassicActiveSpellsModal/>);
       ReactDOM.createRoot(document.getElementById('classic-spelllib-root')).render(<ClassicSpellLibraryDrawer/>);
+
+      // Restore any previously-tracked character from localStorage once the React
+      // root effects (setCharacter / setSpellForm / spellLib bridges) have wired up.
+      // Poll briefly for bridge readiness so the form + spell library populate too.
+      (function restoreWhenReady(attempts) {
+        const b = window.classicBridge;
+        const ready = b && b.setCharacter && b.setSpellForm && b.spellLib;
+        if (ready || attempts > 50) {
+          window.classicVanilla?.restoreFromStorage?.();
+          return;
+        }
+        setTimeout(() => restoreWhenReady(attempts + 1), 20);
+      })(0);
     </script>
 
     <!-- Service Worker Registration -->

@@ -182,6 +182,14 @@ t('pool: yantras fully offsetting big penalties are not capped',
   dp({ spellFactorPenalty: -8, yantras: [{ name: 'a', bonus: 5 }, { name: 'b', bonus: 5 }], gnosis: 9 }).modifiers.yantraCapApplied, false);
 t('pool: yantra count limited to max for gnosis (g1 -> 2 of 3 used)',
   dp({ gnosis: 1, yantras: [{ name: 'a', bonus: 2 }, { name: 'b', bonus: 2 }, { name: 'c', bonus: 2 }] }).yantras.yantrasUsed, 2);
+t('pool: auto-pick best yantras (g1 keeps top 2 by bonus: 5+3=8, not first 1+5=6)',
+  dp({ gnosis: 1, yantras: [{ name: 'a', bonus: 1 }, { name: 'b', bonus: 5 }, { name: 'c', bonus: 3 }] }).yantras.rawBonus, 8);
+// Dedicated Tool is a +0-dice yantra: it occupies a slot (counts toward yantrasUsed)
+// but adds no dice; its −2 Paradox is handled separately in the paradox pool.
+t('pool: dedicated tool occupies a yantra slot (g1: High Speech + Dedicated = 2 used)',
+  dp({ gnosis: 1, yantras: [{ name: 'High Speech', bonus: 2 }, { name: 'Dedicated Tool', bonus: 0 }] }).yantras.yantrasUsed, 2);
+t('pool: dedicated tool adds no dice (rawBonus = 2 from High Speech only)',
+  dp({ gnosis: 1, yantras: [{ name: 'High Speech', bonus: 2 }, { name: 'Dedicated Tool', bonus: 0 }] }).yantras.rawBonus, 2);
 
 // Roll quality
 t('quality: praxis exceptional at 3', S.getRollQuality('praxis', S.CASTING_METHODS.praxis).exceptionalAt, 3);
@@ -387,7 +395,7 @@ function buildSharedYantras(c) {
     if (name === 'Mudra') {
       if (mudraOk) arr.push({ name, isMudra: true, bonus: (c.roteSkillDots || 0) + (c.orderSkill ? 1 : 0) });
     }
-    else if (name === 'Dedicated Tool') continue; // paradox-only, no dice
+    else if (name === 'Dedicated Tool') arr.push({ name, bonus: 0 }); // +0 dice, but occupies a yantra slot
     else arr.push({ name, bonus: WIZ_YANTRA_BONUSES[name] ?? 0 });
   }
   if (c.persona > 0) arr.push({ name: 'Persona', bonus: c.persona });
@@ -504,6 +512,8 @@ for (const n of [3, 5, 7]) {
 label('yantras small', { yantras: ['Path Tool', 'High Speech'] });
 label('yantras cap-trigger', { yantras: ['Demesne', 'High Speech', 'Concentration', 'Rune', 'Material'], gnosis: 9 });
 label('yantras over count limit g1', { yantras: ['Demesne', 'High Speech', 'Concentration'], gnosis: 1 });
+label('dedicated tool occupies a slot', { yantras: ['High Speech'], dedicatedTool: true, gnosis: 1 });
+label('dedicated tool at cap with real yantras', { yantras: ['High Speech', 'Concentration'], dedicatedTool: true, gnosis: 1 });
 label('persona 3', { persona: 3 });
 
 // Seeded random sweep (deterministic LCG)
