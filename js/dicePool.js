@@ -43,9 +43,13 @@ function calculateBasePool(params) {
 function calculateYantraBonus(yantras, gnosis, spellPenalties) {
     const maxYantras = Math.ceil(gnosis / 2) + 1;
     const maxBonus = 5;
-    
-    // Limit to max Yantras allowed
-    const usableYantras = yantras.slice(0, maxYantras);
+
+    // Limit to max Yantras allowed — auto-pick best: keep the highest-bonus
+    // Yantras up to the cap so excess selections never silently drop a stronger
+    // Yantra. (Sorting a copy; selection order no longer matters.)
+    const usableYantras = [...yantras]
+        .sort((a, b) => (b.bonus || 0) - (a.bonus || 0))
+        .slice(0, maxYantras);
     
     // Sum up raw bonus
     let rawBonus = 0;
